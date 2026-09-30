@@ -34,63 +34,63 @@ Panduan ini menerjemahkan [requirements.md](requirements.md) menjadi backlog dan
 
 ID story memetakan langsung ke FR. Acceptance criteria di bawah berupa ringkasan; requirement asal tetap menjadi kriteria lengkap.
 
-| Urut | ID / FR | User story dan hasil yang dapat diterima | Prioritas | Sprint |
-|---:|---|---|---|---:|
-| 1 | US-01 / FR-18 | Sebagai pembalap, saya ingin navigasi utama dan logout yang menutup sesi tanpa menghapus riwayat, agar saya dapat berpindah fitur dan keluar dengan aman. | P0 | 1-2 |
-| 2 | US-02 / FR-07 | Sebagai pembalap, saya ingin telemetri disimpan berkala dan disinkronkan tanpa duplikasi, agar data sesi tersedia offline dan setelah aplikasi dibuka kembali. | P0 | 3-4 |
-| 3 | US-03 / FR-06 | Sebagai pembalap, saya ingin memulai, menjeda, melanjutkan, dan mengakhiri sesi serta melihat status/metrik, agar perekaman mudah dikendalikan. | P0 | 3 |
-| 4 | US-04 / FR-20 | Sebagai pembalap, saya ingin memeriksa izin, GPS, dan sensor sebelum mulai, agar saya tahu dampaknya pada perekaman. | P0 | 3 |
-| 5 | US-05 / FR-13 | Sebagai pembalap, saya ingin melihat ringkasan sesi dengan data hilang atau estimasi ditandai, agar hasil ditinjau secara tepat. | P0 | 4 |
-| 6 | US-06 / FR-19 | Sebagai pembalap, saya ingin mengelola 1-3 kontak darurat secara aman, agar SOS menggunakan kontak valid. | P0 | 2, 5 |
-| 7 | US-07 / FR-10 | Sebagai pembalap, saya ingin membatalkan countdown insiden atau mengirim SOS manual dan melihat statusnya, agar kegagalan jaringan tidak tersamarkan. | P0 | 5 |
-| 8 | US-08 / FR-01 | Sebagai pembalap, saya ingin masuk dengan biometrik dan pemulihan aman, agar sesi lokal hanya dapat dibuka dengan benar. | P0 | 2 |
-| 9 | US-09 / FR-04 | Sebagai pembalap, saya ingin mencari rute, melihat elevasi/POI, dan membuka rute tersimpan offline, agar perjalanan dapat direncanakan. | P1 | 6 |
-| 10 | US-10 / FR-08 | Sebagai pembalap, saya ingin melihat sumber dan kualitas metrik sensor, agar estimasi tidak disalahartikan sebagai pengukuran pasti. | P1 | 4 |
-| 11 | US-11 / FR-09 | Sebagai pembalap, saya ingin mengatur peringatan lokal dan mengetahui keterbatasan informasi online, agar pengingat berguna saat offline. | P1 | 5 |
-| 12 | US-12 / FR-21 | Sebagai pembalap, saya ingin memilih metrik/imperial di semua tampilan tanpa mengubah nilai dasar, agar metrik konsisten. | P1 | 2, 4 |
-| 13 | US-13 / FR-22 | Sebagai pembalap, saya ingin ekspor sesi ke GPX/JSON dan impor rute GPX, agar data dapat digunakan di luar aplikasi dan rute ditinjau. | P1 | 7 |
-| 14 | US-14 / FR-23 | Sebagai pembalap, saya ingin melihat storage, menghapus cache peta, dan mengatur batas unduhan tanpa kehilangan sesi. | P1 | 7 |
-| 15 | US-15 / FR-16 | Sebagai pembalap, saya ingin melihat/memperbarui profil dan foto agar informasi akun relevan. | P1 | 2 |
-| 16 | US-16 / FR-02 | Sebagai manajer tim, saya ingin konversi mata uang dan anggaran beberapa item dengan kurs transparan, agar biaya logistik dapat dibandingkan. | P1 | 8 |
-| 17 | US-17 / FR-03 | Sebagai manajer tim, saya ingin mengonversi jadwal ke London, WIB, WITA, dan WIT dengan tanggal lokal, agar waktu lintas zona tepat. | P1 | 8 |
-| 18 | US-18 / FR-11 | Sebagai pembalap, saya ingin tes reaksi dua menit dengan skor bertanggal tersimpan lokal, agar hasil tetap tersedia dan dapat dibandingkan. | P1 | 9 |
-| 19 | US-19 / FR-05 | Sebagai pembalap, saya ingin saran strategi dari konteks yang tersedia, agar persiapan terbantu tanpa menganggapnya sebagai jaminan keselamatan. | P2 | 10 |
-| 20 | US-20 / FR-12 | Sebagai pembalap, saya ingin ringkasan tren tes reaksi dan pengingat istirahat bila AI tersedia, agar skor menjadi konteks, bukan penentu kelayakan. | P2 | 10 |
-| 21 | US-21 / FR-14 | Sebagai pembalap, saya ingin opt-in pendaftaran hash ringkasan dan status transaksi, agar integritas berkas dapat diperiksa tanpa mempublikasikan data pribadi. | P2 | 11 |
-| 22 | US-22 / FR-15 | Sebagai pembalap, saya ingin melihat peringkat dan status verifikasi, agar hasil pending tidak tampak terverifikasi. | P2 | 11 |
-| 23 | US-23 / FR-17 | Sebagai pengguna, saya ingin mengirim saran/kesan dan melihat hasil pengiriman, agar masukan tercatat atau kegagalannya diketahui. | P1 | 11 |
-| 24 | US-24 / FR-24 | Sebagai pembalap, saya ingin menghubungkan wearable yang didukung dan menyinkronkan metrik dengan izin saya, agar data latihan dapat ditinjau bersama sesi dengan sumber dan status yang jelas. | P1 | 6 |
+| Urut | ID / FR       | User story dan hasil yang dapat diterima                                                                                                                                                        | Prioritas | Sprint |
+| ---: | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -----: |
+|    1 | US-01 / FR-18 | Sebagai pembalap, saya ingin navigasi utama dan logout yang menutup sesi tanpa menghapus riwayat, agar saya dapat berpindah fitur dan keluar dengan aman.                                       | P0        |    1-2 |
+|    2 | US-02 / FR-07 | Sebagai pembalap, saya ingin telemetri disimpan berkala dan disinkronkan tanpa duplikasi, agar data sesi tersedia offline dan setelah aplikasi dibuka kembali.                                  | P0        |    3-4 |
+|    3 | US-03 / FR-06 | Sebagai pembalap, saya ingin memulai, menjeda, melanjutkan, dan mengakhiri sesi serta melihat status/metrik, agar perekaman mudah dikendalikan.                                                 | P0        |      3 |
+|    4 | US-04 / FR-20 | Sebagai pembalap, saya ingin memeriksa izin, GPS, dan sensor sebelum mulai, agar saya tahu dampaknya pada perekaman.                                                                            | P0        |      3 |
+|    5 | US-05 / FR-13 | Sebagai pembalap, saya ingin melihat ringkasan sesi dengan data hilang atau estimasi ditandai, agar hasil ditinjau secara tepat.                                                                | P0        |      4 |
+|    6 | US-06 / FR-19 | Sebagai pembalap, saya ingin mengelola 1-3 kontak darurat secara aman, agar SOS menggunakan kontak valid.                                                                                       | P0        |   2, 5 |
+|    7 | US-07 / FR-10 | Sebagai pembalap, saya ingin membatalkan countdown insiden atau mengirim SOS manual dan melihat statusnya, agar kegagalan jaringan tidak tersamarkan.                                           | P0        |      5 |
+|    8 | US-08 / FR-01 | Sebagai pembalap, saya ingin masuk dengan biometrik dan pemulihan aman, agar sesi lokal hanya dapat dibuka dengan benar.                                                                        | P0        |      2 |
+|    9 | US-09 / FR-04 | Sebagai pembalap, saya ingin mencari rute, melihat elevasi/POI, dan membuka rute tersimpan offline, agar perjalanan dapat direncanakan.                                                         | P1        |      6 |
+|   10 | US-10 / FR-08 | Sebagai pembalap, saya ingin melihat sumber dan kualitas metrik sensor, agar estimasi tidak disalahartikan sebagai pengukuran pasti.                                                            | P1        |      4 |
+|   11 | US-11 / FR-09 | Sebagai pembalap, saya ingin mengatur peringatan lokal dan mengetahui keterbatasan informasi online, agar pengingat berguna saat offline.                                                       | P1        |      5 |
+|   12 | US-12 / FR-21 | Sebagai pembalap, saya ingin memilih metrik/imperial di semua tampilan tanpa mengubah nilai dasar, agar metrik konsisten.                                                                       | P1        |   2, 4 |
+|   13 | US-13 / FR-22 | Sebagai pembalap, saya ingin ekspor sesi ke GPX/JSON dan impor rute GPX, agar data dapat digunakan di luar aplikasi dan rute ditinjau.                                                          | P1        |      7 |
+|   14 | US-14 / FR-23 | Sebagai pembalap, saya ingin melihat storage, menghapus cache peta, dan mengatur batas unduhan tanpa kehilangan sesi.                                                                           | P1        |      7 |
+|   15 | US-15 / FR-16 | Sebagai pembalap, saya ingin melihat/memperbarui profil dan foto agar informasi akun relevan.                                                                                                   | P1        |      2 |
+|   16 | US-16 / FR-02 | Sebagai manajer tim, saya ingin konversi mata uang dan anggaran beberapa item dengan kurs transparan, agar biaya logistik dapat dibandingkan.                                                   | P1        |      8 |
+|   17 | US-17 / FR-03 | Sebagai manajer tim, saya ingin mengonversi jadwal ke London, WIB, WITA, dan WIT dengan tanggal lokal, agar waktu lintas zona tepat.                                                            | P1        |      8 |
+|   18 | US-18 / FR-11 | Sebagai pembalap, saya ingin tes reaksi dua menit dengan skor bertanggal tersimpan lokal, agar hasil tetap tersedia dan dapat dibandingkan.                                                     | P1        |      9 |
+|   19 | US-19 / FR-05 | Sebagai pembalap, saya ingin saran strategi dari konteks yang tersedia, agar persiapan terbantu tanpa menganggapnya sebagai jaminan keselamatan.                                                | P2        |     10 |
+|   20 | US-20 / FR-12 | Sebagai pembalap, saya ingin ringkasan tren tes reaksi dan pengingat istirahat bila AI tersedia, agar skor menjadi konteks, bukan penentu kelayakan.                                            | P2        |     10 |
+|   21 | US-21 / FR-14 | Sebagai pembalap, saya ingin opt-in pendaftaran hash ringkasan dan status transaksi, agar integritas berkas dapat diperiksa tanpa mempublikasikan data pribadi.                                 | P2        |     11 |
+|   22 | US-22 / FR-15 | Sebagai pembalap, saya ingin melihat peringkat dan status verifikasi, agar hasil pending tidak tampak terverifikasi.                                                                            | P2        |     11 |
+|   23 | US-23 / FR-17 | Sebagai pengguna, saya ingin mengirim saran/kesan dan melihat hasil pengiriman, agar masukan tercatat atau kegagalannya diketahui.                                                              | P1        |     11 |
+|   24 | US-24 / FR-24 | Sebagai pembalap, saya ingin menghubungkan wearable yang didukung dan menyinkronkan metrik dengan izin saya, agar data latihan dapat ditinjau bersama sesi dengan sumber dan status yang jelas. | P1        |      6 |
 
 ### PBI lintas fungsi untuk NFR
 
-| ID | NFR | Pekerjaan dan bukti penerimaan |
-|---|---|---|
+| ID   | NFR    | Pekerjaan dan bukti penerimaan                                                                                                          |
+| ---- | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Q-01 | NFR-01 | Gunakan secure storage/enkripsi platform untuk data sensitif; tinjau logout dan log; pastikan API key tidak tertanam di aplikasi klien. |
-| Q-02 | NFR-02 | Minta izin/persetujuan sebelum akses lokasi, sensor, foto, wearable, SOS, proof, atau publikasi; jelaskan data dan tujuan pembagian. |
-| Q-03 | NFR-03 | Uji rekam/simpan, pembatalan alarm, dan buka rute tersimpan dalam mode pesawat; kegagalan online tidak menghapus data lokal. |
-| Q-04 | NFR-04 | Sinkronisasi dapat dilanjutkan, idempotent, tidak menduplikasi, dan mempertahankan data lokal sampai server mengonfirmasi. |
-| Q-05 | NFR-05 | Kontrol sesi mudah dikenali; interaksi saat bersepeda minimal; peringatan penting jelas dibedakan. |
-| Q-06 | NFR-06 | Uji izin ditolak, GPS lemah, sensor/wearable tidak tersedia atau berbeda dukungan, latar belakang, dan baterai pada perangkat sasaran. |
-| Q-07 | NFR-07 | Tampilkan sumber/waktu kurs, kualitas dan sumber metrik termasuk wearable, status offline/sinkron, status SOS, dan status ledger. |
+| Q-02 | NFR-02 | Minta izin/persetujuan sebelum akses lokasi, sensor, foto, wearable, SOS, proof, atau publikasi; jelaskan data dan tujuan pembagian.    |
+| Q-03 | NFR-03 | Uji rekam/simpan, pembatalan alarm, dan buka rute tersimpan dalam mode pesawat; kegagalan online tidak menghapus data lokal.            |
+| Q-04 | NFR-04 | Sinkronisasi dapat dilanjutkan, idempotent, tidak menduplikasi, dan mempertahankan data lokal sampai server mengonfirmasi.              |
+| Q-05 | NFR-05 | Kontrol sesi mudah dikenali; interaksi saat bersepeda minimal; peringatan penting jelas dibedakan.                                      |
+| Q-06 | NFR-06 | Uji izin ditolak, GPS lemah, sensor/wearable tidak tersedia atau berbeda dukungan, latar belakang, dan baterai pada perangkat sasaran.  |
+| Q-07 | NFR-07 | Tampilkan sumber/waktu kurs, kualitas dan sumber metrik termasuk wearable, status offline/sinkron, status SOS, dan status ledger.       |
 
 ## 5. Jadwal Sprint
 
 Asumsi dua minggu per sprint. Minggu dihitung sejak kickoff; tanggal kalender ditetapkan kemudian.
 
-| Sprint | Minggu | Sprint Goal dan scope |
-|---:|---:|---|
-| 1 | 1-2 | Fondasi delivery, navigasi dasar, keputusan arsitektur dan risiko. |
-| 2 | 3-4 | Identitas, logout, profil, kontak darurat, keamanan dan preferensi dasar. |
-| 3 | 5-6 | Pemeriksaan kesiapan, kontrol sesi, GPS dan penyimpanan lokal berkala. |
-| 4 | 7-8 | Kualitas sensor, ringkasan, unit lintas tampilan, status sinkronisasi. |
-| 5 | 9-10 | Peringatan, countdown/batal, SOS manual/otomatis dan status pengiriman. |
-| 6 | 11-12 | Integrasi wearable/provider yang dipilih, serta peta/rute, elevasi, POI dan rute offline sesuai kapasitas sprint. |
-| 7 | 13-14 | Impor/ekspor GPX/JSON, penggunaan storage dan pembersihan cache aman. |
-| 8 | 15-16 | Konversi kurs/anggaran dan zona waktu dengan DST. |
-| 9 | 17-18 | Mini game reaksi, skor lokal bertanggal dan perbandingan. |
-| 10 | 19-20 | Saran AI/tren jika penyedia disetujui; jika tidak, ambil P1 siap. |
-| 11 | 21-22 | Feedback, proof opt-in, transaksi dan leaderboard dengan status verifikasi. |
-| 12 | 23-24 | Hardening, uji end-to-end/perangkat, keamanan, offline dan release candidate. |
+| Sprint | Minggu | Sprint Goal dan scope                                                                                             |
+| -----: | -----: | ----------------------------------------------------------------------------------------------------------------- |
+|      1 |    1-2 | Fondasi delivery, navigasi dasar, keputusan arsitektur dan risiko.                                                |
+|      2 |    3-4 | Identitas, logout, profil, kontak darurat, keamanan dan preferensi dasar.                                         |
+|      3 |    5-6 | Pemeriksaan kesiapan, kontrol sesi, GPS dan penyimpanan lokal berkala.                                            |
+|      4 |    7-8 | Kualitas sensor, ringkasan, unit lintas tampilan, status sinkronisasi.                                            |
+|      5 |   9-10 | Peringatan, countdown/batal, SOS manual/otomatis dan status pengiriman.                                           |
+|      6 |  11-12 | Integrasi wearable/provider yang dipilih, serta peta/rute, elevasi, POI dan rute offline sesuai kapasitas sprint. |
+|      7 |  13-14 | Impor/ekspor GPX/JSON, penggunaan storage dan pembersihan cache aman.                                             |
+|      8 |  15-16 | Konversi kurs/anggaran dan zona waktu dengan DST.                                                                 |
+|      9 |  17-18 | Mini game reaksi, skor lokal bertanggal dan perbandingan.                                                         |
+|     10 |  19-20 | Saran AI/tren jika penyedia disetujui; jika tidak, ambil P1 siap.                                                 |
+|     11 |  21-22 | Feedback, proof opt-in, transaksi dan leaderboard dengan status verifikasi.                                       |
+|     12 |  23-24 | Hardening, uji end-to-end/perangkat, keamanan, offline dan release candidate.                                     |
 
 ## 6. Sprint Backlog: PBI dan Pekerjaan
 
@@ -227,18 +227,18 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 ## 7. Dependensi dan Gerbang Keputusan
 
-| Keputusan | Dibutuhkan sebelum | Jika belum diputuskan |
-|---|---:|---|
-| Akun, backend, sinkronisasi dan retensi | Sprint 2-4 | Login lokal dapat diuji; sinkronisasi server belum dapat diklaim selesai. |
-| Database lokal, enkripsi dan migrasi | Sprint 2-3 | Data kontak/sesi berisiko tidak aman atau tidak pulih. |
-| Provider peta, elevasi, format offline dan lisensi | Sprint 6 | Integrasi nyata belum dapat divalidasi. |
-| Sumber kurs dan interval pembaruan/cache | Sprint 8 | Fixture bukan kurs terkini. |
-| Zona waktu dan aturan DST | Sprint 8 | Gunakan database zona waktu, bukan offset tetap/manual. |
-| Provider AI/cuaca, biaya, retensi dan persetujuan | Sprint 10 | Jangan kirim data pengguna; AI tetap backlog. |
-| Kanal SOS, format pesan dan retry | Sprint 5 | Alur lokal dapat diuji, tetapi pengiriman nyata belum selesai. |
-| Provider wearable (misalnya Garmin), akses API/SDK, izin dan metrik | Sprint 6 | Integrasi koneksi nyata menunggu persetujuan/akses provider; jangan klaim semua merek atau real-time didukung. |
-| Jaringan/ledger, biaya dan aturan leaderboard | Sprint 11 | Proof/leaderboard menunggu keputusan; jangan kirim data ke ledger belum dipilih. |
-| Perangkat sasaran dan validasi sensor | Sprint 3-5 | Metrik tanpa validasi hanya data terbatas/estimasi. |
+| Keputusan                                                           | Dibutuhkan sebelum | Jika belum diputuskan                                                                                          |
+| ------------------------------------------------------------------- | -----------------: | -------------------------------------------------------------------------------------------------------------- |
+| Akun, backend, sinkronisasi dan retensi                             |         Sprint 2-4 | Login lokal dapat diuji; sinkronisasi server belum dapat diklaim selesai.                                      |
+| Database lokal, enkripsi dan migrasi                                |         Sprint 2-3 | Data kontak/sesi berisiko tidak aman atau tidak pulih.                                                         |
+| Provider peta, elevasi, format offline dan lisensi                  |           Sprint 6 | Integrasi nyata belum dapat divalidasi.                                                                        |
+| Sumber kurs dan interval pembaruan/cache                            |           Sprint 8 | Fixture bukan kurs terkini.                                                                                    |
+| Zona waktu dan aturan DST                                           |           Sprint 8 | Gunakan database zona waktu, bukan offset tetap/manual.                                                        |
+| Provider AI/cuaca, biaya, retensi dan persetujuan                   |          Sprint 10 | Jangan kirim data pengguna; AI tetap backlog.                                                                  |
+| Kanal SOS, format pesan dan retry                                   |           Sprint 5 | Alur lokal dapat diuji, tetapi pengiriman nyata belum selesai.                                                 |
+| Provider wearable (misalnya Garmin), akses API/SDK, izin dan metrik |           Sprint 6 | Integrasi koneksi nyata menunggu persetujuan/akses provider; jangan klaim semua merek atau real-time didukung. |
+| Jaringan/ledger, biaya dan aturan leaderboard                       |          Sprint 11 | Proof/leaderboard menunggu keputusan; jangan kirim data ke ledger belum dipilih.                               |
+| Perangkat sasaran dan validasi sensor                               |         Sprint 3-5 | Metrik tanpa validasi hanya data terbatas/estimasi.                                                            |
 
 ## 8. Pengukuran dan Penyesuaian
 
