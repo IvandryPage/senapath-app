@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/overview/presentation/overview_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
 import '../../features/session/presentation/session_screen.dart';
+import '../../features/authentication/presentation/device_auth_cubit.dart';
+import '../../features/authentication/presentation/device_unlock_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -61,24 +64,50 @@ final appRouter = GoRouter(
   ],
 );
 
-class _AppShell extends StatelessWidget {
+class _AppShell extends StatefulWidget {
   const _AppShell({required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
+  State<_AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<_AppShell> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<DeviceAuthCubit>().initialize();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final destination = _destinations[navigationShell.currentIndex];
+    final authState = context.watch<DeviceAuthCubit>().state;
+    if (!authState.isUnlocked) {
+      return const Scaffold(body: SafeArea(child: DeviceUnlockScreen()));
+    }
+
+    final destination = _destinations[widget.navigationShell.currentIndex];
 
     return Scaffold(
-      appBar: AppBar(title: Text(destination.label)),
-      body: SafeArea(top: false, child: navigationShell),
+      appBar: AppBar(
+        title: Text(destination.label),
+        actions: [
+          if (widget.navigationShell.currentIndex == 3)
+            IconButton(
+              tooltip: 'Keluar',
+              onPressed: () => context.read<DeviceAuthCubit>().logout(),
+              icon: const Icon(Icons.logout),
+            ),
+        ],
+      ),
+      body: SafeArea(top: false, child: widget.navigationShell),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
+        selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: (index) {
-          navigationShell.goBranch(
+          widget.navigationShell.goBranch(
             index,
-            initialLocation: index == navigationShell.currentIndex,
+            initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
         destinations: [

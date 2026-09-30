@@ -4,7 +4,7 @@
 
 Dokumen ini menjelaskan arsitektur target yang direkomendasikan untuk Senapath, aplikasi Flutter pendamping latihan dan balapan sepeda. Dokumen ini melengkapi [requirements.md](requirements.md) dan [scrum-guide.md](scrum-guide.md).
 
-Status saat ini: repository masih berupa scaffold Flutter; dependency arsitektur yang disebut di dokumen ini belum ditambahkan ke `pubspec.yaml`. **Drift di atas SQLite telah dipilih sebagai database lokal.** Pilihan implementasi lain, provider, backend, dan perangkat sasaran masih perlu diriset dan disepakati sebelum integrasi terkait dimulai.
+Status saat ini: repository memiliki shell Flutter dan alur lokal Sprint 2. **Drift di atas SQLite dipilih sebagai database lokal/offline; Supabase dipilih sebagai platform database cloud.** Project Supabase sudah dibuat menurut pemilik produk, tetapi URL/key, schema, RLS, Auth, dan sync client belum dikonfigurasi. Provider lain dan perangkat sasaran masih perlu diriset. Tidak ada cloud sync yang boleh ditampilkan aktif sebelum konfigurasi dan kebijakan akses diuji.
 
 ## 2. Prinsip Arsitektur
 
@@ -22,13 +22,15 @@ flowchart LR
     U[Pengguna / Pembalap] --> APP[Aplikasi Flutter]
     W[Wearable / Provider] --> APP
     APP --> LOCAL[(Penyimpanan lokal terenkripsi)]
-    APP --> API[Backend API]
-    API --> DB[(Database server)]
-    API --> EXT[Provider peta, kurs, cuaca, AI, SOS]
-    API --> LEDGER[Ledger blockchain, opsional]
+    APP --> SB[Supabase Auth / Data API]
+    SB --> DB[(Supabase PostgreSQL + RLS)]
+    SB --> STORAGE[Supabase Storage, bila dipilih]
+    SB --> FN[Edge Functions]
+    FN --> EXT[Provider peta, kurs, cuaca, AI, SOS]
+    FN --> LEDGER[Ledger blockchain, opsional]
 ```
 
-Diagram ini adalah batas tanggung jawab konseptual. Implementasi dan provider aktual belum diputuskan. Kunci/credential provider yang bersifat rahasia berada di backend atau secret manager, bukan di aplikasi.
+Diagram ini adalah batas tanggung jawab konseptual. Supabase dipilih untuk cloud database; kapabilitas Supabase lain dan provider eksternal belum semuanya diputuskan. Kunci rahasia provider berada di Edge Functions/secret manager, bukan di aplikasi.
 
 ## 4. Arsitektur Aplikasi Flutter
 
@@ -112,15 +114,19 @@ Pisahkan **perekaman sensor** dari **pengiriman jaringan**. Jangan menjalankan r
 
 ## 7. Backend dan Kontrak API
 
-Backend belum ditentukan, tetapi kebutuhan akun, sinkronisasi, kontak, feedback, SOS, integrasi provider, dan leaderboard membuat API server diperlukan untuk fitur multi-perangkat/remote. Mulai dengan backend modular sederhana, bukan microservices sebelum skala dan batas operasional membutuhkannya.
+Supabase dipilih sebagai platform cloud Senapath: PostgreSQL menjadi penyimpanan cloud dan Supabase Data API menyediakan akses terautentikasi. Aplikasi tetap membaca/menulis data inti ke Drift terlebih dahulu; outbox lokal menyimpan perubahan yang belum tersinkron sampai koneksi dan konfigurasi tersedia. Supabase Auth, Storage, dan Edge Functions adalah kapabilitas yang akan dievaluasi/dikonfigurasi sesuai kebutuhan; pemilihan database cloud tidak otomatis berarti semua fitur tersebut sudah aktif.
 
 API/backend minimal perlu mendefinisikan:
 
-- autentikasi, refresh/revocation token, otorisasi per pengguna, dan versi API;
+- model autentikasi Supabase (jika dipilih), refresh/revocation token, otorisasi per pengguna, dan versi kontrak data;
 - operasi upsert idempotent untuk sesi, titik/summary, kontak, dan hasil game;
 - sinkronisasi delta dengan cursor atau mekanisme setara, konflik data, retry, dan konfirmasi penerimaan;
-- endpoints/status terpisah untuk SOS, wearable connection/callback, feedback, dan publikasi proof;
+- operasi/status terpisah untuk SOS, wearable connection/callback, feedback, dan publikasi proof; operasi yang memerlukan secret/provider privilege dijalankan melalui Edge Functions;
 - validasi payload, rate limit, batas ukuran, retensi, backup, audit akses sensitif, serta kebijakan penghapusan akun/data.
+
+Sebelum client Supabase diaktifkan, buat schema/migrasi SQL, ownership kolom `user_id`, dan **Row Level Security (RLS)** untuk semua tabel yang dapat diakses client. Uji bahwa pengguna hanya dapat membaca/mengubah baris miliknya. Anon/publishable key memang nilai client, tetapi aman hanya dengan RLS yang benar; `service_role` key tidak boleh masuk Flutter, git, build artifact, atau log. Simpan konfigurasi lokal di file yang di-ignore atau `--dart-define-from-file`, dan gunakan secret/config CI untuk build. Jangan commit credential proyek.
+
+Saat cloud dikonfigurasi, tambahkan `supabase_flutter` dan buat adapter remote/sync worker. Sampai saat itu, operasi profil/kontak tetap local-only dengan status tertunda; jangan membuat request ke URL contoh atau menganggap secure local storage sebagai database cloud.
 
 `Dio` hanya menangani komunikasi HTTP di client: base configuration, timeout, serialisasi, error mapping, dan interceptor. Interceptor boleh menambahkan token dan metadata korelasi, tetapi tidak boleh mencatat token, koordinat rinci, data kontak, atau isi SOS. Rahasia provider dan panggilan yang membutuhkan server-side key ditangani backend.
 
@@ -184,13 +190,16 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 | Wearable        | Provider API/SDK terpilih                                            | Pastikan akses dan izin provider; tentukan import historis versus live.                                    |
 | AI              | Backend REST ke provider LLM                                         | Jangan panggil provider ber-secret langsung dari aplikasi.                                                 |
 | Blockchain      | Backend/relayer atau wallet pengguna; RPC client                     | Putuskan custody key, biaya, jaringan, canonical hash, consent, dan retry.                                 |
-| Backend         | Belum dipilih                                                        | Putuskan auth, database server, hosting, API, sinkronisasi, storage media, dan operasi.                    |
+| Cloud database  | Supabase dipilih                                                     | Konfigurasikan URL/key, schema/migrasi SQL, RLS, backup, dan strategi Drift outbox sebelum sync client.    |
+| Supabase Auth   | Belum diputuskan                                                     | Tentukan metode login/account-linking dan bagaimana token cloud berinteraksi dengan local device unlock.   |
+| Cloud storage   | Belum diputuskan                                                     | Tentukan apakah foto/media perlu Supabase Storage, bucket private, policy, dan signed URL.                 |
+| Edge Functions  | Belum diputuskan                                                     | Evaluasi untuk operasi SOS/provider yang memerlukan secret; jangan simpan service-role key di client.      |
 | Push/notifikasi | Lokal dan provider push terpilih                                     | Tentukan platform, consent, payload minimal, dan status delivery.                                          |
 | Pengujian/CI    | Flutter test, analyzer, pipeline CI                                  | Tentukan provider CI, build signing, device matrix, dan quality gates.                                     |
 
 ## 14. Tahapan Implementasi yang Disarankan
 
-1. **Fondasi:** sepakati backend/API, detail implementasi Drift (schema, migrasi, enkripsi), model sesi, dependency direction, logging redacted, CI, dan perangkat sasaran.
+1. **Fondasi:** konfigurasi Supabase tanpa mengekspos secret, tentukan schema/RLS, detail implementasi Drift (schema, migrasi, enkripsi), model sesi, dependency direction, logging redacted, CI, dan perangkat sasaran.
 2. **Core offline:** implementasikan autentikasi lokal, izin/kesiapan, sesi, penyimpanan telemetri, pemulihan setelah restart, ringkasan, dan formatter unit.
 3. **Keandalan:** tambahkan outbox/idempotensi, sinkronisasi, status dan retry; uji offline, storage, background, dan konflik.
 4. **Integrasi perangkat dan peta:** pilih satu provider wearable dan peta; validasi dukungan, sumber metrik, lisensi, izin, dan mode offline.
@@ -204,7 +213,7 @@ Setiap tahap tetap dikerjakan sebagai Increment Scrum; urutan ini bukan fase wat
 Simpan keputusan besar sebagai ADR singkat dengan konteks, opsi, keputusan, konsekuensi, pemilik, dan tanggal. ADR awal yang disarankan:
 
 - implementasi Drift untuk telemetri: schema, migrasi, enkripsi, strategi backup/pemulihan, dan kebutuhan cache terpisah;
-- backend, autentikasi, kontrak API, sinkronisasi dan konflik;
+- Supabase Auth atau model autentikasi lain, kontrak data, sinkronisasi, dan konflik;
 - provider peta, kurs, cuaca, wearable, AI, SOS, dan push;
 - target platform/perangkat serta kebijakan perekaman background;
 - pengelolaan kunci lokal, retensi data, consent, serta penghapusan akun;
@@ -239,3 +248,15 @@ Daftar ini mencatat keputusan dan status saat Sprint 1; pilihan riset terbuka bu
 | Diagnostik             | Belum ada logger/analytics pihak ketiga.      | Error hanya mencatat konteks teknis minimum dengan data pribadi disunting; jangan menambahkan `print`/`debugPrint` untuk payload sensitif.                                               |
 
 Shell Sprint 1 tidak melakukan request jaringan dan tidak mengumpulkan data pengguna. CI hanya menjalankan build-quality checks dan tidak membutuhkan secret. Kebijakan ini menjadi baseline, bukan pengganti threat model atau persetujuan provider.
+
+## 17. Status Sprint 2 dan Kontrak Cloud
+
+| Area              | Status implementasi                                                                           | Batasan saat ini                                                                                                          |
+| ----------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Local unlock      | Biometrik dan kredensial kunci layar OS melalui `local_auth`; logout mengunci ulang aplikasi. | Ini adalah device unlock, bukan autentikasi akun Supabase. Tidak ada cloud session/token.                                 |
+| Profil dan kontak | Disimpan melalui platform secure storage; avatar dienkripsi AES-GCM di app-private storage.   | Data hanya tersimpan di perangkat dan belum tersinkron. Logout tidak menghapus profil/riwayat.                            |
+| Preferensi unit   | Disimpan lokal di Drift/SQLite.                                                               | Preferensi belum disinkron ke Supabase.                                                                                   |
+| Cloud database    | Supabase PostgreSQL dipilih sebagai target remote.                                            | URL/key, schema, RLS, backup, Auth, dan sinkronisasi belum dikonfigurasi; UI harus menyebut status pending/local.         |
+| Cloud data policy | Target setiap baris milik akun melalui `user_id` dan RLS.                                     | Jangan mengaktifkan akses client sebelum policy diuji dengan lebih dari satu identitas. `service_role` hanya server-side. |
+
+**Sinkronisasi mendatang:** Drift tetap sumber lokal yang dapat dibaca saat offline. Perubahan cloud-bound dimasukkan ke outbox dengan ID/idempotency key stabil; baru ditandai tersinkron setelah Supabase mengonfirmasi. Konflik, retry, penghapusan, dan pemulihan akun harus dirancang sebelum sync diaktifkan. URL Supabase dan anon/publishable key dapat diberikan melalui konfigurasi environment lokal/CI setelah tersedia; service-role key tidak pernah dimasukkan ke aplikasi.

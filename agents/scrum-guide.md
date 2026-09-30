@@ -102,7 +102,7 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 - **PBI-1.1, navigasi (US-01/FR-18):** buat shell dan rute/tab utama; sediakan layar awal, loading, kosong, dan error; demonstrasikan perpindahan fitur.
 - **PBI-1.2, kualitas build:** tetapkan lint/format, strategi unit/widget/integration test, build platform yang tersedia, dan pemeriksaan otomatis.
-- **PBI-1.3, keputusan teknis:** tetapkan batas UI/domain/data dan implementasi Drift (schema/migrasi); riset model akun/backend serta perangkat sasaran; catat keputusan dan pemilik tiap blocker provider.
+- **PBI-1.3, keputusan teknis:** tetapkan batas UI/domain/data dan implementasi Drift (schema/migrasi); catat Supabase sebagai cloud database terpilih; rincikan project config, schema/RLS, model akun, sinkronisasi, perangkat sasaran, dan pemilik blocker.
 - **PBI-1.4, baseline privasi (Q-01/Q-02):** petakan data sensitif dan aliran data; cegah token, lokasi rinci, kontak, dan isi SOS masuk log.
 - **Penerimaan:** aplikasi dapat dibangun dan navigasi dasar berjalan; keputusan serta dependensi memiliki pemilik. Mock bukan fitur produksi.
 
@@ -110,10 +110,10 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** pengguna dapat mengakses aplikasi dan mengelola profil/kontak dengan aman.
 
-- **PBI-2.1 (US-08/FR-01):** deteksi biometrik; hanya buka sesi saat sukses; sediakan fallback aman; uji penolakan, pembatalan dan perangkat tanpa biometrik.
+- **PBI-2.1 (US-08/FR-01):** gunakan biometrik sebagai local device-unlock; hanya buka aplikasi saat sukses; sediakan fallback kredensial layar-kunci OS; uji penolakan, pembatalan dan perangkat tanpa biometrik. Ini belum merupakan login akun Supabase.
 - **PBI-2.2 (US-01/FR-18):** invalidasi sesi saat logout; pastikan sesi tidak dapat dipakai lagi dan riwayat tetap ada.
-- **PBI-2.3 (US-15/FR-16):** lihat/edit bidang profil yang diizinkan; pilih foto dengan izin; tangani pembatalan dan kegagalan.
-- **PBI-2.4 (US-06/FR-19):** tambah/edit/hapus 1-3 kontak; validasi input dan batas maksimum; lindungi data lokal dan tandai perubahan pending.
+- **PBI-2.3 (US-15/FR-16):** lihat/edit bidang profil yang diizinkan; pilih foto dengan izin dan simpan terenkripsi di app-private storage; tangani pembatalan dan kegagalan.
+- **PBI-2.4 (US-06/FR-19):** tambah/edit/hapus 1-3 kontak; validasi input dan batas maksimum; lindungi data lokal. Tandai perubahan lokal sebagai pending sampai konfigurasi Supabase, schema/RLS, dan sync tersedia; jangan tampilkan sebagai sudah tersinkron.
 - **PBI-2.5 (US-12/FR-21, Q-01/Q-02):** simpan preferensi satuan dan gunakan formatter bersama; gunakan secure storage/enkripsi yang diputuskan.
 - **Penerimaan:** biometrik gagal tidak membuka sesi; logout aman; batas kontak berlaku; nilai domain tidak disimpan dalam format tampilan.
 
@@ -229,7 +229,7 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 | Keputusan                                                           | Dibutuhkan sebelum | Jika belum diputuskan                                                                                                                    |
 | ------------------------------------------------------------------- | -----------------: | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Akun, backend, sinkronisasi dan retensi                             |         Sprint 2-4 | Login lokal dapat diuji; sinkronisasi server belum dapat diklaim selesai.                                                                |
+| Supabase project, schema/RLS, auth, sinkronisasi dan retensi        |         Sprint 2-4 | Cloud database sudah dipilih/project dibuat; URL/key, schema/RLS, dan sync belum dikonfigurasi, jadi data lokal tetap pending.           |
 | Implementasi Drift, enkripsi dan migrasi                            |         Sprint 2-3 | Drift sudah dipilih; schema, perlindungan data, migrasi dan uji pemulihan harus diselesaikan sebelum penyimpanan sesi/kontak diandalkan. |
 | Provider peta, elevasi, format offline dan lisensi                  |           Sprint 6 | Integrasi nyata belum dapat divalidasi.                                                                                                  |
 | Sumber kurs dan interval pembaruan/cache                            |           Sprint 8 | Fixture bukan kurs terkini.                                                                                                              |

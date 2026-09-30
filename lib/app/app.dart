@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/units/unit_settings_cubit.dart';
+import '../features/authentication/presentation/device_auth_cubit.dart';
+import '../features/profile/presentation/profile_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 class SenapathApp extends StatelessWidget {
-  const SenapathApp({super.key});
+  const SenapathApp({
+    required this.authCubit,
+    required this.profileCubit,
+    required this.unitSettingsCubit,
+    super.key,
+  });
+
+  final DeviceAuthCubit authCubit;
+  final ProfileCubit profileCubit;
+  final UnitSettingsCubit unitSettingsCubit;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Senapath',
-      theme: AppTheme.light,
-      routerConfig: appRouter,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: authCubit),
+        BlocProvider.value(value: profileCubit),
+        BlocProvider.value(value: unitSettingsCubit),
+      ],
+      child: MaterialApp.router(
+        title: 'Senapath',
+        theme: AppTheme.light,
+        routerConfig: appRouter,
+      ),
     );
   }
 }
