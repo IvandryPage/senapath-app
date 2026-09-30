@@ -132,12 +132,12 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** metrik dan ringkasan dapat dipercaya serta konsisten satuannya.
 
-- **PBI-4.1 (US-10/FR-08):** GPS sebagai sumber utama; barometer jika ada; tampilkan sumber/kualitas; jangan klaim cadence/lean angle tervalidasi tanpa validasi.
-- **PBI-4.2 (US-05/FR-13):** ringkasan jarak, durasi, elevasi dan grafik bila data cukup; tandai data hilang/estimasi; buka dari penyimpanan lokal.
-- **PBI-4.3 (US-12/FR-21):** terapkan metrik/imperial pada sesi, ringkasan, riwayat, dan peta; ubah format tanpa mengubah nilai dasar.
-- **PBI-4.4 (US-02, Q-04/Q-07):** tampilkan lokal/menunggu/berhasil/gagal; retry idempotent; pertahankan data sampai server konfirmasi.
+- **PBI-4.1 (US-10/FR-08):** GPS sebagai sumber lokasi utama; rekam barometer, accelerometer, dan gyroscope bila tersedia; tampilkan sumber/cakupan kualitas; jangan klaim cadence/lean angle tervalidasi tanpa validasi.
+- **PBI-4.2 (US-05/FR-13):** ringkasan jarak, durasi, elevasi dan grafik bila data cukup; tandai sumber/estimasi atau data tidak tersedia; buka ringkasan dan riwayat secara offline.
+- **PBI-4.3 (US-12/FR-21):** terapkan metrik/imperial pada sesi aktif, ringkasan, dan riwayat tanpa mengubah nilai dasar; tampilan peta mengikuti preferensi saat fitur peta tersedia.
+- **PBI-4.4 (US-02, Q-04/Q-07):** tampilkan status lokal/pending; pertahankan data sampai Supabase dikonfigurasi dan mengonfirmasi sinkronisasi; retry cloud belum aktif pada sprint ini.
 - **PBI-4.5:** uji sensor tak tersedia, sampel buruk, aplikasi latar belakang, dan konsumsi baterai awal.
-- **Penerimaan:** ringkasan offline tersedia dan label estimasi/sumber tampil; retry tidak menduplikasi.
+- **Penerimaan:** ringkasan offline tersedia dan label estimasi/sumber tampil; sampel minim ditandai; belum ada data yang disebut tersinkron sebelum konfirmasi cloud.
 
 ### Sprint 5 — Peringatan dan SOS
 

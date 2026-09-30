@@ -8,6 +8,7 @@ class RideSessionSnapshot {
     required this.totalPausedMilliseconds,
     required this.distanceMeters,
     required this.currentSpeedMetersPerSecond,
+    this.syncStatus = 'pending',
     this.endedAt,
     this.pausedAt,
     this.gpsAccuracyMeters,
@@ -21,6 +22,7 @@ class RideSessionSnapshot {
   final int totalPausedMilliseconds;
   final double distanceMeters;
   final double currentSpeedMetersPerSecond;
+  final String syncStatus;
   final double? gpsAccuracyMeters;
 
   Duration durationAt(DateTime now) {
@@ -44,6 +46,10 @@ class TelemetryLocation {
     required this.longitude,
     required this.accuracyMeters,
     required this.altitudeMeters,
+    this.altitudeAccuracyMeters,
+    this.barometricPressureHpa,
+    this.accelerationMagnitudeMetersPerSecondSquared,
+    this.rotationRateMagnitudeRadiansPerSecond,
     required this.speedMetersPerSecond,
   });
 
@@ -52,13 +58,23 @@ class TelemetryLocation {
   final double longitude;
   final double accuracyMeters;
   final double altitudeMeters;
+  final double? altitudeAccuracyMeters;
+  final double? barometricPressureHpa;
+  final double? accelerationMagnitudeMetersPerSecondSquared;
+  final double? rotationRateMagnitudeRadiansPerSecond;
   final double speedMetersPerSecond;
 
-  Map<String, Object> toJson() => {
+  Map<String, Object?> toJson() => {
     'latitude': latitude,
     'longitude': longitude,
     'accuracyMeters': accuracyMeters,
     'altitudeMeters': altitudeMeters,
+    'altitudeAccuracyMeters': altitudeAccuracyMeters,
+    'barometricPressureHpa': barometricPressureHpa,
+    'accelerationMagnitudeMetersPerSecondSquared':
+        accelerationMagnitudeMetersPerSecondSquared,
+    'rotationRateMagnitudeRadiansPerSecond':
+        rotationRateMagnitudeRadiansPerSecond,
     'speedMetersPerSecond': speedMetersPerSecond,
   };
 
@@ -71,6 +87,46 @@ class TelemetryLocation {
     longitude: (json['longitude'] as num).toDouble(),
     accuracyMeters: (json['accuracyMeters'] as num).toDouble(),
     altitudeMeters: (json['altitudeMeters'] as num).toDouble(),
+    altitudeAccuracyMeters: (json['altitudeAccuracyMeters'] as num?)
+        ?.toDouble(),
+    barometricPressureHpa: (json['barometricPressureHpa'] as num?)?.toDouble(),
+    accelerationMagnitudeMetersPerSecondSquared:
+        (json['accelerationMagnitudeMetersPerSecondSquared'] as num?)
+            ?.toDouble(),
+    rotationRateMagnitudeRadiansPerSecond:
+        (json['rotationRateMagnitudeRadiansPerSecond'] as num?)?.toDouble(),
     speedMetersPerSecond: (json['speedMetersPerSecond'] as num).toDouble(),
   );
+}
+
+class RideSpeedSample {
+  const RideSpeedSample({
+    required this.recordedAt,
+    required this.speedMetersPerSecond,
+  });
+
+  final DateTime recordedAt;
+  final double speedMetersPerSecond;
+}
+
+class RideSessionSummary {
+  const RideSessionSummary({
+    required this.session,
+    required this.sampleCount,
+    required this.speedSamples,
+    required this.elevationSource,
+    this.accelerometerSampleCount = 0,
+    this.gyroscopeSampleCount = 0,
+    this.elevationGainMeters,
+  });
+
+  final RideSessionSnapshot session;
+  final int sampleCount;
+  final List<RideSpeedSample> speedSamples;
+  final double? elevationGainMeters;
+  final String elevationSource;
+  final int accelerometerSampleCount;
+  final int gyroscopeSampleCount;
+
+  bool get hasSpeedGraph => speedSamples.length >= 5;
 }

@@ -117,3 +117,31 @@ class GeolocatorLocationSource implements LocationSource {
     ),
   );
 }
+
+abstract interface class BarometerSource {
+  Stream<double> get pressureHpa;
+}
+
+abstract interface class MotionSensorSource {
+  Stream<AccelerometerEvent> get accelerometerReadings;
+  Stream<GyroscopeEvent> get gyroscopeReadings;
+}
+
+class SensorsPlusMotionSensorSource implements MotionSensorSource {
+  const SensorsPlusMotionSensorSource();
+
+  @override
+  Stream<AccelerometerEvent> get accelerometerReadings =>
+      accelerometerEventStream();
+
+  @override
+  Stream<GyroscopeEvent> get gyroscopeReadings => gyroscopeEventStream();
+}
+
+class SensorsPlusBarometerSource implements BarometerSource {
+  const SensorsPlusBarometerSource();
+
+  @override
+  Stream<double> get pressureHpa =>
+      barometerEventStream().map((event) => event.pressure);
+}

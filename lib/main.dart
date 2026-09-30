@@ -38,6 +38,8 @@ void main() {
         repository: sessionRepository,
         readinessChecker: const DeviceReadinessChecker(),
         locationSource: const GeolocatorLocationSource(),
+        barometerSource: const SensorsPlusBarometerSource(),
+        motionSensorSource: const SensorsPlusMotionSensorSource(),
       ),
     ),
   );

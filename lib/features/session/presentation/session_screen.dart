@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -65,6 +66,18 @@ class _SessionScreenState extends State<SessionScreen> {
                 _buildReadiness(context, readiness, state),
                 const SizedBox(height: 20),
                 _buildStartControl(context, state),
+              ],
+              if (state.completedSessions.isNotEmpty) ...[
+                const SizedBox(height: 28),
+                _buildHistory(context, state.completedSessions, unitSystem),
+              ],
+              if (state.isLoadingSummary) ...[
+                const SizedBox(height: 20),
+                const LinearProgressIndicator(),
+              ],
+              if (state.summary case final summary?) ...[
+                const SizedBox(height: 24),
+                _buildSummary(context, summary, unitSystem),
               ],
               const SizedBox(height: 18),
               const Text(
@@ -309,15 +322,26 @@ class _SessionScreenState extends State<SessionScreen> {
   Widget _buildSessionControls(BuildContext context, RideSessionState state) {
     final session = state.session!;
     if (session.status == RideSessionStatus.completed) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: state.canStart
-              ? () => context.read<RideSessionCubit>().start()
-              : null,
-          icon: const Icon(Icons.add),
-          label: const Text('Mulai sesi baru'),
-        ),
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: state.canStart
+                  ? () => context.read<RideSessionCubit>().start()
+                  : null,
+              icon: const Icon(Icons.add),
+              label: const Text('Mulai sesi baru'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () =>
+                context.read<RideSessionCubit>().loadSummary(session.id),
+            icon: const Icon(Icons.summarize_outlined),
+            label: const Text('Lihat ringkasan'),
+          ),
+        ],
       );
     }
 
@@ -360,6 +384,163 @@ class _SessionScreenState extends State<SessionScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildHistory(
+    BuildContext context,
+    List<RideSessionSnapshot> sessions,
+    UnitSystem unitSystem,
+  ) {
+    final metric = unitSystem == UnitSystem.metric;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Riwayat sesi',
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        for (final session in sessions.take(10))
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.route_outlined),
+            title: Text(_formatSessionDate(session.startedAt)),
+            subtitle: Text(
+              '${_formatDistance(session.distanceMeters, metric)} · '
+              '${_formatDuration(session.durationAt(session.endedAt ?? session.startedAt))} · '
+              '${session.syncStatus == 'pending' ? 'Lokal · Pending' : 'Tersinkron'}',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () =>
+                context.read<RideSessionCubit>().loadSummary(session.id),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSummary(
+    BuildContext context,
+    RideSessionSummary summary,
+    UnitSystem unitSystem,
+  ) {
+    final metric = unitSystem == UnitSystem.metric;
+    final session = summary.session;
+    final distanceLabel = _formatDistance(session.distanceMeters, metric);
+    final elevationLabel = summary.elevationGainMeters == null
+        ? 'Tidak tersedia'
+        : '${summary.elevationGainMeters!.toStringAsFixed(0)} m';
+    final speedUnit = metric ? 'km/j' : 'mph';
+    final graphSpeeds = summary.speedSamples
+        .map(
+          (sample) => metric
+              ? sample.speedMetersPerSecond * 3.6
+              : sample.speedMetersPerSecond * 2.236936,
+        )
+        .toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Ringkasan sesi',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Tutup ringkasan',
+              onPressed: () => context.read<RideSessionCubit>().closeSummary(),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _MetricValue(
+                label: 'Jarak',
+                value: distanceLabel.split(' ').first,
+                unit: distanceLabel.split(' ').last,
+              ),
+            ),
+            Expanded(
+              child: _MetricValue(
+                label: 'Durasi',
+                value: _formatDuration(
+                  session.durationAt(session.endedAt ?? session.startedAt),
+                ),
+                unit: '',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _MetricValue(
+                label: 'Akumulasi elevasi',
+                value: elevationLabel,
+                unit: '',
+              ),
+            ),
+            Expanded(
+              child: _MetricValue(
+                label: 'Sampel tersimpan',
+                value: '${summary.sampleCount}',
+                unit: '',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Sumber elevasi: ${summary.elevationSource}. '
+          'Data barometer/GPS yang tidak cukup atau tidak akurat ditandai '
+          'sebagai tidak tersedia.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Sampel gerak/orientasi: akselerometer '
+          '${summary.accelerometerSampleCount}/${summary.sampleCount}, '
+          'gyroscope ${summary.gyroscopeSampleCount}/${summary.sampleCount}. '
+          'Data ini tidak ditafsirkan sebagai cadence atau lean angle.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Grafik kecepatan ($speedUnit)',
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        if (summary.hasSpeedGraph)
+          _SpeedGraph(values: graphSpeeds)
+        else
+          const Text('Belum cukup sampel untuk menampilkan grafik kecepatan.'),
+      ],
+    );
+  }
+
+  String _formatDistance(double meters, bool metric) => metric
+      ? '${(meters / 1000).toStringAsFixed(2)} km'
+      : '${(meters / 1609.344).toStringAsFixed(2)} mi';
+
+  String _formatSessionDate(DateTime date) {
+    final local = date.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day/$month/${local.year} · $hour:$minute';
   }
 
   Future<void> _confirmFinish(BuildContext context) async {
@@ -469,4 +650,82 @@ class _MetricValue extends StatelessWidget {
       ],
     );
   }
+}
+
+class _SpeedGraph extends StatelessWidget {
+  const _SpeedGraph({required this.values});
+
+  final List<double> values;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 150,
+      width: double.infinity,
+      child: CustomPaint(
+        painter: _SpeedGraphPainter(
+          values: values,
+          lineColor: Theme.of(context).colorScheme.primary,
+          gridColor: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _SpeedGraphPainter extends CustomPainter {
+  const _SpeedGraphPainter({
+    required this.values,
+    required this.lineColor,
+    required this.gridColor,
+  });
+
+  final List<double> values;
+  final Color lineColor;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2 || size.isEmpty) return;
+    final bounds = Rect.fromLTWH(0, 0, size.width, size.height);
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+    for (var row = 1; row < 4; row++) {
+      final y = size.height * row / 4;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    final maxSpeed = math.max(1, values.reduce(math.max));
+    final path = Path();
+    for (var index = 0; index < values.length; index++) {
+      final x = size.width * index / (values.length - 1);
+      final y =
+          size.height -
+          (values[index].clamp(0, maxSpeed) / maxSpeed) * size.height;
+      if (index == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.save();
+    canvas.clipRect(bounds);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = lineColor
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpeedGraphPainter oldDelegate) =>
+      oldDelegate.values != values ||
+      oldDelegate.lineColor != lineColor ||
+      oldDelegate.gridColor != gridColor;
 }

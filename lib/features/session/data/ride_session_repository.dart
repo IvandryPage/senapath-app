@@ -8,6 +8,8 @@ import 'encrypted_telemetry_codec.dart';
 
 abstract interface class RideSessionRepository {
   Future<RideSessionSnapshot?> recoverCurrentSession();
+  Future<List<RideSessionSnapshot>> loadCompletedSessions();
+  Future<RideSessionSummary> loadSummary(String sessionId);
   Future<RideSessionSnapshot> start(DateTime now);
   Future<RideSessionSnapshot> pause(String sessionId, DateTime now);
   Future<RideSessionSnapshot> resume(String sessionId, DateTime now);
@@ -61,6 +63,116 @@ class DriftRideSessionRepository implements RideSessionRepository {
       return _toSnapshot(row, status: RideSessionStatus.paused);
     }
     return null;
+  }
+
+  @override
+  Future<List<RideSessionSnapshot>> loadCompletedSessions() async {
+    final rows =
+        await (database.select(database.rideSessions)
+              ..where(
+                (session) =>
+                    session.status.equals(RideSessionStatus.completed.name),
+              )
+              ..orderBy([(session) => OrderingTerm.desc(session.endedAt)])
+              ..limit(50))
+            .get();
+    return rows.map(_toSnapshot).toList(growable: false);
+  }
+
+  @override
+  Future<RideSessionSummary> loadSummary(String sessionId) async {
+    final row = await _getSession(sessionId);
+    final session = _toSnapshot(row);
+    final points =
+        await (database.select(database.telemetryPoints)
+              ..where((point) => point.sessionId.equals(sessionId))
+              ..orderBy([(point) => OrderingTerm.asc(point.recordedAt)]))
+            .get();
+
+    final locations = <TelemetryLocation>[];
+    for (final point in points) {
+      locations.add(
+        await telemetryCodec.decode(
+          point.encryptedPayload,
+          recordedAt: point.recordedAt,
+        ),
+      );
+    }
+
+    final pressureSamples = locations
+        .where(
+          (location) =>
+              location.barometricPressureHpa != null &&
+              location.barometricPressureHpa! >= 300 &&
+              location.barometricPressureHpa! <= 1100,
+        )
+        .toList(growable: false);
+    double? elevationGainMeters;
+    var elevationSource = 'Tidak tersedia';
+    if (pressureSamples.length >= 3) {
+      elevationGainMeters = _calculateElevationGain(
+        pressureSamples
+            .map((location) => location.barometricPressureHpa!)
+            .toList(growable: false),
+        minimumStepMeters: 1,
+        isPressure: true,
+      );
+      elevationSource = 'Barometer';
+    } else {
+      final gpsAltitudes = locations
+          .where(
+            (location) =>
+                location.altitudeAccuracyMeters != null &&
+                location.altitudeAccuracyMeters! > 0 &&
+                location.altitudeAccuracyMeters! <= 25 &&
+                location.altitudeMeters.isFinite,
+          )
+          .map((location) => location.altitudeMeters)
+          .toList(growable: false);
+      if (gpsAltitudes.length >= 3) {
+        elevationGainMeters = _calculateElevationGain(
+          gpsAltitudes,
+          minimumStepMeters: 3,
+          isPressure: false,
+        );
+        elevationSource = 'Estimasi GPS';
+      }
+    }
+
+    final speedSamples = locations
+        .where(
+          (location) =>
+              location.speedMetersPerSecond.isFinite &&
+              location.speedMetersPerSecond >= 0,
+        )
+        .map(
+          (location) => RideSpeedSample(
+            recordedAt: location.recordedAt,
+            speedMetersPerSecond: location.speedMetersPerSecond,
+          ),
+        )
+        .toList(growable: false);
+    final accelerometerSampleCount = locations
+        .where(
+          (location) =>
+              location.accelerationMagnitudeMetersPerSecondSquared != null,
+        )
+        .length;
+    final gyroscopeSampleCount = locations
+        .where(
+          (location) => location.rotationRateMagnitudeRadiansPerSecond != null,
+        )
+        .length;
+
+    return RideSessionSummary(
+      session: session,
+      sampleCount: locations.length,
+      speedSamples: speedSamples,
+      elevationGainMeters: elevationGainMeters,
+      elevationSource: elevationSource,
+      accelerometerSampleCount: accelerometerSampleCount,
+      gyroscopeSampleCount: gyroscopeSampleCount,
+    );
   }
 
   @override
@@ -247,8 +359,34 @@ class DriftRideSessionRepository implements RideSessionRepository {
       distanceMeters: distanceMeters ?? row.distanceMeters,
       currentSpeedMetersPerSecond:
           currentSpeedMetersPerSecond ?? row.currentSpeedMetersPerSecond,
+      syncStatus: row.syncStatus,
       gpsAccuracyMeters: gpsAccuracyMeters ?? row.gpsAccuracyMeters,
     );
+  }
+
+  double _calculateElevationGain(
+    List<double> values, {
+    required double minimumStepMeters,
+    required bool isPressure,
+  }) {
+    if (values.length < 3) return 0;
+    final elevations = isPressure
+        ? values
+              .map(
+                (pressure) =>
+                    44330 * (1 - pow(pressure / values.first, 0.190294957)),
+              )
+              .map((value) => value.toDouble())
+              .toList(growable: false)
+        : values;
+    var totalAscent = 0.0;
+    var previous = elevations.first;
+    for (final elevation in elevations.skip(1)) {
+      final change = elevation - previous;
+      if (change >= minimumStepMeters) totalAscent += change;
+      previous = elevation;
+    }
+    return totalAscent;
   }
 
   RideSessionStatus _parseStatus(String value) => switch (value) {
