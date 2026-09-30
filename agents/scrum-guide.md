@@ -102,7 +102,7 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 - **PBI-1.1, navigasi (US-01/FR-18):** buat shell dan rute/tab utama; sediakan layar awal, loading, kosong, dan error; demonstrasikan perpindahan fitur.
 - **PBI-1.2, kualitas build:** tetapkan lint/format, strategi unit/widget/integration test, build platform yang tersedia, dan pemeriksaan otomatis.
-- **PBI-1.3, keputusan teknis:** putuskan batas UI/domain/data, database lokal, model akun/backend, perangkat sasaran; catat keputusan dan pemilik tiap blocker provider.
+- **PBI-1.3, keputusan teknis:** tetapkan batas UI/domain/data dan implementasi Drift (schema/migrasi); riset model akun/backend serta perangkat sasaran; catat keputusan dan pemilik tiap blocker provider.
 - **PBI-1.4, baseline privasi (Q-01/Q-02):** petakan data sensitif dan aliran data; cegah token, lokasi rinci, kontak, dan isi SOS masuk log.
 - **Penerimaan:** aplikasi dapat dibangun dan navigasi dasar berjalan; keputusan serta dependensi memiliki pemilik. Mock bukan fitur produksi.
 
@@ -227,18 +227,18 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 ## 7. Dependensi dan Gerbang Keputusan
 
-| Keputusan                                                           | Dibutuhkan sebelum | Jika belum diputuskan                                                                                          |
-| ------------------------------------------------------------------- | -----------------: | -------------------------------------------------------------------------------------------------------------- |
-| Akun, backend, sinkronisasi dan retensi                             |         Sprint 2-4 | Login lokal dapat diuji; sinkronisasi server belum dapat diklaim selesai.                                      |
-| Database lokal, enkripsi dan migrasi                                |         Sprint 2-3 | Data kontak/sesi berisiko tidak aman atau tidak pulih.                                                         |
-| Provider peta, elevasi, format offline dan lisensi                  |           Sprint 6 | Integrasi nyata belum dapat divalidasi.                                                                        |
-| Sumber kurs dan interval pembaruan/cache                            |           Sprint 8 | Fixture bukan kurs terkini.                                                                                    |
-| Zona waktu dan aturan DST                                           |           Sprint 8 | Gunakan database zona waktu, bukan offset tetap/manual.                                                        |
-| Provider AI/cuaca, biaya, retensi dan persetujuan                   |          Sprint 10 | Jangan kirim data pengguna; AI tetap backlog.                                                                  |
-| Kanal SOS, format pesan dan retry                                   |           Sprint 5 | Alur lokal dapat diuji, tetapi pengiriman nyata belum selesai.                                                 |
-| Provider wearable (misalnya Garmin), akses API/SDK, izin dan metrik |           Sprint 6 | Integrasi koneksi nyata menunggu persetujuan/akses provider; jangan klaim semua merek atau real-time didukung. |
-| Jaringan/ledger, biaya dan aturan leaderboard                       |          Sprint 11 | Proof/leaderboard menunggu keputusan; jangan kirim data ke ledger belum dipilih.                               |
-| Perangkat sasaran dan validasi sensor                               |         Sprint 3-5 | Metrik tanpa validasi hanya data terbatas/estimasi.                                                            |
+| Keputusan                                                           | Dibutuhkan sebelum | Jika belum diputuskan                                                                                                                    |
+| ------------------------------------------------------------------- | -----------------: | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Akun, backend, sinkronisasi dan retensi                             |         Sprint 2-4 | Login lokal dapat diuji; sinkronisasi server belum dapat diklaim selesai.                                                                |
+| Implementasi Drift, enkripsi dan migrasi                            |         Sprint 2-3 | Drift sudah dipilih; schema, perlindungan data, migrasi dan uji pemulihan harus diselesaikan sebelum penyimpanan sesi/kontak diandalkan. |
+| Provider peta, elevasi, format offline dan lisensi                  |           Sprint 6 | Integrasi nyata belum dapat divalidasi.                                                                                                  |
+| Sumber kurs dan interval pembaruan/cache                            |           Sprint 8 | Fixture bukan kurs terkini.                                                                                                              |
+| Zona waktu dan aturan DST                                           |           Sprint 8 | Gunakan database zona waktu, bukan offset tetap/manual.                                                                                  |
+| Provider AI/cuaca, biaya, retensi dan persetujuan                   |          Sprint 10 | Jangan kirim data pengguna; AI tetap backlog.                                                                                            |
+| Kanal SOS, format pesan dan retry                                   |           Sprint 5 | Alur lokal dapat diuji, tetapi pengiriman nyata belum selesai.                                                                           |
+| Provider wearable (misalnya Garmin), akses API/SDK, izin dan metrik |           Sprint 6 | Integrasi koneksi nyata menunggu persetujuan/akses provider; jangan klaim semua merek atau real-time didukung.                           |
+| Jaringan/ledger, biaya dan aturan leaderboard                       |          Sprint 11 | Proof/leaderboard menunggu keputusan; jangan kirim data ke ledger belum dipilih.                                                         |
+| Perangkat sasaran dan validasi sensor                               |         Sprint 3-5 | Metrik tanpa validasi hanya data terbatas/estimasi.                                                                                      |
 
 ## 8. Pengukuran dan Penyesuaian
 

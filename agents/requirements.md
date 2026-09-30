@@ -150,7 +150,7 @@ Sistem harus memungkinkan pengguna menghubungkan dan memutuskan koneksi dengan p
 ## 5. Aturan Bisnis dan Batasan
 
 - Waktu real-time, kurs terkini, cuaca terkini, AI, push notification jarak jauh, peta online, dan blockchain bergantung pada koneksi serta ketersediaan penyedia terkait.
-- Penyimpanan dapat menggunakan Hive atau SQLite sesuai keputusan arsitektur; kebutuhan produk adalah data lokal tetap aman, tersedia offline, dan dapat disinkronkan.
+- Database lokal yang dipilih adalah Drift di atas SQLite; kebutuhan produk tetap data lokal aman, tersedia offline, dan dapat disinkronkan. Strategi enkripsi, migrasi, serta backup/pemulihan ditetapkan dalam desain teknis.
 - Sensor ponsel memiliki variasi akurasi berdasarkan perangkat, pemasangan, kalibrasi, dan kondisi jalan. UI harus membedakan pengukuran langsung dari estimasi.
 - Pengiriman SOS otomatis bergantung pada izin dan konektivitas. Aplikasi harus memberi informasi yang jelas bila pesan belum dapat dikirim.
 - Pencatatan ke blockchain bersifat tambahan setelah sesi selesai; kegagalannya tidak boleh menghapus atau menghalangi akses ke ringkasan lokal.

@@ -4,7 +4,7 @@
 
 Dokumen ini menjelaskan arsitektur target yang direkomendasikan untuk Senapath, aplikasi Flutter pendamping latihan dan balapan sepeda. Dokumen ini melengkapi [requirements.md](requirements.md) dan [scrum-guide.md](scrum-guide.md).
 
-Status saat ini: repository masih berupa scaffold Flutter; dependency arsitektur yang disebut di dokumen ini belum ditambahkan ke `pubspec.yaml`. Nama paket adalah kandidat implementasi, bukan keputusan final atau klaim bahwa fitur telah tersedia. Pilihan provider, backend, database, dan perangkat sasaran harus disepakati sebelum integrasi terkait dimulai.
+Status saat ini: repository masih berupa scaffold Flutter; dependency arsitektur yang disebut di dokumen ini belum ditambahkan ke `pubspec.yaml`. **Drift di atas SQLite telah dipilih sebagai database lokal.** Pilihan implementasi lain, provider, backend, dan perangkat sasaran masih perlu diriset dan disepakati sebelum integrasi terkait dimulai.
 
 ## 2. Prinsip Arsitektur
 
@@ -35,7 +35,7 @@ Diagram ini adalah batas tanggung jawab konseptual. Implementasi dan provider ak
 ### Lapisan
 
 - **Presentation:** halaman, widget, navigasi `go_router`, dan state BLoC/Cubit. Lapisan ini mengubah input pengguna menjadi pemanggilan use case dan menampilkan state yang bermakna: loading, empty, offline, pending, success, atau error.
-- **Domain:** entity, value object, aturan bisnis, interface repository, serta use case. Contoh: `StartRideSession`, `PauseRideSession`, `SyncPendingSessions`, `ConvertEventTime`, dan `ConnectWearable`. Lapisan ini tidak mengimpor package Flutter, Dio, Hive, atau SDK vendor.
+- **Domain:** entity, value object, aturan bisnis, interface repository, serta use case. Contoh: `StartRideSession`, `PauseRideSession`, `SyncPendingSessions`, `ConvertEventTime`, dan `ConnectWearable`. Lapisan ini tidak mengimpor package Flutter, Drift, Dio, atau SDK vendor.
 - **Data:** implementasi repository, model DTO, mapper, local/remote data source, dan adapter provider. Repository memilih sumber lokal/jaringan sesuai aturan offline-first dan mengubah kegagalan teknis menjadi hasil domain yang terkontrol.
 - **Platform/integration:** adapter permission, lokasi, sensor, secure storage, background execution, peta, wearable, notifikasi, dan integrasi native khusus platform.
 
@@ -75,18 +75,18 @@ Nama dan jumlah feature dapat berubah saat kebutuhan dipecah. Hindari membuat sa
 
 ### State management dan dependency injection
 
-- Gunakan `flutter_bloc` untuk state UI dan alur yang punya transisi jelas. BLoC memanggil use case, bukan mengakses Hive, Dio, atau plugin secara langsung.
+- Gunakan `flutter_bloc` untuk state UI dan alur yang punya transisi jelas. BLoC memanggil use case, bukan mengakses Drift, Dio, atau plugin secara langsung.
 - Gunakan `get_it` dengan `injectable` untuk mendaftarkan dependency. Jaga pembuatan dependency pada composition root, bukan di dalam widget atau use case.
 - Gunakan `go_router` untuk routing dan redirect yang bergantung pada status autentikasi. Redirect tidak menggantikan otorisasi backend.
 - Pisahkan state domain yang persisten dari state tampilan sementara. Contoh: status sesi aktif berasal dari repository/domain; animasi tombol tetap state UI lokal.
 
 ## 5. Penyimpanan Lokal dan Model Data
 
-### Rekomendasi pilihan database
+### Keputusan database lokal: Drift
 
-Senapath menyimpan titik telemetri berulang, riwayat sesi, status sinkronisasi, dan hasil yang perlu dicari kembali. Karena itu, **SQLite melalui Drift layak diprioritaskan untuk data sesi/telemetri**: relasi, transaksi, query berdasarkan sesi/waktu, dan migrasi schema lebih eksplisit. Hive tetap kandidat yang sesuai untuk cache/key-value atau bila tim memilih penyimpanan NoSQL dan membuktikan kebutuhan query serta migrasinya terpenuhi.
+Senapath menggunakan **Drift di atas SQLite** untuk sesi, telemetri, status sinkronisasi, dan data lokal terstruktur. Pilihan ini sesuai untuk transaksi, query berdasarkan sesi/waktu, dan migrasi schema. Drift telah diputuskan, tetapi dependency belum dipasang dan implementasi schema, strategi migrasi, serta enkripsi database masih perlu dirinci dan diuji.
 
-Jangan memakai Hive dan SQLite sebagai dua sumber kebenaran untuk entitas yang sama. Jika keduanya dipakai, tuliskan batas pemilik data dengan tegas, misalnya database sesi terstruktur dan Hive hanya untuk cache non-kritis. Keputusan final perlu diuji pada volume telemetri serta perangkat sasaran.
+Hindari menambahkan Hive sebagai penyimpanan kedua tanpa kebutuhan terpisah yang jelas. Jika kelak cache key-value memerlukannya, dokumentasikan batas kepemilikan data agar tidak ada dua sumber kebenaran untuk entitas yang sama. Validasi Drift dengan volume telemetri dan perangkat sasaran.
 
 ### Entitas domain minimum
 
@@ -167,30 +167,30 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 
 ## 13. Kandidat Paket dan Keputusan Terbuka
 
-| Area | Kandidat | Keputusan yang perlu dibuat |
-|---|---|---|
-| Framework | Flutter/Dart | Sudah menjadi basis repository. |
-| Arsitektur | Clean Architecture, feature-first | Tetapkan dependency rule dan batas module/feature. |
-| State | `flutter_bloc` | Gunakan BLoC/Cubit secara konsisten; pilih strategi error/state bersama. |
-| Database lokal | Hive atau SQLite/Drift | Putuskan berdasarkan query telemetri, transaksi, migrasi, dan volume uji; hindari dua sumber kebenaran. |
-| Secret lokal | `flutter_secure_storage` | Tentukan platform, key lifecycle, backup, rotasi, dan pemulihan. |
-| HTTP | Dio + interceptor | Tetapkan kontrak API, auth refresh, redaksi log, timeout dan retry. |
-| DI | `get_it` + `injectable` | Satu composition root dan aturan scope/lifecycle. |
-| Routing | `go_router` | Tentukan route auth, deep link, dan navigasi utama. |
-| Lokasi/sensor | `geolocator`, `sensors_plus` | Validasi izin, akurasi, background, baterai, serta perangkat sasaran. |
-| Biometrik | `local_auth` | Tetapkan fallback aman; jangan perlakukan sebagai server authentication. |
-| Background | `flutter_background_service` atau mekanisme platform sesuai use case | Uji Android/iOS; tetapkan batas layanan dan perilaku setelah process kill. |
-| Peta | `flutter_map` atau `google_maps_flutter` | Pilih satu setelah lisensi, biaya, provider, dan offline dievaluasi. |
-| Wearable | Provider API/SDK terpilih | Pastikan akses dan izin provider; tentukan import historis versus live. |
-| AI | Backend REST ke provider LLM | Jangan panggil provider ber-secret langsung dari aplikasi. |
-| Blockchain | Backend/relayer atau wallet pengguna; RPC client | Putuskan custody key, biaya, jaringan, canonical hash, consent, dan retry. |
-| Backend | Belum dipilih | Putuskan auth, database server, hosting, API, sinkronisasi, storage media, dan operasi. |
-| Push/notifikasi | Lokal dan provider push terpilih | Tentukan platform, consent, payload minimal, dan status delivery. |
-| Pengujian/CI | Flutter test, analyzer, pipeline CI | Tentukan provider CI, build signing, device matrix, dan quality gates. |
+| Area            | Kandidat                                                             | Keputusan yang perlu dibuat                                                                                |
+| --------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Framework       | Flutter/Dart                                                         | Sudah menjadi basis repository.                                                                            |
+| Arsitektur      | Clean Architecture, feature-first                                    | Tetapkan dependency rule dan batas module/feature.                                                         |
+| State           | `flutter_bloc`                                                       | Gunakan BLoC/Cubit secara konsisten; pilih strategi error/state bersama.                                   |
+| Database lokal  | Drift di atas SQLite                                                 | Sudah dipilih. Riset/implementasikan schema, migrasi, enkripsi, dan uji volume; hindari sumber data ganda. |
+| Secret lokal    | `flutter_secure_storage`                                             | Tentukan platform, key lifecycle, backup, rotasi, dan pemulihan.                                           |
+| HTTP            | Dio + interceptor                                                    | Tetapkan kontrak API, auth refresh, redaksi log, timeout dan retry.                                        |
+| DI              | `get_it` + `injectable`                                              | Satu composition root dan aturan scope/lifecycle.                                                          |
+| Routing         | `go_router`                                                          | Tentukan route auth, deep link, dan navigasi utama.                                                        |
+| Lokasi/sensor   | `geolocator`, `sensors_plus`                                         | Validasi izin, akurasi, background, baterai, serta perangkat sasaran.                                      |
+| Biometrik       | `local_auth`                                                         | Tetapkan fallback aman; jangan perlakukan sebagai server authentication.                                   |
+| Background      | `flutter_background_service` atau mekanisme platform sesuai use case | Uji Android/iOS; tetapkan batas layanan dan perilaku setelah process kill.                                 |
+| Peta            | `flutter_map` atau `google_maps_flutter`                             | Pilih satu setelah lisensi, biaya, provider, dan offline dievaluasi.                                       |
+| Wearable        | Provider API/SDK terpilih                                            | Pastikan akses dan izin provider; tentukan import historis versus live.                                    |
+| AI              | Backend REST ke provider LLM                                         | Jangan panggil provider ber-secret langsung dari aplikasi.                                                 |
+| Blockchain      | Backend/relayer atau wallet pengguna; RPC client                     | Putuskan custody key, biaya, jaringan, canonical hash, consent, dan retry.                                 |
+| Backend         | Belum dipilih                                                        | Putuskan auth, database server, hosting, API, sinkronisasi, storage media, dan operasi.                    |
+| Push/notifikasi | Lokal dan provider push terpilih                                     | Tentukan platform, consent, payload minimal, dan status delivery.                                          |
+| Pengujian/CI    | Flutter test, analyzer, pipeline CI                                  | Tentukan provider CI, build signing, device matrix, dan quality gates.                                     |
 
 ## 14. Tahapan Implementasi yang Disarankan
 
-1. **Fondasi:** sepakati backend/API, database lokal, model sesi, dependency direction, logging redacted, CI, dan perangkat sasaran.
+1. **Fondasi:** sepakati backend/API, detail implementasi Drift (schema, migrasi, enkripsi), model sesi, dependency direction, logging redacted, CI, dan perangkat sasaran.
 2. **Core offline:** implementasikan autentikasi lokal, izin/kesiapan, sesi, penyimpanan telemetri, pemulihan setelah restart, ringkasan, dan formatter unit.
 3. **Keandalan:** tambahkan outbox/idempotensi, sinkronisasi, status dan retry; uji offline, storage, background, dan konflik.
 4. **Integrasi perangkat dan peta:** pilih satu provider wearable dan peta; validasi dukungan, sumber metrik, lisensi, izin, dan mode offline.
@@ -203,7 +203,7 @@ Setiap tahap tetap dikerjakan sebagai Increment Scrum; urutan ini bukan fase wat
 
 Simpan keputusan besar sebagai ADR singkat dengan konteks, opsi, keputusan, konsekuensi, pemilik, dan tanggal. ADR awal yang disarankan:
 
-- database telemetri dan cache, termasuk alasan Hive atau SQLite/Drift;
+- implementasi Drift untuk telemetri: schema, migrasi, enkripsi, strategi backup/pemulihan, dan kebutuhan cache terpisah;
 - backend, autentikasi, kontrak API, sinkronisasi dan konflik;
 - provider peta, kurs, cuaca, wearable, AI, SOS, dan push;
 - target platform/perangkat serta kebijakan perekaman background;
