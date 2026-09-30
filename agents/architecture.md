@@ -209,3 +209,33 @@ Simpan keputusan besar sebagai ADR singkat dengan konteks, opsi, keputusan, kons
 - target platform/perangkat serta kebijakan perekaman background;
 - pengelolaan kunci lokal, retensi data, consent, serta penghapusan akun;
 - metode signing/pengiriman transaksi blockchain dan aturan publikasi leaderboard.
+
+## 16. Keputusan dan Baseline Privasi Sprint 1
+
+### Keputusan awal
+
+| Area                    | Status Sprint 1  | Keputusan atau tindak lanjut                                                                                                     | Pemilik tindak lanjut |
+| ----------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Framework               | Dipakai          | Flutter dan Dart, sesuai scaffold repository.                                                                                    | Developers            |
+| Struktur kode           | Dipilih          | Feature-first dengan batas Presentation, Domain, Data, dan Platform/Integration. Domain tidak mengimpor framework atau provider. | Developers            |
+| Navigasi                | Dipakai          | `go_router` untuk empat destinasi shell awal. Dependency sudah ditambahkan; halaman fitur masih berupa empty state yang jujur.   | Developers            |
+| Database lokal          | Dipilih          | Drift di atas SQLite. Dependency/schema/migrasi/enkripsi belum diimplementasikan; dirinci pada pekerjaan berikutnya.             | Developers            |
+| State management        | Direncanakan     | `flutter_bloc` untuk alur stateful berikutnya; shell statis belum membutuhkan BLoC.                                              | Developers            |
+| DI                      | Belum diperlukan | `get_it`/`injectable` dipasang saat dependency/use case aplikasi bertambah dan composition root dibutuhkan.                      | Developers            |
+| Backend dan autentikasi | Riset terbuka    | Pilih backend, model akun/token, kontrak API, sinkronisasi, serta operasi/retensi data. Belum ada integrasi produksi.            | PO dan technical lead |
+| Provider eksternal      | Riset terbuka    | Bandingkan provider peta, kurs, wearable, AI, SOS, push, dan ledger beserta akses, izin, biaya, dan lisensinya.                  | PO dan technical lead |
+| Perangkat sasaran       | Riset terbuka    | Tetapkan versi OS/perangkat minimum untuk validasi izin, sensor, background, baterai, dan UI.                                    | PO dan Developers     |
+
+Daftar ini mencatat keputusan dan status saat Sprint 1; pilihan riset terbuka bukan komitmen menggunakan provider tertentu. Dokumentasikan keputusan baru sebagai ADR saat opsi dan konsekuensinya sudah ditinjau.
+
+### Aliran data dan larangan logging
+
+| Kategori               | Status pada shell Sprint 1                    | Aturan sebelum fitur terkait dibuat                                                                                                                                                      |
+| ---------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lokasi dan sensor      | Belum diminta atau dikumpulkan oleh shell.    | Minta izin saat dibutuhkan, simpan lokal melalui repository, dan sinkronkan hanya sesuai persetujuan/kebijakan yang dijelaskan kepada pengguna. Jangan log koordinat atau sampel mentah. |
+| Kontak darurat dan SOS | Belum diminta, disimpan, atau dikirim.        | Lindungi data kontak lokal; kirim hanya lewat kanal yang diputuskan dan setelah pengguna mengatur/menyetujui alurnya. Jangan log kontak, isi pesan, atau payload lokasi.                 |
+| Kredensial dan token   | Belum ada autentikasi atau token di aplikasi. | Gunakan secure storage dan redaksi header/payload; jangan mencatat kredensial atau token.                                                                                                |
+| Wearable               | Belum terhubung.                              | Minta izin provider, simpan token secara aman, batasi metrik yang diambil, dan tampilkan sumber/status; rahasia tidak masuk log.                                                         |
+| Diagnostik             | Belum ada logger/analytics pihak ketiga.      | Error hanya mencatat konteks teknis minimum dengan data pribadi disunting; jangan menambahkan `print`/`debugPrint` untuk payload sensitif.                                               |
+
+Shell Sprint 1 tidak melakukan request jaringan dan tidak mengumpulkan data pengguna. CI hanya menjalankan build-quality checks dan tidak membutuhkan secret. Kebijakan ini menjadi baseline, bukan pengganti threat model atau persetujuan provider.
