@@ -4,7 +4,7 @@
 
 Dokumen ini menjelaskan arsitektur target yang direkomendasikan untuk Senapath, aplikasi Flutter pendamping latihan dan balapan sepeda. Dokumen ini melengkapi [requirements.md](requirements.md) dan [scrum-guide.md](scrum-guide.md).
 
-Status saat ini: repository memiliki shell Flutter dan alur lokal Sprint 2. **Drift di atas SQLite dipilih sebagai database lokal/offline; Supabase dipilih sebagai platform database cloud.** Project Supabase sudah dibuat menurut pemilik produk, tetapi URL/key, schema, RLS, Auth, dan sync client belum dikonfigurasi. Provider lain dan perangkat sasaran masih perlu diriset. Tidak ada cloud sync yang boleh ditampilkan aktif sebelum konfigurasi dan kebijakan akses diuji.
+Status saat ini: repository memiliki alur lokal Sprint 2-3. **Drift di atas SQLite dipilih sebagai database lokal/offline; Supabase dipilih sebagai platform database cloud.** Project Supabase sudah dibuat menurut pemilik produk, tetapi URL/key, schema, RLS, Auth, dan sync client belum dikonfigurasi. Provider lain dan perangkat sasaran masih perlu diriset. Tidak ada cloud sync yang boleh ditampilkan aktif sebelum konfigurasi dan kebijakan akses diuji.
 
 ## 2. Prinsip Arsitektur
 
@@ -249,13 +249,14 @@ Daftar ini mencatat keputusan dan status saat Sprint 1; pilihan riset terbuka bu
 
 Shell Sprint 1 tidak melakukan request jaringan dan tidak mengumpulkan data pengguna. CI hanya menjalankan build-quality checks dan tidak membutuhkan secret. Kebijakan ini menjadi baseline, bukan pengganti threat model atau persetujuan provider.
 
-## 17. Status Sprint 2 dan Kontrak Cloud
+## 17. Status Implementasi Lokal dan Kontrak Cloud
 
 | Area              | Status implementasi                                                                           | Batasan saat ini                                                                                                          |
 | ----------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Local unlock      | Biometrik dan kredensial kunci layar OS melalui `local_auth`; logout mengunci ulang aplikasi. | Ini adalah device unlock, bukan autentikasi akun Supabase. Tidak ada cloud session/token.                                 |
 | Profil dan kontak | Disimpan melalui platform secure storage; avatar dienkripsi AES-GCM di app-private storage.   | Data hanya tersimpan di perangkat dan belum tersinkron. Logout tidak menghapus profil/riwayat.                            |
 | Preferensi unit   | Disimpan lokal di Drift/SQLite.                                                               | Preferensi belum disinkron ke Supabase.                                                                                   |
+| Sesi dan telemetri | Lifecycle sesi, metrik agregat, dan status `pending` disimpan di Drift; payload koordinat dienkripsi AES-GCM dengan key di secure storage. | Streaming GPS berjalan saat sesi foreground; setelah proses terhenti, sesi `recording` dipulihkan sebagai `paused`. Background recording dan cloud sync belum diimplementasikan. |
 | Cloud database    | Supabase PostgreSQL dipilih sebagai target remote.                                            | URL/key, schema, RLS, backup, Auth, dan sinkronisasi belum dikonfigurasi; UI harus menyebut status pending/local.         |
 | Cloud data policy | Target setiap baris milik akun melalui `user_id` dan RLS.                                     | Jangan mengaktifkan akses client sebelum policy diuji dengan lebih dari satu identitas. `service_role` hanya server-side. |
 

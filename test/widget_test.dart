@@ -2,8 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:senapath/app/app.dart';
 import 'package:senapath/core/storage/app_database.dart';
+import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/core/units/unit_settings_cubit.dart';
 import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/widgets/feature_state_view.dart';
@@ -12,6 +14,10 @@ import 'package:senapath/features/authentication/presentation/device_auth_cubit.
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
+import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
+import 'package:senapath/features/session/data/readiness_checker.dart';
+import 'package:senapath/features/session/data/ride_session_repository.dart';
+import 'package:senapath/features/session/presentation/session_cubit.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -24,12 +30,23 @@ void main() {
     await settingsCubit.load();
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
+    final sessionCubit = RideSessionCubit(
+      repository: DriftRideSessionRepository(
+        database: database,
+        telemetryCodec: EncryptedTelemetryCodec(
+          secureVault: _FakeSecureVault(),
+        ),
+      ),
+      readinessChecker: _FakeReadinessChecker(),
+      locationSource: _FakeLocationSource(),
+    );
 
     await tester.pumpWidget(
       SenapathApp(
         authCubit: authCubit,
         profileCubit: profileCubit,
         unitSettingsCubit: settingsCubit,
+        sessionCubit: sessionCubit,
       ),
     );
     await tester.pumpAndSettle();
@@ -42,7 +59,7 @@ void main() {
 
     await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
-    expect(find.text('Perekaman belum dimulai'), findsOneWidget);
+    expect(find.text('Pemeriksaan pra-balapan'), findsOneWidget);
 
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
@@ -61,6 +78,7 @@ void main() {
     await authCubit.close();
     await profileCubit.close();
     await settingsCubit.close();
+    await sessionCubit.close();
   });
 
   testWidgets('loading state is announced with progress', (tester) async {
@@ -128,5 +146,44 @@ class _FakeProfileRepository implements UserProfileRepository {
   @override
   Future<void> saveProfile(UserProfile value) async {
     profile = value;
+  }
+}
+
+class _FakeReadinessChecker implements ReadinessChecker {
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<ReadinessReport> check({
+    bool requestLocationPermission = false,
+  }) async => const ReadinessReport(
+    locationPermissionGranted: true,
+    locationPermanentlyDenied: false,
+    locationServicesEnabled: true,
+    gpsFixAvailable: true,
+    accelerometerAvailable: true,
+    gyroscopeAvailable: true,
+    notificationsGranted: true,
+    gpsAccuracyMeters: 8,
+  );
+}
+
+class _FakeLocationSource implements LocationSource {
+  @override
+  Stream<Position> get positions => const Stream<Position>.empty();
+}
+
+class _FakeSecureVault implements SecureVault {
+  final Map<String, String> _values = {};
+
+  @override
+  Future<void> delete(String key) async => _values.remove(key);
+
+  @override
+  Future<String?> read(String key) async => _values[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    _values[key] = value;
   }
 }

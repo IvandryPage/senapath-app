@@ -121,10 +121,10 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** pembalap dapat memeriksa perangkat dan merekam sesi lokal.
 
-- **PBI-3.1 (US-04/FR-20):** minta izin lokasi/notifikasi; periksa GPS fix dan ketersediaan accelerometer/gyroscope; bedakan izin ditolak dari sensor tak tersedia; jelaskan opsi lanjut terbatas.
+- **PBI-3.1 (US-04/FR-20):** minta izin lokasi; periksa status notifikasi, GPS fix, dan ketersediaan accelerometer/gyroscope; bedakan izin ditolak dari sensor tak tersedia; jelaskan opsi lanjut terbatas.
 - **PBI-3.2 (US-03/FR-06):** implementasi state mulai/jeda/lanjut/akhiri; cegah transisi invalid; tampilkan status rekam dan metrik tersedia.
 - **PBI-3.3 (US-02/FR-07):** rekam lokasi/waktu dengan izin; hitung metrik dasar; simpan berkala dan pulihkan setelah aplikasi dibuka ulang.
-- **PBI-3.4 (US-02, Q-03/Q-04):** tetapkan ID sesi stabil, skema lokal/migrasi, antrean sinkron, dan aturan agar data belum dikonfirmasi tetap tersimpan.
+- **PBI-3.4 (US-02, Q-03/Q-04):** tetapkan ID sesi stabil, schema/migrasi Drift, status `pending`, penyimpanan koordinat terenkripsi, dan aturan agar data belum dikonfirmasi tetap tersimpan.
 - **PBI-3.5:** uji mode pesawat, izin lokasi ditolak, GPS lemah, dan aplikasi ditutup saat sesi aktif.
 - **Penerimaan:** sesi dapat dijeda/dilanjutkan/dihentikan dan dipulihkan offline; dampak GPS lemah terlihat.
 
