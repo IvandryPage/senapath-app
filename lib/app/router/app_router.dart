@@ -11,6 +11,7 @@ import '../../features/reaction/presentation/reaction_test_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
+import '../../features/assistant/presentation/ai_chat_cubit.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
@@ -133,7 +134,10 @@ class _AppShellState extends State<_AppShell> {
           if (widget.navigationShell.currentIndex == 4)
             IconButton(
               tooltip: 'Keluar',
-              onPressed: () => context.read<DeviceAuthCubit>().logout(),
+              onPressed: () {
+                context.read<AiChatCubit>().clearConversation();
+                context.read<DeviceAuthCubit>().logout();
+              },
               icon: const Icon(Icons.logout),
             ),
         ],

@@ -230,6 +230,7 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 - **PBI-12.5 (Q-05):** tinjau kontras, target sentuh, status/alarm, dan beban interaksi selama sesi.
 - **PBI-12.6:** perbaiki defect rilis, validasi build distribusi, dokumentasikan fitur/provider yang belum tersedia dan prosedur dukungan.
 - **Penerimaan:** release candidate lolos gerbang kualitas; integrasi yang belum siap dinyatakan belum tersedia, bukan seolah produksi.
+- **Status increment lokal:** logout menghapus transcript AI dari memori dan mengabaikan respons request yang tiba setelah percakapan dibersihkan. Matriks perangkat, pengujian E2E penuh, dan validasi release candidate masih perlu dijalankan.
 
 ## 7. Dependensi dan Gerbang Keputusan
 

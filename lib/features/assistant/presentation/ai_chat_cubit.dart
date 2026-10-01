@@ -35,8 +35,17 @@ class AiChatCubit extends Cubit<AiChatState> {
     : super(AiChatState(isConfigured: _gateway.isConfigured));
 
   final AiChatGateway _gateway;
+  int _requestGeneration = 0;
 
   bool get isConfigured => _gateway.isConfigured;
+
+  void clearConversation() {
+    if (isClosed) return;
+    _requestGeneration++;
+    emit(
+      state.copyWith(messages: const [], isSending: false, clearError: true),
+    );
+  }
 
   Future<void> sendMessage({
     required String content,
@@ -60,6 +69,7 @@ class AiChatCubit extends Cubit<AiChatState> {
       ...state.messages,
       AiChatMessage(role: 'user', content: message),
     ];
+    final requestGeneration = ++_requestGeneration;
     emit(
       state.copyWith(
         messages: List.unmodifiable(conversation),
@@ -75,6 +85,7 @@ class AiChatCubit extends Cubit<AiChatState> {
             : conversation.sublist(conversation.length - 20),
         context: context,
       );
+      if (isClosed || requestGeneration != _requestGeneration) return;
       emit(
         state.copyWith(
           messages: List.unmodifiable([
@@ -86,6 +97,7 @@ class AiChatCubit extends Cubit<AiChatState> {
         ),
       );
     } catch (_) {
+      if (isClosed || requestGeneration != _requestGeneration) return;
       emit(
         state.copyWith(
           isSending: false,
