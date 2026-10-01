@@ -6,6 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../emergency/presentation/emergency_cubit.dart';
+import '../../profile/domain/user_profile.dart';
+import '../../profile/presentation/profile_cubit.dart';
 import '../data/readiness_checker.dart';
 import '../domain/ride_session.dart';
 import 'session_cubit.dart';
@@ -51,6 +54,11 @@ class _SessionScreenState extends State<SessionScreen> {
               .unitSystem;
           final readiness = state.readiness;
           final session = state.session;
+          final emergencyState = context.watch<EmergencyCubit>().state;
+          final emergencyContacts = context
+              .watch<ProfileCubit>()
+              .state
+              .contacts;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
@@ -79,6 +87,8 @@ class _SessionScreenState extends State<SessionScreen> {
                 const SizedBox(height: 24),
                 _buildSummary(context, summary, unitSystem),
               ],
+              const SizedBox(height: 24),
+              _buildEmergencyPanel(context, emergencyContacts, emergencyState),
               const SizedBox(height: 18),
               const Text(
                 'Sesi disimpan di perangkat. Sinkronisasi cloud menunggu '
@@ -88,6 +98,96 @@ class _SessionScreenState extends State<SessionScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEmergencyPanel(
+    BuildContext context,
+    List<EmergencyContact> contacts,
+    EmergencyState emergencyState,
+  ) {
+    final contact = contacts.isEmpty ? null : contacts.first;
+    final isCountingDown = emergencyState.isCountingDown;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.sos, color: Theme.of(context).colorScheme.error),
+                const SizedBox(width: 8),
+                Text(
+                  'SOS darurat',
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (contact == null)
+              const Text(
+                'Tambahkan minimal satu kontak darurat di Profil sebelum '
+                'menggunakan SOS.',
+              )
+            else if (isCountingDown) ...[
+              Text(
+                'Potensi insiden. WhatsApp akan dibuka untuk ${contact.name} '
+                'setelah hitung mundur selesai.',
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  '${emergencyState.secondsRemaining}',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: () =>
+                      context.read<EmergencyCubit>().cancelCountdown(),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Batalkan SOS'),
+                ),
+              ),
+            ] else ...[
+              Text('Kontak tujuan: ${contact.name} · ${contact.phone}'),
+              const SizedBox(height: 4),
+              Text(
+                'SOS membuka WhatsApp dengan pesan dan lokasi terakhir. '
+                'Kamu tetap harus menekan Kirim.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => context
+                      .read<EmergencyCubit>()
+                      .startCountdown(contact: contact),
+                  icon: const Icon(Icons.warning_amber),
+                  label: const Text('Mulai hitung mundur SOS'),
+                ),
+              ),
+              if (emergencyState.message != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  emergencyState.message!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
       ),
     );
   }

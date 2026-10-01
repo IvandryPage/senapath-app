@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../emergency/presentation/emergency_cubit.dart';
 import '../domain/user_profile.dart';
 import 'profile_cubit.dart';
 
@@ -173,14 +174,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 spacing: 4,
                 children: [
                   IconButton(
-                    tooltip: 'Edit ${contact.name}',
-                    onPressed: () => _editContact(contact),
-                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Telepon ${contact.name}',
+                    onPressed: () => _callContact(contact),
+                    icon: const Icon(Icons.call_outlined),
                   ),
                   IconButton(
-                    tooltip: 'Hapus ${contact.name}',
-                    onPressed: () => _removeContact(contact),
-                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'WhatsApp ${contact.name}',
+                    onPressed: () => _openContactWhatsApp(contact),
+                    icon: const Icon(Icons.chat_outlined),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Kelola ${contact.name}',
+                    onSelected: (action) {
+                      if (action == 'edit') _editContact(contact);
+                      if (action == 'delete') _removeContact(contact);
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: ListTile(
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('Edit'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: ListTile(
+                          leading: Icon(Icons.delete_outline),
+                          title: Text('Hapus'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -286,6 +310,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (confirmed == true && mounted) {
       await context.read<ProfileCubit>().removeContact(contact.id);
+    }
+  }
+
+  Future<void> _callContact(EmergencyContact contact) async {
+    try {
+      await context.read<EmergencyCubit>().callContact(contact);
+      if (!mounted) return;
+      final message = context.read<EmergencyCubit>().state.message;
+      if (message != null) _showMessage(message);
+      context.read<EmergencyCubit>().clearMessage();
+    } catch (_) {
+      if (mounted) _showMessage('Aplikasi telepon tidak dapat dibuka.');
+    }
+  }
+
+  Future<void> _openContactWhatsApp(EmergencyContact contact) async {
+    try {
+      await context.read<EmergencyCubit>().openWhatsApp(contact);
+      if (!mounted) return;
+      final message = context.read<EmergencyCubit>().state.message;
+      if (message != null) _showMessage(message);
+      context.read<EmergencyCubit>().clearMessage();
+    } catch (_) {
+      if (mounted) _showMessage('WhatsApp tidak dapat dibuka.');
     }
   }
 

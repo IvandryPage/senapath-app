@@ -7,6 +7,8 @@ import 'core/units/unit_settings_cubit.dart';
 import 'core/units/unit_settings_repository.dart';
 import 'features/authentication/data/device_authenticator.dart';
 import 'features/authentication/presentation/device_auth_cubit.dart';
+import 'features/emergency/data/emergency_contact_actions.dart';
+import 'features/emergency/presentation/emergency_cubit.dart';
 import 'features/profile/data/encrypted_avatar_store.dart';
 import 'features/profile/data/user_profile_repository.dart';
 import 'features/profile/presentation/profile_cubit.dart';
@@ -27,6 +29,9 @@ void main() {
   runApp(
     SenapathApp(
       authCubit: DeviceAuthCubit(LocalDeviceAuthenticator()),
+      emergencyCubit: EmergencyCubit(
+        const UrlLauncherEmergencyContactActions(),
+      ),
       profileCubit: ProfileCubit(
         SecureUserProfileRepository(
           secureVault: secureVault,

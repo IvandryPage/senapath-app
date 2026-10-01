@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/units/unit_settings_cubit.dart';
+import '../features/emergency/presentation/emergency_cubit.dart';
 import '../features/authentication/presentation/device_auth_cubit.dart';
 import '../features/profile/presentation/profile_cubit.dart';
 import '../features/session/presentation/session_cubit.dart';
@@ -11,6 +12,7 @@ import 'theme/app_theme.dart';
 class SenapathApp extends StatelessWidget {
   const SenapathApp({
     required this.authCubit,
+    required this.emergencyCubit,
     required this.profileCubit,
     required this.unitSettingsCubit,
     required this.sessionCubit,
@@ -18,6 +20,7 @@ class SenapathApp extends StatelessWidget {
   });
 
   final DeviceAuthCubit authCubit;
+  final EmergencyCubit emergencyCubit;
   final ProfileCubit profileCubit;
   final UnitSettingsCubit unitSettingsCubit;
   final RideSessionCubit sessionCubit;
@@ -27,6 +30,7 @@ class SenapathApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: authCubit),
+        BlocProvider.value(value: emergencyCubit),
         BlocProvider.value(value: profileCubit),
         BlocProvider.value(value: unitSettingsCubit),
         BlocProvider.value(value: sessionCubit),

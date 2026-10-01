@@ -143,11 +143,11 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** alarm dapat dibatalkan dan status SOS jelas saat jaringan berhasil maupun gagal.
 
-- **PBI-5.1 (US-07/FR-10):** SOS manual; countdown insiden 15 detik; pembatalan menghentikan pengiriman; gunakan bahasa “potensi insiden”, bukan kepastian.
-- **PBI-5.2 (US-06/US-07, FR-10/FR-19):** cegah deteksi otomatis tanpa kontak valid; kirim lokasi terakhir setelah persetujuan; tampilkan terkirim/tertunda/gagal dan retry aman.
+- **PBI-5.1 (US-07/FR-10):** SOS manual dengan countdown 15 detik; pembatalan menghentikan handoff; gunakan bahasa “potensi insiden”, bukan kepastian. Deteksi otomatis belum diaktifkan sampai algoritme dan kanal disetujui.
+- **PBI-5.2 (US-06/US-07, FR-10/FR-19):** validasi kontak; tombol telepon membuka dialer; tombol WhatsApp membuka draft pesan berisi SOS dan lokasi terakhir. Status dibedakan antara aplikasi dibuka untuk handoff dan pesan benar-benar terkirim; pengguna tetap menekan Kirim.
 - **PBI-5.3 (US-11/FR-09):** atur jenis, volume/frekuensi; jadwalkan peringatan lokal offline; tandai informasi online kedaluwarsa/tidak tersedia.
-- **PBI-5.4 (Q-02/Q-03/Q-05/Q-07):** uji pembatalan, jaringan putus, izin ditolak, nomor invalid dan status pengiriman.
-- **Penerimaan:** cancel menghentikan SOS; status offline tidak mengklaim terkirim; otomatis hanya aktif dengan kontak valid.
+- **PBI-5.4 (Q-02/Q-03/Q-05/Q-07):** uji pembatalan, WhatsApp/dialer tidak tersedia, nomor invalid, lokasi terakhir tidak ada, dan status handoff/pengiriman.
+- **Penerimaan:** cancel tidak membuka WhatsApp; handoff tidak diklaim sebagai pesan terkirim; kontak invalid ditolak; status keterbatasan kanal jelas.
 
 ### Sprint 6 — Peta, rute, dan POI
 

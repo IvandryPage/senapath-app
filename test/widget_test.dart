@@ -11,6 +11,8 @@ import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/widgets/feature_state_view.dart';
 import 'package:senapath/features/authentication/data/device_authenticator.dart';
 import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
+import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
+import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
@@ -30,6 +32,7 @@ void main() {
     await settingsCubit.load();
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
+    final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final sessionCubit = RideSessionCubit(
       repository: DriftRideSessionRepository(
         database: database,
@@ -44,6 +47,7 @@ void main() {
     await tester.pumpWidget(
       SenapathApp(
         authCubit: authCubit,
+        emergencyCubit: emergencyCubit,
         profileCubit: profileCubit,
         unitSettingsCubit: settingsCubit,
         sessionCubit: sessionCubit,
@@ -77,6 +81,7 @@ void main() {
     await database.close();
     await authCubit.close();
     await profileCubit.close();
+    await emergencyCubit.close();
     await settingsCubit.close();
     await sessionCubit.close();
   });
@@ -186,4 +191,13 @@ class _FakeSecureVault implements SecureVault {
   Future<void> write(String key, String value) async {
     _values[key] = value;
   }
+}
+
+class _FakeEmergencyContactActions implements EmergencyContactActions {
+  @override
+  Future<bool> call(EmergencyContact contact) async => true;
+
+  @override
+  Future<bool> openWhatsApp(EmergencyContact contact, String message) async =>
+      true;
 }
