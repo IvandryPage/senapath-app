@@ -181,6 +181,7 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 - **PBI-8.3 (US-17/FR-03):** konversi tanggal/waktu sumber ke London, WIB, WITA, WIT memakai database zona waktu; uji DST dan pergantian tanggal.
 - **PBI-8.4 (NFR-03/NFR-07):** uji offline, timeout, respons rusak, kurs kedaluwarsa, waktu ambigu; tampilkan keterbatasan.
 - **Penerimaan:** kurs gagal tidak disebut real-time; budget editable; tanggal hasil konversi lolos kasus DST.
+- **Status increment lokal:** budget dan konversi nominal EUR memakai kurs manual yang tersimpan beserta waktu input; provider otomatis tetap terbuka sampai dipilih dan disetujui. Konversi waktu memakai database IANA dan menangani jam DST yang hilang/berulang.
 
 ### Sprint 9 — Mini game reaksi
 

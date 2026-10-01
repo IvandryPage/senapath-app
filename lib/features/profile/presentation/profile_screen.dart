@@ -12,6 +12,10 @@ import '../../emergency/presentation/emergency_cubit.dart';
 import '../domain/user_profile.dart';
 import 'profile_cubit.dart';
 
+final _phoneFormCountries = allCountries
+    .where((country) => country.isoCode != 'SJ')
+    .toList(growable: false);
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -485,6 +489,9 @@ class _ContactEditorState extends State<_ContactEditor> {
             PhoneFormField(
               controller: _phoneController,
               defaultCountry: _defaultCountryCode,
+              selectorNavigator: ModalBottomSheetNavigator(
+                countries: _phoneFormCountries,
+              ),
               errorText: 'Periksa format nomor telepon.',
               decoration: const InputDecoration(
                 labelText: 'Nomor telepon atau WhatsApp',

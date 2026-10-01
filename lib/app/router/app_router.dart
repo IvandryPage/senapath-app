@@ -6,6 +6,7 @@ import '../../features/overview/presentation/overview_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
 import '../../features/session/presentation/session_screen.dart';
+import '../../features/logistics/presentation/logistics_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
 
@@ -16,6 +17,11 @@ const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
     label: 'Sesi',
     icon: Icons.directions_bike_outlined,
     selectedIcon: Icons.directions_bike,
+  ),
+  (
+    label: 'Logistik',
+    icon: Icons.currency_exchange_outlined,
+    selectedIcon: Icons.currency_exchange,
   ),
   (label: 'Profil', icon: Icons.person_outline, selectedIcon: Icons.person),
 ];
@@ -48,6 +54,14 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/session',
               builder: (context, state) => const SessionScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/logistics',
+              builder: (context, state) => const LogisticsScreen(),
             ),
           ],
         ),
@@ -93,7 +107,7 @@ class _AppShellState extends State<_AppShell> {
       appBar: AppBar(
         title: Text(destination.label),
         actions: [
-          if (widget.navigationShell.currentIndex == 3)
+          if (widget.navigationShell.currentIndex == 4)
             IconButton(
               tooltip: 'Keluar',
               onPressed: () => context.read<DeviceAuthCubit>().logout(),

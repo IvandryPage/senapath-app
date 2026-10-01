@@ -17,6 +17,8 @@ import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
+import 'package:senapath/features/logistics/data/logistics_repository.dart';
+import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
@@ -37,6 +39,7 @@ void main() {
     await settingsCubit.load();
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
+    final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final routesCubit = RoutesCubit(
       SavedRouteRepository(database),
@@ -61,6 +64,7 @@ void main() {
         routesCubit: routesCubit,
         unitSettingsCubit: settingsCubit,
         sessionCubit: sessionCubit,
+        logisticsCubit: logisticsCubit,
       ),
     );
     await tester.pumpAndSettle();
@@ -75,6 +79,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pemeriksaan pra-balapan'), findsOneWidget);
 
+    await tester.tap(find.text('Logistik').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Anggaran'), findsOneWidget);
+    expect(find.text('Waktu acara'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Atur kurs'));
+    await tester.pumpAndSettle();
+    final rateFields = find.byType(TextFormField);
+    await tester.enterText(rateFields.at(0), '17000');
+    await tester.enterText(rateFields.at(1), '1.1');
+    await tester.enterText(rateFields.at(2), '0.95');
+    await tester.tap(find.text('Simpan kurs'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('bukan real-time'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('eur-converter-amount')), '10');
+    await tester.pump();
+    expect(find.textContaining('170,000'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Tambah item anggaran'));
+    await tester.pumpAndSettle();
+    final itemFields = find.byType(TextFormField);
+    await tester.enterText(itemFields.at(0), 'Hotel');
+    await tester.enterText(itemFields.at(1), '100');
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hotel'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Edit Hotel'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(1), '125');
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hotel'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Hapus Hotel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hapus').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Hotel'), findsNothing);
+
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     expect(find.text('Kontak darurat'), findsOneWidget);
@@ -82,6 +126,19 @@ void main() {
     await tester.tap(find.byTooltip('Tambah kontak darurat'));
     await tester.pumpAndSettle();
     expect(find.byType(PhoneFormField), findsOneWidget);
+    await tester.tap(find.byType(PhoneFormField));
+    await tester.pumpAndSettle();
+    final initialDialCode = tester
+        .widget<Text>(find.textContaining('+ ').first)
+        .data;
+    await tester.tap(find.byType(FlagDialCodeChip).last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '47');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('NO')));
+    await tester.pumpAndSettle();
+    expect(initialDialCode, isNot('+ 47'));
+    expect(find.text('+ 47'), findsAtLeastNWidgets(1));
     await tester.tap(find.text('Batal'));
     await tester.pumpAndSettle();
 
@@ -101,6 +158,7 @@ void main() {
     await routesCubit.close();
     await settingsCubit.close();
     await sessionCubit.close();
+    await logisticsCubit.close();
   });
 
   testWidgets('loading state is announced with progress', (tester) async {

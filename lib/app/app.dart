@@ -7,6 +7,7 @@ import '../features/authentication/presentation/device_auth_cubit.dart';
 import '../features/profile/presentation/profile_cubit.dart';
 import '../features/routes/presentation/routes_cubit.dart';
 import '../features/session/presentation/session_cubit.dart';
+import '../features/logistics/presentation/logistics_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -18,6 +19,7 @@ class SenapathApp extends StatelessWidget {
     required this.routesCubit,
     required this.unitSettingsCubit,
     required this.sessionCubit,
+    required this.logisticsCubit,
     super.key,
   });
 
@@ -27,6 +29,7 @@ class SenapathApp extends StatelessWidget {
   final RoutesCubit routesCubit;
   final UnitSettingsCubit unitSettingsCubit;
   final RideSessionCubit sessionCubit;
+  final LogisticsCubit logisticsCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +41,7 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: routesCubit),
         BlocProvider.value(value: unitSettingsCubit),
         BlocProvider.value(value: sessionCubit),
+        BlocProvider.value(value: logisticsCubit),
       ],
       child: MaterialApp.router(
         title: 'Senapath',
