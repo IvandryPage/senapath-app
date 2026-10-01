@@ -22,9 +22,9 @@ class UrlLauncherEmergencyContactActions implements EmergencyContactActions {
 
   @override
   Future<bool> openWhatsApp(EmergencyContact contact, String message) async {
-    final digits = contact.phone.replaceAll(RegExp(r'\D'), '');
-    if (digits.length < 7 || digits.length > 15) return false;
-    final uri = Uri.https('wa.me', '/$digits', {'text': message});
+    final phone = normalizeWhatsAppPhone(contact.phone);
+    if (phone == null) return false;
+    final uri = Uri.https('wa.me', '/$phone', {'text': message});
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -35,4 +35,13 @@ class UrlLauncherEmergencyContactActions implements EmergencyContactActions {
     if (digits.length < 7 || digits.length > 15) return null;
     return trimmed.replaceAll(RegExp(r'[ ()-]'), '');
   }
+}
+
+String? normalizeWhatsAppPhone(String phone) {
+  var digits = phone.replaceAll(RegExp(r'\D'), '');
+  if (digits.startsWith('0')) {
+    digits = '62${digits.substring(1)}';
+  }
+  if (digits.length < 7 || digits.length > 15) return null;
+  return digits;
 }
