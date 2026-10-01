@@ -101,6 +101,14 @@ class OverviewScreen extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/assistant'),
         ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.feedback_outlined, color: colorScheme.primary),
+          title: const Text('Saran & kesan'),
+          subtitle: const Text('Kirim masukan kepada tim Senapath'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/feedback'),
+        ),
       ],
     );
   }

@@ -1,2 +1,5 @@
 [functions.rider-assistant]
 verify_jwt = true
+
+[functions.submit-feedback]
+verify_jwt = true

@@ -27,6 +27,9 @@ import 'features/reaction/data/reaction_test_repository.dart';
 import 'features/reaction/presentation/reaction_test_cubit.dart';
 import 'features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'features/assistant/presentation/ai_chat_cubit.dart';
+import 'features/feedback/data/feedback_repository.dart';
+import 'features/feedback/data/supabase_feedback_gateway.dart';
+import 'features/feedback/presentation/feedback_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +73,10 @@ Future<void> main() async {
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
       reactionTestCubit: ReactionTestCubit(ReactionTestRepository(database)),
       aiChatCubit: AiChatCubit(SupabaseAiChatGateway(supabaseClient)),
+      feedbackCubit: FeedbackCubit(
+        FeedbackRepository(secureVault),
+        SupabaseFeedbackGateway(supabaseClient),
+      ),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
         readinessChecker: const DeviceReadinessChecker(),

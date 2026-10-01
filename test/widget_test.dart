@@ -14,6 +14,9 @@ import 'package:senapath/features/authentication/data/device_authenticator.dart'
 import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
 import 'package:senapath/features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'package:senapath/features/assistant/presentation/ai_chat_cubit.dart';
+import 'package:senapath/features/feedback/data/feedback_repository.dart';
+import 'package:senapath/features/feedback/data/supabase_feedback_gateway.dart';
+import 'package:senapath/features/feedback/presentation/feedback_cubit.dart';
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
@@ -74,6 +77,10 @@ void main() {
         logisticsCubit: logisticsCubit,
         reactionTestCubit: reactionTestCubit,
         aiChatCubit: AiChatCubit(const SupabaseAiChatGateway(null)),
+        feedbackCubit: FeedbackCubit(
+          FeedbackRepository(_FakeSecureVault()),
+          const SupabaseFeedbackGateway(null),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -85,6 +92,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('AI belum tersambung'), findsOneWidget);
     expect(find.textContaining('Tidak ada pesan yang dikirim'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Saran & kesan'), 400);
+    await tester.tap(find.text('Saran & kesan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kirim feedback'), findsOneWidget);
+    expect(find.textContaining('Jika gagal'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 

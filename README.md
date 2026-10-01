@@ -37,6 +37,7 @@ supabase link --project-ref your-project-ref
 supabase db push
 supabase secrets set GEMINI_API_KEY=your-gemini-api-key
 supabase functions deploy rider-assistant
+supabase functions deploy submit-feedback
 ```
 
 4. Jalankan aplikasi dengan URL proyek dan publishable key Supabase:
@@ -45,4 +46,4 @@ supabase functions deploy rider-assistant
 flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 ```
 
-Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan service-role key atau Gemini API key ke `--dart-define`. Function membatasi tiap akun anonim hingga 30 permintaan per hari; tabel kuota hanya menyimpan ID anonim, tanggal, dan jumlah permintaan, bukan isi chat. Atur juga kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat belum aktif sampai function berhasil dideploy dan konfigurasi Supabase diberikan.
+Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan service-role key atau Gemini API key ke `--dart-define`. Function membatasi tiap akun anonim hingga 30 permintaan per hari; tabel kuota hanya menyimpan ID anonim, tanggal, dan jumlah permintaan, bukan isi chat. Feedback terkirim disimpan di tabel `user_feedback` untuk ditinjau tim; hapus data secara berkala melalui dashboard/database sesuai kebijakan retensi proyek. Atur juga kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat dan pengiriman feedback belum aktif sampai function berhasil dideploy dan konfigurasi Supabase diberikan.

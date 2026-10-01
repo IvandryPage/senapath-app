@@ -11,6 +11,7 @@ import '../../features/reaction/presentation/reaction_test_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
+import '../../features/feedback/presentation/feedback_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -48,6 +49,10 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'assistant',
                   builder: (context, state) => const AiChatScreen(),
+                ),
+                GoRoute(
+                  path: 'feedback',
+                  builder: (context, state) => const FeedbackScreen(),
                 ),
               ],
             ),
@@ -117,6 +122,7 @@ class _AppShellState extends State<_AppShell> {
     final title = switch (widget.location) {
       '/reaction' => 'Tes Reaksi',
       '/assistant' => 'Chat AI',
+      '/feedback' => 'Saran & kesan',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
 

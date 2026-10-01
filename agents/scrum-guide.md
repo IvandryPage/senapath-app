@@ -216,6 +216,8 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 - **PBI-11.4 (US-22/FR-15):** definisikan aturan kelayakan; bedakan pending, belum sinkron, belum terverifikasi, dan terverifikasi; sediakan cek proof bila ada.
 - **PBI-11.5 (Q-04/Q-07):** uji batal persetujuan, gagal jaringan, retry, referensi invalid, serta privasi.
 - **Penerimaan:** pending tidak tampil terverifikasi; gagalnya ledger tidak memblokir ringkasan lokal.
+- **Status increment lokal:** PBI-11.1 tersedia lewat formulir consent, outbox terenkripsi di perangkat, status gagal/berhasil, dan retry dengan ID idempotensi; Supabase function serta migrasi siap untuk deploy. Proof/leaderboard belum mengirim atau mengklaim verifikasi karena jaringan ledger dan aturan kelayakan belum dipilih.
+- **Status increment lokal:** PBI-11.1 memiliki formulir consent, outbox feedback terenkripsi di perangkat, status sukses/gagal, dan retry dengan idempotency key; server menolak duplikasi. Function dan migration siap tetapi menunggu deploy ke proyek Supabase. Proof/leaderboard belum mengirim data karena jaringan ledger dan aturan kelayakan belum diputuskan.
 
 ### Sprint 12 — Hardening dan release candidate
 
