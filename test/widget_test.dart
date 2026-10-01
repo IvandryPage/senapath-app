@@ -17,10 +17,12 @@ import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
+import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
+import 'package:senapath/features/session/data/session_file_service.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
 import 'package:drift/native.dart';
 
@@ -35,7 +37,10 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
-    final routesCubit = RoutesCubit(SavedRouteRepository(database));
+    final routesCubit = RoutesCubit(
+      SavedRouteRepository(database),
+      const RouteFileExchange(SessionFileService()),
+    );
     final sessionCubit = RideSessionCubit(
       repository: DriftRideSessionRepository(
         database: database,

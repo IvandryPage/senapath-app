@@ -44,4 +44,20 @@ void main() {
     expect(await repository.search(''), isEmpty);
     expect(await repository.search('unknown'), isEmpty);
   });
+
+  test('imported route is persisted with offline metadata', () async {
+    final route = await repository.saveImportedRoute(
+      name: 'Rute Latihan',
+      points: const [
+        (latitude: -6.2, longitude: 106.8, elevation: 10),
+        (latitude: -6.201, longitude: 106.801, elevation: 18),
+      ],
+    );
+
+    expect(route.availability, 'offline');
+    expect(route.source, 'GPX lokal');
+    expect(route.distanceMeters, greaterThan(0));
+    expect(route.elevationGainMeters, 8);
+    expect((await repository.search('Latihan')).single.id, route.id);
+  });
 }

@@ -10,6 +10,7 @@ abstract interface class RideSessionRepository {
   Future<RideSessionSnapshot?> recoverCurrentSession();
   Future<List<RideSessionSnapshot>> loadCompletedSessions();
   Future<RideSessionSummary> loadSummary(String sessionId);
+  Future<List<TelemetryLocation>> loadTelemetryLocations(String sessionId);
   Future<RideSessionSnapshot> start(DateTime now);
   Future<RideSessionSnapshot> pause(String sessionId, DateTime now);
   Future<RideSessionSnapshot> resume(String sessionId, DateTime now);
@@ -89,15 +90,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
               ..orderBy([(point) => OrderingTerm.asc(point.recordedAt)]))
             .get();
 
-    final locations = <TelemetryLocation>[];
-    for (final point in points) {
-      locations.add(
-        await telemetryCodec.decode(
-          point.encryptedPayload,
-          recordedAt: point.recordedAt,
-        ),
-      );
-    }
+    final locations = await _decodePoints(points);
 
     final pressureSamples = locations
         .where(
@@ -173,6 +166,33 @@ class DriftRideSessionRepository implements RideSessionRepository {
       accelerometerSampleCount: accelerometerSampleCount,
       gyroscopeSampleCount: gyroscopeSampleCount,
     );
+  }
+
+  @override
+  Future<List<TelemetryLocation>> loadTelemetryLocations(
+    String sessionId,
+  ) async {
+    final points =
+        await (database.select(database.telemetryPoints)
+              ..where((point) => point.sessionId.equals(sessionId))
+              ..orderBy([(point) => OrderingTerm.asc(point.recordedAt)]))
+            .get();
+    return _decodePoints(points);
+  }
+
+  Future<List<TelemetryLocation>> _decodePoints(
+    List<TelemetryPoint> points,
+  ) async {
+    final locations = <TelemetryLocation>[];
+    for (final point in points) {
+      locations.add(
+        await telemetryCodec.decode(
+          point.encryptedPayload,
+          recordedAt: point.recordedAt,
+        ),
+      );
+    }
+    return locations;
   }
 
   @override

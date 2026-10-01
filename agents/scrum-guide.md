@@ -165,12 +165,12 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** data dapat dipindahkan tanpa mengorbankan riwayat atau sinkronisasi pending.
 
-- **PBI-7.1 (US-13/FR-22):** impor GPX; parse dan validasi; tolak berkas rusak/tidak didukung dengan pesan jelas; tampilkan rute valid.
-- **PBI-7.2:** ekspor sesi ke GPX/JSON; tentukan skema/versi JSON; tangani izin, pembatalan dan gagal tulis; validasi GPX dengan pembaca yang sesuai.
-- **PBI-7.3 (US-14/FR-23):** tampilkan ukuran database/cache terpisah dan batas offline.
-- **PBI-7.4:** hapus cache peta/atur batas unduhan berikutnya; jangan hapus sesi, riwayat atau antrean pending.
+- **PBI-7.1 (US-13/FR-22):** impor GPX melalui file selector; parse XML terstruktur dan validasi titik; tolak berkas rusak/tidak didukung; simpan metadata rute sebagai offline.
+- **PBI-7.2:** ekspor sesi ke GPX/JSON melalui dialog save OS; JSON memakai `schemaVersion`; tangani pembatalan/gagal tulis dan validasi GPX hasil ekspor.
+- **PBI-7.3 (US-14/FR-23):** hitung penggunaan database dan directory cache peta secara terpisah; tampilkan batas offline.
+- **PBI-7.4:** hapus hanya directory cache peta/atur batas unduhan berikutnya; jangan hapus database Drift, sesi, riwayat atau antrean pending.
 - **PBI-7.5 (Q-03/Q-04):** uji berkas rusak/besar, storage penuh, pembatalan ekspor dan pembersihan saat sesi pending.
-- **Penerimaan:** GPX hasil ekspor valid; pembersihan cache tidak menghapus data sesi pending.
+- **Penerimaan:** GPX hasil ekspor dapat diparse kembali; GPX invalid ditolak; pembersihan cache tidak menghapus data sesi pending.
 
 ### Sprint 8 — Konversi logistik
 

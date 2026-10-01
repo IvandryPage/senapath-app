@@ -6,10 +6,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../routes/data/route_file_exchange.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../data/readiness_checker.dart';
+import '../data/session_file_service.dart';
 import '../domain/ride_session.dart';
 import 'session_cubit.dart';
 
@@ -22,6 +24,7 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   bool _initialized = false;
+  static const _fileExchange = RouteFileExchange(SessionFileService());
 
   @override
   void didChangeDependencies() {
@@ -626,8 +629,61 @@ class _SessionScreenState extends State<SessionScreen> {
           _SpeedGraph(values: graphSpeeds)
         else
           const Text('Belum cukup sampel untuk menampilkan grafik kecepatan.'),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _exportSession(context, summary, asGpx: false),
+              icon: const Icon(Icons.data_object),
+              label: const Text('Ekspor JSON'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => _exportSession(context, summary, asGpx: true),
+              icon: const Icon(Icons.route),
+              label: const Text('Ekspor GPX'),
+            ),
+          ],
+        ),
       ],
     );
+  }
+
+  Future<void> _exportSession(
+    BuildContext context,
+    RideSessionSummary summary, {
+    required bool asGpx,
+  }) async {
+    try {
+      final sessionCubit = context.read<RideSessionCubit>();
+      final locations = await sessionCubit.repository.loadTelemetryLocations(
+        summary.session.id,
+      );
+      final content = asGpx
+          ? _fileExchange.fileService.toGpx(locations)
+          : _fileExchange.fileService.toJson(
+              session: summary.session,
+              locations: locations,
+            );
+      final saved = await _fileExchange.exportText(
+        content: content,
+        suggestedName: asGpx ? 'senapath-session.gpx' : 'senapath-session.json',
+        extension: asGpx ? 'gpx' : 'json',
+        mimeType: asGpx ? 'application/gpx+xml' : 'application/json',
+      );
+      if (!context.mounted || !saved) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Berkas ${asGpx ? 'GPX' : 'JSON'} berhasil disimpan.'),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ekspor gagal atau dibatalkan.')),
+      );
+    }
   }
 
   String _formatDistance(double meters, bool metric) => metric

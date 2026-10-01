@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/saved_route_repository.dart';
+import '../data/route_file_exchange.dart';
 import '../domain/saved_route.dart';
 
 class RoutesState {
@@ -31,9 +32,10 @@ class RoutesState {
 }
 
 class RoutesCubit extends Cubit<RoutesState> {
-  RoutesCubit(this.repository) : super(const RoutesState());
+  RoutesCubit(this.repository, this.fileExchange) : super(const RoutesState());
 
   final SavedRouteRepository repository;
+  final RouteFileExchange fileExchange;
 
   Future<void> load() => search('');
 
@@ -49,6 +51,29 @@ class RoutesCubit extends Cubit<RoutesState> {
           message: 'Rute lokal tidak dapat dibuka.',
         ),
       );
+    }
+  }
+
+  Future<void> importGpx() async {
+    try {
+      final points = await fileExchange.importGpx();
+      if (points == null) return;
+      await repository.saveImportedRoute(
+        name: 'Rute GPX impor',
+        points: [
+          for (final point in points)
+            (
+              latitude: point.latitude,
+              longitude: point.longitude,
+              elevation: point.altitudeMeters,
+            ),
+        ],
+      );
+      await search(state.query);
+    } on FormatException catch (error) {
+      emit(state.copyWith(message: error.message));
+    } catch (_) {
+      emit(state.copyWith(message: 'GPX tidak dapat diimpor.'));
     }
   }
 

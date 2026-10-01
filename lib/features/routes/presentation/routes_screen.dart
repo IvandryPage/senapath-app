@@ -49,24 +49,38 @@ class _RoutesScreenState extends State<RoutesScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                child: TextField(
-                  controller: _searchController,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (value) =>
-                      context.read<RoutesCubit>().search(value),
-                  decoration: InputDecoration(
-                    hintText: 'Cari rute tersimpan',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      tooltip: 'Hapus pencarian',
-                      onPressed: () {
-                        _searchController.clear();
-                        context.read<RoutesCubit>().search('');
-                      },
-                      icon: const Icon(Icons.clear),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (value) =>
+                            context.read<RoutesCubit>().search(value),
+                        decoration: InputDecoration(
+                          hintText: 'Cari rute tersimpan',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: IconButton(
+                            tooltip: 'Hapus pencarian',
+                            onPressed: () {
+                              _searchController.clear();
+                              context.read<RoutesCubit>().search('');
+                            },
+                            icon: const Icon(Icons.clear),
+                          ),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
                     ),
-                    border: const OutlineInputBorder(),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      tooltip: 'Impor GPX',
+                      onPressed: state.isLoading
+                          ? null
+                          : () => context.read<RoutesCubit>().importGpx(),
+                      icon: const Icon(Icons.file_upload_outlined),
+                    ),
+                  ],
                 ),
               ),
               Expanded(child: _buildResults(state)),
