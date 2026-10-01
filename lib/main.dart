@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
@@ -35,10 +36,15 @@ import 'features/feedback/presentation/feedback_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  const supabasePublishableKey = String.fromEnvironment(
-    'SUPABASE_PUBLISHABLE_KEY',
-  );
+  var supabaseUrl = '';
+  var supabasePublishableKey = '';
+  try {
+    await dotenv.load(fileName: 'assets/config/client.env');
+    supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    supabasePublishableKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? '';
+  } catch (_) {
+    // Local-only features remain available when client config is absent.
+  }
   SupabaseClient? supabaseClient;
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
     await Supabase.initialize(

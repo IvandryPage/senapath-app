@@ -14,11 +14,12 @@ Jalankan `Copy-Item` hanya saat `.env` belum ada agar konfigurasi lokal tidak te
 
 ## Pemeriksaan kualitas
 
-```sh
+Isi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` di `.env` lokal. Runner membuat asset `assets/config/client.env` yang hanya memuat dua nilai publik tersebut; `.env` sumber tidak pernah dimasukkan ke APK. Gemini key hanya dipakai Supabase Edge Functions. Jangan masukkan password pengguna atau service-role key ke Flutter/app.
 dart format lib test
 flutter analyze
 flutter test
-```
+
+````
 
 GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests pada push ke `main` serta pull request.
 
@@ -41,7 +42,7 @@ Chat hanya mengirim pesan setelah pengguna menyetujui. Rute lokal dan preferensi
 ```sh
 supabase login
 supabase link --project-ref your-project-ref
-```
+````
 
 3. Terapkan migrasi kuota harian, atur secret Gemini hanya di Supabase, lalu deploy function:
 
@@ -57,7 +58,7 @@ Untuk menjalankan Edge Function secara lokal, isi `GEMINI_API_KEY` di `.env` lal
 4. Jalankan aplikasi dengan URL proyek dan publishable key Supabase dari `.env`:
 
 ```sh
-./scripts/flutter_with_env.ps1 run -d <device-id>
+.\scripts\flutter_with_env.ps1 build apk --release
 ```
 
 Publishable key memang digunakan oleh aplikasi klien dan diteruskan sebagai compile-time define; jangan pernah memasukkan service-role key atau Gemini API key ke runner Flutter. Email/password dikelola Supabase Auth; aplikasi tidak menyimpan password. Function AI membatasi setiap akun Supabase hingga 30 permintaan per hari. Feedback terkirim disimpan di tabel `user_feedback` untuk ditinjau tim; hapus data secara berkala sesuai kebijakan retensi proyek. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat dan feedback memerlukan sesi akun online. Email confirmation/reset juga memerlukan provider Email, template, SMTP, serta redirect URL yang sesuai.
