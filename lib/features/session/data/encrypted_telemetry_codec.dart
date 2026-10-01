@@ -16,11 +16,15 @@ class EncryptedTelemetryCodec {
   final AesGcm _cipher;
 
   Future<Uint8List> encode(TelemetryLocation location) async {
+    final cleartext = utf8.encode(jsonEncode(location.toJson()));
+    return encryptBytes(cleartext);
+  }
+
+  Future<Uint8List> encryptBytes(List<int> cleartext) async {
     final key = await _loadOrCreateKey();
     if (key == null) {
       throw StateError('Telemetry encryption key is unavailable.');
     }
-    final cleartext = utf8.encode(jsonEncode(location.toJson()));
     final secretBox = await _cipher.encrypt(
       cleartext,
       secretKey: SecretKey(key),
@@ -32,6 +36,14 @@ class EncryptedTelemetryCodec {
     Uint8List encrypted, {
     required DateTime recordedAt,
   }) async {
+    final cleartext = await decryptBytes(encrypted);
+    return TelemetryLocation.fromJson(
+      jsonDecode(utf8.decode(cleartext)) as Map<String, dynamic>,
+      recordedAt: recordedAt,
+    );
+  }
+
+  Future<Uint8List> decryptBytes(Uint8List encrypted) async {
     final key = await _loadOrCreateKey(create: false);
     if (key == null) throw StateError('Telemetry encryption key is missing.');
 
@@ -44,10 +56,7 @@ class EncryptedTelemetryCodec {
       secretBox,
       secretKey: SecretKey(key),
     );
-    return TelemetryLocation.fromJson(
-      jsonDecode(utf8.decode(cleartext)) as Map<String, dynamic>,
-      recordedAt: recordedAt,
-    );
+    return Uint8List.fromList(cleartext);
   }
 
   Future<List<int>?> _loadOrCreateKey({bool create = true}) async {

@@ -48,9 +48,10 @@ Future<void> main() async {
 
   final secureVault = FlutterSecureVault();
   final database = AppDatabase();
+  final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
     database: database,
-    telemetryCodec: EncryptedTelemetryCodec(secureVault: secureVault),
+    telemetryCodec: telemetryCodec,
   );
 
   runApp(
@@ -66,7 +67,7 @@ Future<void> main() async {
         ),
       ),
       routesCubit: RoutesCubit(
-        SavedRouteRepository(database),
+        SavedRouteRepository(database, geometryCodec: telemetryCodec),
         const RouteFileExchange(SessionFileService()),
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),

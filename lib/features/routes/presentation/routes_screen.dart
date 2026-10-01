@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -133,17 +134,172 @@ class _RouteTile extends StatelessWidget {
 
     return Card(
       child: ListTile(
+        onTap: () => _showRoutePreview(context),
         leading: const Icon(Icons.route_outlined),
         title: Text(route.name),
         subtitle: Text('$distance · $elevation\n$poi\nSumber: ${route.source}'),
         isThreeLine: true,
-        trailing: route.availability == 'offline'
-            ? const Tooltip(
-                message: 'Tersedia offline',
-                child: Icon(Icons.cloud_off_outlined),
-              )
-            : const Icon(Icons.cloud_done_outlined),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            route.availability == 'offline'
+                ? const Tooltip(
+                    message: 'Tersedia offline',
+                    child: Icon(Icons.cloud_off_outlined),
+                  )
+                : const Icon(Icons.cloud_done_outlined),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
       ),
     );
   }
+
+  void _showRoutePreview(BuildContext context) {
+    final distance = route.distanceMeters == null
+        ? 'Jarak tidak tersedia'
+        : '${(route.distanceMeters! / 1000).toStringAsFixed(1)} km';
+    final elevation = route.elevationGainMeters == null
+        ? 'Elevasi tidak tersedia'
+        : '+${route.elevationGainMeters!.toStringAsFixed(0)} m';
+    final poi = route.poiSummary.isEmpty
+        ? 'POI belum tersedia'
+        : route.poiSummary;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(route.name, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 4),
+              Text(
+                route.points.isEmpty
+                    ? 'Geometri belum tersimpan untuk rute ini.'
+                    : 'Jejak GPX lokal · ${route.points.length} titik · tersedia offline',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              if (route.points.length >= 2)
+                RouteMapPreview(points: route.points)
+              else
+                const SizedBox(
+                  height: 180,
+                  child: Center(child: Icon(Icons.route_outlined, size: 44)),
+                ),
+              const SizedBox(height: 12),
+              Text('$distance · $elevation · $poi'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class RouteMapPreview extends StatelessWidget {
+  const RouteMapPreview({required this.points, super.key});
+
+  final List<RoutePoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      label: 'Jejak rute offline dengan ${points.length} titik',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          width: double.infinity,
+          height: 220,
+          child: CustomPaint(
+            painter: _RoutePathPainter(
+              points: points,
+              background: colors.surfaceContainerHighest,
+              pathColor: colors.primary,
+              startColor: colors.tertiary,
+              endColor: colors.error,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoutePathPainter extends CustomPainter {
+  const _RoutePathPainter({
+    required this.points,
+    required this.background,
+    required this.pathColor,
+    required this.startColor,
+    required this.endColor,
+  });
+
+  final List<RoutePoint> points;
+  final Color background;
+  final Color pathColor;
+  final Color startColor;
+  final Color endColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = background);
+    if (points.length < 2) return;
+
+    final minLatitude = points.map((point) => point.latitude).reduce(math.min);
+    final maxLatitude = points.map((point) => point.latitude).reduce(math.max);
+    final minLongitude = points
+        .map((point) => point.longitude)
+        .reduce(math.min);
+    final maxLongitude = points
+        .map((point) => point.longitude)
+        .reduce(math.max);
+    const inset = 24.0;
+    final width = math.max(1.0, size.width - inset * 2);
+    final height = math.max(1.0, size.height - inset * 2);
+    final longitudeSpan = math.max(0.000001, maxLongitude - minLongitude);
+    final latitudeSpan = math.max(0.000001, maxLatitude - minLatitude);
+    final scale = math.min(width / longitudeSpan, height / latitudeSpan);
+    final renderedWidth = longitudeSpan * scale;
+    final renderedHeight = latitudeSpan * scale;
+    final left = (size.width - renderedWidth) / 2;
+    final top = (size.height - renderedHeight) / 2;
+
+    Offset project(RoutePoint point) => Offset(
+      left + (point.longitude - minLongitude) * scale,
+      size.height - top - (point.latitude - minLatitude) * scale,
+    );
+
+    final path = Path()
+      ..moveTo(project(points.first).dx, project(points.first).dy);
+    for (final point in points.skip(1)) {
+      final offset = project(point);
+      path.lineTo(offset.dx, offset.dy);
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = pathColor
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke,
+    );
+    canvas.drawCircle(project(points.first), 7, Paint()..color = startColor);
+    canvas.drawCircle(project(points.last), 7, Paint()..color = endColor);
+  }
+
+  @override
+  bool shouldRepaint(_RoutePathPainter oldDelegate) =>
+      oldDelegate.points != points ||
+      oldDelegate.background != background ||
+      oldDelegate.pathColor != pathColor ||
+      oldDelegate.startColor != startColor ||
+      oldDelegate.endColor != endColor;
 }

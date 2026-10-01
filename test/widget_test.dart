@@ -52,7 +52,10 @@ void main() {
     );
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final routesCubit = RoutesCubit(
-      SavedRouteRepository(database),
+      SavedRouteRepository(
+        database,
+        geometryCodec: EncryptedTelemetryCodec(secureVault: _FakeSecureVault()),
+      ),
       const RouteFileExchange(SessionFileService()),
     );
     final sessionCubit = RideSessionCubit(

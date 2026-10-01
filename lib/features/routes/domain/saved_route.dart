@@ -1,3 +1,15 @@
+class RoutePoint {
+  const RoutePoint({
+    required this.latitude,
+    required this.longitude,
+    required this.elevationMeters,
+  });
+
+  final double latitude;
+  final double longitude;
+  final double elevationMeters;
+}
+
 class RouteRecord {
   const RouteRecord({
     required this.id,
@@ -8,6 +20,7 @@ class RouteRecord {
     this.distanceMeters,
     this.elevationGainMeters,
     this.poiSummary = '',
+    this.points = const [],
   });
 
   final String id;
@@ -18,4 +31,5 @@ class RouteRecord {
   final double? distanceMeters;
   final double? elevationGainMeters;
   final String poiSummary;
+  final List<RoutePoint> points;
 }

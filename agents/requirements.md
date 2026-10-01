@@ -17,10 +17,10 @@ Dokumen ini mendefinisikan kebutuhan produk, bukan keputusan implementasi. Fitur
 
 ### A. Akun dan Persiapan
 
-**FR-01 — Login biometrik**  
-Sistem harus menyediakan login biometrik pada perangkat yang mendukungnya. Saat biometrik tidak tersedia atau gagal, sistem harus menyediakan mekanisme pemulihan yang aman. Kredensial dan sesi lokal harus disimpan melalui fasilitas penyimpanan aman perangkat; data sensitif lokal harus dienkripsi.
+**FR-01 — Buka aplikasi dan identitas akun**  
+Biometrik/PIN perangkat adalah *local unlock*, bukan identitas akun cloud. Penolakan atau pembatalan unlock tidak membuka data lokal. Fitur yang menyimpan atau menyinkronkan data online harus memakai akun cloud yang dapat dipulihkan dan sesi yang dapat dicabut; aplikasi tidak boleh menyebut pengguna sudah login online hanya karena local unlock berhasil. Kredensial dan token disimpan melalui fasilitas aman platform.
 
-**Kriteria penerimaan:** pengguna dapat masuk dengan biometrik yang terdaftar; penolakan biometrik tidak membuka sesi; pengguna dapat keluar dan sesi lokal tidak lagi dapat digunakan.
+**Kriteria penerimaan:** local unlock gagal tidak membuka data; status akun cloud ditampilkan terpisah; sign-out cloud mencabut sesi server dan local lock tidak menghapus data lokal.
 
 **FR-02 — Konversi mata uang**  
 Sistem harus dapat mengonversi nilai EUR ke IDR, USD, dan CHF menggunakan kurs terbaru yang tersedia. Hasil harus menampilkan waktu pembaruan dan sumber kurs. Jika offline, sistem boleh menampilkan kurs tersimpan terakhir dengan penanda bahwa kurs tersebut bukan kurs real-time. Sistem juga harus menyediakan simulasi anggaran yang memungkinkan manajer menambahkan beberapa item pengeluaran dengan nama, nominal, dan mata uang, lalu melihat total dalam mata uang tujuan.
@@ -32,10 +32,10 @@ Sistem harus mengonversi tanggal dan waktu acara dari zona waktu sumber (misalny
 
 **Kriteria penerimaan:** waktu tujuan dan tanggal lokal ditampilkan untuk setiap zona; perubahan tanggal dan aturan daylight saving tidak menghasilkan waktu yang keliru.
 
-**FR-04 — Pencarian rute dan POI**  
-Sistem harus memungkinkan pengguna mencari lokasi/rute, melihat peta dan informasi elevasi yang tersedia, serta melihat atau menandai POI seperti pos nutrisi dan pos medis. Rute yang telah diunduh harus dapat dibuka kembali tanpa jaringan.
+**FR-04 — Pencarian, visualisasi, dan rute offline**  
+Sistem harus menampilkan geometri rute yang dipilih, bukan hanya metadata. Pengguna dapat mengimpor GPX, melihat jalurnya, jarak/elevasi yang tersedia, dan POI yang memang ada. Pencarian online, basemap, geocoding, elevasi, dan POI eksternal hanya tersedia jika provider telah dipilih, dikonfigurasi, dan dapat dijangkau. Rute yang diimpor/diunduh harus dapat dibuka kembali tanpa jaringan; geometri lokasi disimpan terenkripsi.
 
-**Kriteria penerimaan:** pencarian menampilkan hasil atau keadaan kosong/kegagalan yang jelas; POI terpilih dapat ditinjau pada rute; data rute offline diberi penanda waktu/sumber bila relevan.
+**Kriteria penerimaan:** membuka rute dengan geometri menampilkan jalur dan titik awal/akhir; rute lama tanpa geometri menampilkan keterbatasan yang jelas; hasil/kosong/offline/error dibedakan; tidak ada peta online palsu saat provider tidak tersedia; rute lokal dapat dibuka dalam mode pesawat.
 
 **FR-05 — Saran strategi AI**  
 Sistem harus dapat meminta saran yang mempertimbangkan data rute dan konteks yang tersedia, seperti elevasi, cuaca, dan preferensi pembalap. Sistem harus menyebutkan bila data tidak lengkap atau layanan tidak tersedia. Saran bersifat informatif, bukan diagnosis atau jaminan keselamatan.
@@ -47,10 +47,10 @@ Sistem harus dapat meminta saran yang mempertimbangkan data rute dan konteks yan
 **FR-06 — Mulai, jeda, dan akhiri sesi**  
 Sistem harus menyediakan kontrol untuk memulai, menjeda, melanjutkan, dan mengakhiri sesi. Sesi aktif harus menampilkan status perekaman dan metrik yang tersedia.
 
-**FR-07 — Telemetri dan penyimpanan offline**  
-Selama sesi, sistem harus merekam lokasi dan waktu, serta menghitung metrik perjalanan yang didukung perangkat, seperti jarak, durasi, kecepatan, dan elevasi. Data harus disimpan lokal secara berkala agar sesi tetap tercatat saat jaringan terputus, lalu disinkronkan ketika jaringan tersedia. Sistem harus menampilkan status sinkronisasi dan menangani unggahan ulang tanpa membuat duplikat.
+**FR-07 — Telemetri, outbox, dan sinkronisasi**  
+Selama sesi, sistem merekam data yang diizinkan dan didukung perangkat ke penyimpanan lokal secara berkala. Outbox lokal bertahan melewati restart/offline. Sinkronisasi hanya boleh dimulai bila backend, akun, dan koneksi tersedia; item tetap lokal sampai server mengonfirmasi penerimaan. Setiap item memiliki ID stabil dan operasi retry idempotent.
 
-**Kriteria penerimaan:** sesi tetap dapat direkam tanpa jaringan; data lokal tetap tersedia setelah aplikasi dibuka kembali; sinkronisasi tertunda dilanjutkan saat koneksi pulih.
+**Kriteria penerimaan:** status `lokal`, `menunggu`, `mengirim`, `tersinkron`, dan `gagal` dapat dibedakan; tanpa konfigurasi backend UI menyatakan sinkronisasi belum tersedia; data lokal tidak hilang pada timeout/logout/restart; retry tidak membuat duplikat; hanya respons server terverifikasi yang menandai data tersinkron.
 
 **FR-08 — Pemanfaatan sensor**  
 Sistem harus menggunakan GPS sebagai sumber utama posisi/pergerakan bila tersedia, barometer untuk estimasi perubahan tekanan/elevasi bila perangkat memilikinya, serta accelerometer dan gyroscope untuk gerakan/orientasi. Metrik turunan harus diberi label sumber dan status kualitas bila sensor tidak tersedia atau estimasinya tidak andal.
@@ -92,10 +92,10 @@ Sistem harus menampilkan papan peringkat berdasarkan hasil yang memenuhi aturan 
 Pengguna harus dapat melihat dan memperbarui informasi profil yang diizinkan serta mengganti foto profil dengan gambar dari perangkat.
 
 **FR-17 — Saran dan kesan**  
-Pengguna harus dapat mengirim umpan balik kepada tim pengembang dan melihat konfirmasi berhasil/gagal. Pengiriman harus menjelaskan bila jaringan diperlukan.
+Pengguna harus menyetujui pengiriman, mengetahui tujuan dan retensi pesan, melihat status lokal/pending/berhasil/gagal, serta dapat mencoba ulang tanpa duplikasi. Kegagalan jaringan tidak boleh dilaporkan sebagai sukses. Isi pesan tidak boleh masuk log diagnostik.
 
-**FR-18 — Navigasi dan logout**  
-Sistem harus menyediakan navigasi utama melalui bottom navigation, termasuk akses ke profil dan fitur inti. Logout harus menutup sesi aktif tanpa menghapus riwayat yang telah disimpan kecuali pengguna memilih penghapusan data.
+**FR-18 — Navigasi, local lock, dan sign-out**  
+Navigasi harus memberi akses jelas ke fitur inti dan kondisi penggunaannya. Local lock, sign-out akun cloud, dan penghapusan data adalah aksi berbeda. Sign-out membersihkan token dan state sensitif dari memori, membatalkan respons async yang terlambat, tetapi tidak menghapus data lokal kecuali diminta.
 
 ### E. Pengaturan dan Pengelolaan Data
 
@@ -131,6 +131,11 @@ Sistem harus memungkinkan pengguna menghubungkan dan memutuskan koneksi dengan p
 
 **Kriteria penerimaan:** pengguna hanya dapat menghubungkan provider/perangkat yang dinyatakan didukung; persetujuan dan izin data diminta sebelum sinkronisasi; metrik yang diimpor menampilkan sumber/waktu dan keterbatasannya; pengguna dapat memutuskan koneksi atau mencabut akses; kegagalan dan status offline terlihat jelas; sinkronisasi ulang tidak menggandakan aktivitas atau menghapus data lokal.
 
+**FR-25 — Status layanan online**  
+Untuk setiap fitur remote, sistem harus membedakan `belum dikonfigurasi`, `offline`, `memuat`, `tersedia`, dan `gagal`. Status harus berasal dari konfigurasi dan hasil operasi nyata, bukan sekadar keberadaan paket/dependency. Kegagalan provider tidak boleh menutupi data lokal atau menampilkan data lokal sebagai hasil online.
+
+**Kriteria penerimaan:** build tanpa URL/key/provider tetap dapat menjalankan fitur lokal dan menyatakan integrasi belum dikonfigurasi; timeout, autentikasi ditolak, rate limit, dan respons invalid mendapat status yang dapat dipahami; hanya operasi yang diakui server yang ditampilkan berhasil.
+
 ## 4. Kebutuhan Nonfungsional
 
 **NFR-01 — Keamanan:** data lokal sensitif dan kredensial sesi harus dilindungi dengan mekanisme aman platform dan enkripsi saat tersimpan. Rahasia/API key layanan eksternal tidak boleh ditanam di aplikasi klien.
@@ -147,6 +152,8 @@ Sistem harus memungkinkan pengguna menghubungkan dan memutuskan koneksi dengan p
 
 **NFR-07 — Transparansi data:** waktu/sumber kurs, sumber dan keterbatasan metrik sensor/wearable, status sinkronisasi, status pengiriman SOS, dan status transaksi ledger harus dapat diketahui pengguna.
 
+**NFR-08 — Kesiapan produksi:** klaim production-ready hanya berlaku pada platform/provider yang benar-benar dikonfigurasi dan lolos build rilis, migrasi, pengujian integrasi, audit secrets/RLS/izin, uji offline dan pemulihan, serta smoke test pada perangkat sasaran. Integrasi yang belum dideploy harus dinyatakan belum tersedia. Harus ada prosedur rollback, pemantauan kegagalan tanpa data sensitif, kebijakan retensi, dan kontak dukungan.
+
 ## 5. Aturan Bisnis dan Batasan
 
 - Waktu real-time, kurs terkini, cuaca terkini, AI, push notification jarak jauh, peta online, dan blockchain bergantung pada koneksi serta ketersediaan penyedia terkait.
@@ -154,6 +161,7 @@ Sistem harus memungkinkan pengguna menghubungkan dan memutuskan koneksi dengan p
 - Sensor ponsel memiliki variasi akurasi berdasarkan perangkat, pemasangan, kalibrasi, dan kondisi jalan. UI harus membedakan pengukuran langsung dari estimasi.
 - Pengiriman SOS otomatis bergantung pada izin dan konektivitas. Aplikasi harus memberi informasi yang jelas bila pesan belum dapat dikirim.
 - Pencatatan ke blockchain bersifat tambahan setelah sesi selesai; kegagalannya tidak boleh menghapus atau menghalangi akses ke ringkasan lokal.
+- Tidak ada status online/sinkron yang boleh disimpulkan dari UI atau dependency saja; perlu konfigurasi, autentikasi yang sesuai, dan acknowledgment server.
 
 ## 6. Ketergantungan yang Perlu Diputuskan
 

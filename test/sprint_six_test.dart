@@ -2,6 +2,8 @@ import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/core/storage/app_database.dart';
+import 'package:senapath/core/storage/secure_vault.dart';
+import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 
 void main() {
@@ -10,7 +12,10 @@ void main() {
 
   setUp(() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    repository = SavedRouteRepository(database);
+    repository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
   });
 
   tearDown(() async {
@@ -58,6 +63,23 @@ void main() {
     expect(route.source, 'GPX lokal');
     expect(route.distanceMeters, greaterThan(0));
     expect(route.elevationGainMeters, 8);
-    expect((await repository.search('Latihan')).single.id, route.id);
+    final restored = (await repository.search('Latihan')).single;
+    expect(restored.id, route.id);
+    expect(restored.points, hasLength(2));
+    expect(restored.points.first.latitude, -6.2);
+    expect(restored.points.last.longitude, 106.801);
   });
+}
+
+class _MemorySecureVault implements SecureVault {
+  final values = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+
+  @override
+  Future<void> delete(String key) async => values.remove(key);
 }
