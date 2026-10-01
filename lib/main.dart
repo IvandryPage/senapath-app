@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
 import 'core/storage/app_database.dart';
@@ -24,9 +25,24 @@ import 'features/logistics/data/logistics_repository.dart';
 import 'features/logistics/presentation/logistics_cubit.dart';
 import 'features/reaction/data/reaction_test_repository.dart';
 import 'features/reaction/presentation/reaction_test_cubit.dart';
+import 'features/assistant/data/supabase_ai_chat_gateway.dart';
+import 'features/assistant/presentation/ai_chat_cubit.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
+  SupabaseClient? supabaseClient;
+  if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
+    await Supabase.initialize(
+      url: supabaseUrl,
+      publishableKey: supabasePublishableKey,
+    );
+    supabaseClient = Supabase.instance.client;
+  }
+
   final secureVault = FlutterSecureVault();
   final database = AppDatabase();
   final sessionRepository = DriftRideSessionRepository(
@@ -53,6 +69,7 @@ void main() {
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
       reactionTestCubit: ReactionTestCubit(ReactionTestRepository(database)),
+      aiChatCubit: AiChatCubit(SupabaseAiChatGateway(supabaseClient)),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
         readinessChecker: const DeviceReadinessChecker(),

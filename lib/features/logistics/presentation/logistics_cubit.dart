@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/exchange_rate_service.dart';
 import '../data/logistics_repository.dart';
 import '../domain/logistics_models.dart';
 
@@ -9,6 +10,7 @@ class LogisticsState {
     this.isLoaded = false,
     this.isLoading = false,
     this.isSaving = false,
+    this.isRefreshingRates = false,
     this.error,
   });
 
@@ -16,13 +18,17 @@ class LogisticsState {
   final bool isLoaded;
   final bool isLoading;
   final bool isSaving;
+  final bool isRefreshingRates;
   final String? error;
 }
 
 class LogisticsCubit extends Cubit<LogisticsState> {
-  LogisticsCubit(this._repository) : super(const LogisticsState());
+  LogisticsCubit(this._repository, {ExchangeRateProvider? rateProvider})
+    : _rateProvider = rateProvider ?? FrankfurterExchangeRateService(),
+      super(const LogisticsState());
 
   final LogisticsRepository _repository;
+  final ExchangeRateProvider _rateProvider;
 
   Future<void> load() async {
     if (state.isLoaded || state.isLoading) return;
@@ -77,8 +83,34 @@ class LogisticsCubit extends Cubit<LogisticsState> {
             if (currency != BudgetCurrency.eur) currency: rates[currency]!,
         },
         rateUpdatedAt: DateTime.now(),
+        rateSource: 'Manual',
       ),
     );
+  }
+
+  Future<void> refreshRates() async {
+    if (!state.isLoaded || state.isSaving || state.isRefreshingRates) return;
+    emit(
+      LogisticsState(data: state.data, isLoaded: true, isRefreshingRates: true),
+    );
+    try {
+      final snapshot = await _rateProvider.fetchLatest();
+      await _persist(
+        _copyData(
+          eurRates: snapshot.rates,
+          rateUpdatedAt: snapshot.asOf,
+          rateSource: 'Frankfurter',
+        ),
+      );
+    } catch (_) {
+      emit(
+        LogisticsState(
+          data: state.data,
+          isLoaded: true,
+          error: 'Kurs referensi gagal dimuat. Kurs tersimpan tetap digunakan.',
+        ),
+      );
+    }
   }
 
   Future<void> setTargetCurrency(BudgetCurrency currency) async {
@@ -89,11 +121,13 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     List<BudgetItem>? items,
     Map<BudgetCurrency, double>? eurRates,
     DateTime? rateUpdatedAt,
+    String? rateSource,
     BudgetCurrency? targetCurrency,
   }) => LogisticsData(
     items: items ?? state.data.items,
     eurRates: eurRates ?? state.data.eurRates,
     rateUpdatedAt: rateUpdatedAt ?? state.data.rateUpdatedAt,
+    rateSource: rateSource ?? state.data.rateSource,
     targetCurrency: targetCurrency ?? state.data.targetCurrency,
   );
 

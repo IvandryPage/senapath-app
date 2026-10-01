@@ -93,6 +93,14 @@ class OverviewScreen extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/reaction'),
         ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.chat_bubble_outline, color: colorScheme.primary),
+          title: const Text('Chat AI'),
+          subtitle: const Text('Diskusi strategi latihan dan rute'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/assistant'),
+        ),
       ],
     );
   }

@@ -56,6 +56,7 @@ class LogisticsData {
     this.items = const [],
     this.eurRates = const {BudgetCurrency.eur: 1},
     this.rateUpdatedAt,
+    this.rateSource = 'Manual',
     this.targetCurrency = BudgetCurrency.eur,
   });
 
@@ -64,6 +65,7 @@ class LogisticsData {
   /// Rates express how many units of a currency equal one EUR.
   final Map<BudgetCurrency, double> eurRates;
   final DateTime? rateUpdatedAt;
+  final String rateSource;
   final BudgetCurrency targetCurrency;
 
   Map<String, Object?> toJson() => {
@@ -72,6 +74,7 @@ class LogisticsData {
       for (final entry in eurRates.entries) entry.key.code: entry.value,
     },
     'rateUpdatedAt': rateUpdatedAt?.toUtc().toIso8601String(),
+    'rateSource': rateSource,
     'targetCurrency': targetCurrency.code,
   };
 
@@ -79,10 +82,14 @@ class LogisticsData {
     final rawItems = json['items'];
     final rawRates = json['eurRates'];
     final rawTarget = json['targetCurrency'] as String?;
+    final rawRateSource = json['rateSource'];
     final target = BudgetCurrency.fromCode(rawTarget);
     final rates = <BudgetCurrency, double>{BudgetCurrency.eur: 1};
 
-    if (rawItems is! List || rawRates is! Map || target == null) {
+    if (rawItems is! List ||
+        rawRates is! Map ||
+        target == null ||
+        (rawRateSource != null && rawRateSource is! String)) {
       throw const FormatException('Invalid logistics data.');
     }
     for (final rawItem in rawItems) {
@@ -112,6 +119,7 @@ class LogisticsData {
       ],
       eurRates: rates,
       rateUpdatedAt: updatedAt,
+      rateSource: rawRateSource as String? ?? 'Manual',
       targetCurrency: target,
     );
   }

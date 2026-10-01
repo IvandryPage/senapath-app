@@ -198,11 +198,13 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** AI hanya menambah konteks dengan izin dan keterbatasan yang terlihat.
 
-- **PBI-10.1 (US-19/US-20, FR-05/FR-12):** putuskan provider, biaya, retensi, data yang dikirim dan persetujuan; jangan kirim data sebelum disetujui.
+- **PBI-10.1 (US-19/US-20, FR-05/FR-12):** provider Gemini melalui Supabase Edge Function; batasi biaya, jelaskan retensi/data yang dikirim, dan wajibkan persetujuan sebelum request.
 - **PBI-10.2:** kirim hanya data tersedia/diizinkan; saran strategi menyebut data kurang dan kegagalan layanan; bukan diagnosis/jaminan keselamatan.
 - **PBI-10.3:** rangkum tren game dan sarankan istirahat; jangan simpulkan kelayakan dari skor tunggal.
 - **PBI-10.4 (Q-02/Q-03/Q-07):** uji offline, timeout dan respons tidak valid; fallback tidak tampak sebagai keluaran AI.
-- **Penerimaan:** sumber/limitasi dan persetujuan jelas. Jika provider belum diputuskan, isi sprint dengan P1 siap; integrasi AI tetap belum selesai.
+- **Penerimaan:** sumber/limitasi dan persetujuan jelas; jawaban gagal/offline tidak disamarkan sebagai keluaran AI; tidak ada penilaian kelayakan balapan.
+- **Status increment lokal:** tersedia layar chat dan Supabase gateway ke Gemini; pengiriman butuh consent, rute/preferensi hanya ikut bila dipilih, dan kuota dibatasi 30 request per akun anonim per hari. Chat tidak disimpan sebagai riwayat lokal. Tren game tetap lokal dan membutuhkan enam hasil berskor; pengingat istirahat umum bukan keluaran AI. Backend belum aktif sampai kredensial proyek, anonymous sign-in, secret Gemini, migrasi kuota, dan Edge Function dikonfigurasi/deploy.
+- **Tambahan iterasi:** kurs referensi EUR ke IDR/USD/CHF dapat diperbarui dari Frankfurter; sumber dan tanggal kutipan ditampilkan. Datanya harian, bukan harga real-time intraday; kurs manual tersimpan menjadi fallback offline.
 
 ### Sprint 11 — Feedback, proof, leaderboard
 

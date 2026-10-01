@@ -2,11 +2,66 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/features/logistics/data/logistics_repository.dart';
+import 'package:senapath/features/logistics/data/exchange_rate_service.dart';
 import 'package:senapath/features/logistics/domain/event_time_converter.dart';
 import 'package:senapath/features/logistics/domain/logistics_models.dart';
 import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
 
 void main() {
+  test('refreshes and persists the latest daily reference rates', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = LogisticsRepository(database);
+    final cubit = LogisticsCubit(
+      repository,
+      rateProvider: _FakeExchangeRateProvider(
+        ExchangeRateSnapshot(
+          rates: const {
+            BudgetCurrency.eur: 1,
+            BudgetCurrency.idr: 20325,
+            BudgetCurrency.usd: 1.1345,
+            BudgetCurrency.chf: 0.94635,
+          },
+          asOf: DateTime.utc(2026, 10, 1),
+        ),
+      ),
+    );
+    await cubit.load();
+
+    await cubit.refreshRates();
+
+    expect(cubit.state.data.eurRates[BudgetCurrency.idr], 20325);
+    expect(cubit.state.data.rateSource, 'Frankfurter');
+    expect(cubit.state.data.rateUpdatedAt, DateTime.utc(2026, 10, 1));
+
+    await cubit.close();
+    await database.close();
+  });
+
+  test(
+    'parses the latest Frankfurter rates and uses the oldest quote date',
+    () {
+      final snapshot = ExchangeRateSnapshot.fromJson(
+        '[{"date":"2026-10-01","base":"EUR","quote":"CHF","rate":0.94635},'
+        '{"date":"2026-10-01","base":"EUR","quote":"IDR","rate":20325},'
+        '{"date":"2026-10-02","base":"EUR","quote":"USD","rate":1.1345}]',
+      );
+
+      expect(snapshot.rates[BudgetCurrency.idr], 20325);
+      expect(snapshot.rates[BudgetCurrency.usd], 1.1345);
+      expect(snapshot.rates[BudgetCurrency.chf], 0.94635);
+      expect(snapshot.asOf, DateTime.utc(2026, 10, 1));
+    },
+  );
+
+  test('rejects an incomplete Frankfurter response', () {
+    expect(
+      () => ExchangeRateSnapshot.fromJson(
+        '[{"date":"2026-10-01","base":"EUR","quote":"USD","rate":1.1}]',
+      ),
+      throwsFormatException,
+    );
+  });
+
   group('budget conversion', () {
     test('converts amounts through EUR rates and totals multiple items', () {
       const rates = {
@@ -139,4 +194,13 @@ void main() {
     await cubit.close();
     await database.close();
   });
+}
+
+class _FakeExchangeRateProvider implements ExchangeRateProvider {
+  const _FakeExchangeRateProvider(this.snapshot);
+
+  final ExchangeRateSnapshot snapshot;
+
+  @override
+  Future<ExchangeRateSnapshot> fetchLatest() async => snapshot;
 }

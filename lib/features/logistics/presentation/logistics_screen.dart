@@ -104,8 +104,20 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
               ),
             ),
             IconButton(
+              tooltip: 'Ambil kurs referensi harian',
+              onPressed: state.isSaving || state.isRefreshingRates
+                  ? null
+                  : context.read<LogisticsCubit>().refreshRates,
+              icon: state.isRefreshingRates
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync),
+            ),
+            IconButton(
               tooltip: 'Atur kurs',
-              onPressed: state.isSaving
+              onPressed: state.isSaving || state.isRefreshingRates
                   ? null
                   : () => _editRates(context, data),
               icon: const Icon(Icons.currency_exchange),
@@ -119,10 +131,16 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         ),
         Text(
           data.rateUpdatedAt == null
-              ? 'Kurs belum diatur. Masukkan kurs manual untuk membandingkan mata uang.'
+              ? 'Kurs belum diatur. Ambil kurs referensi harian atau masukkan manual.'
+              : data.rateSource == 'Frankfurter'
+              ? 'Frankfurter · kurs referensi harian, bukan real-time · kutipan tertua ${_formatDateTime(data.rateUpdatedAt!.toLocal())}'
               : 'Kurs manual · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())} · bukan real-time',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (state.isRefreshingRates) ...[
+          const SizedBox(height: 8),
+          const LinearProgressIndicator(),
+        ],
         const SizedBox(height: 16),
         _buildEurConverter(context, data),
         const SizedBox(height: 12),

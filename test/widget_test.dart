@@ -12,6 +12,8 @@ import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/widgets/feature_state_view.dart';
 import 'package:senapath/features/authentication/data/device_authenticator.dart';
 import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
+import 'package:senapath/features/assistant/data/supabase_ai_chat_gateway.dart';
+import 'package:senapath/features/assistant/presentation/ai_chat_cubit.dart';
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
@@ -71,11 +73,20 @@ void main() {
         sessionCubit: sessionCubit,
         logisticsCubit: logisticsCubit,
         reactionTestCubit: reactionTestCubit,
+        aiChatCubit: AiChatCubit(const SupabaseAiChatGateway(null)),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Belum ada sesi'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Chat AI'), 400);
+    await tester.tap(find.text('Chat AI'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('AI belum tersambung'), findsOneWidget);
+    expect(find.textContaining('Tidak ada pesan yang dikirim'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(find.text('Tes reaksi'), 400);
     await tester.tap(find.text('Tes reaksi'));

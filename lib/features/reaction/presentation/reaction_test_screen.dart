@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../domain/reaction_test_result.dart';
+import '../domain/reaction_test_trend.dart';
 import 'reaction_test_cubit.dart';
 
 class ReactionTestScreen extends StatefulWidget {
@@ -76,6 +77,12 @@ class _ReactionTestScreenState extends State<ReactionTestScreen>
               _buildGame(context, state),
               const SizedBox(height: 16),
               _buildSummary(context, state),
+              const SizedBox(height: 20),
+              _buildTrendSummary(context, state),
+              if (state.latestResult != null || state.results.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildRestReminder(context),
+              ],
               const SizedBox(height: 24),
               Text('Riwayat', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
@@ -217,6 +224,60 @@ class _ReactionTestScreenState extends State<ReactionTestScreen>
       ],
     );
   }
+
+  Widget _buildTrendSummary(BuildContext context, ReactionTestState state) {
+    final trend = ReactionTestTrend.fromResults(state.results);
+    final textTheme = Theme.of(context).textTheme;
+    if (trend == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Tren lokal', style: textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Selesaikan 6 tes dengan waktu respons tercatat untuk melihat tren. Bukan keluaran AI.',
+            style: textTheme.bodySmall,
+          ),
+        ],
+      );
+    }
+
+    final difference = trend.differenceMilliseconds;
+    final comparison = difference == 0
+        ? 'Rata-rata tetap ${trend.recentAverageMilliseconds} ms.'
+        : '${difference.abs()} ms ${difference < 0 ? 'lebih cepat' : 'lebih lambat'}.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Tren lokal', style: textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          'Rata-rata waktu respons benar pada 3 tes terbaru: ${trend.recentAverageMilliseconds} ms; 3 tes sebelumnya: ${trend.previousAverageMilliseconds} ms. $comparison',
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Perbandingan lokal, bukan keluaran AI atau penilaian kelayakan balapan.',
+          style: textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRestReminder(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Pengingat istirahat',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Setelah latihan, pertimbangkan jeda singkat sebelum mengulang. Berhenti jika merasa lelah atau tidak nyaman. Saran umum ini bukan keluaran AI atau penilaian kelayakan balapan.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ],
+  );
 
   Widget _metric(String label, String value) => SizedBox(
     width: 130,
