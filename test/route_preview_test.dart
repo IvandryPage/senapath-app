@@ -51,6 +51,7 @@ void main() {
       find.bySemanticsLabel('Jejak rute offline dengan 3 titik'),
       findsOneWidget,
     );
+    expect(find.text('Ikuti rute'), findsOneWidget);
   });
 }
 

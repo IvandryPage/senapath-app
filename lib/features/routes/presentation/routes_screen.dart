@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/feature_state_view.dart';
 import '../domain/saved_route.dart';
@@ -166,6 +167,7 @@ class _RouteTile extends StatelessWidget {
     final poi = route.poiSummary.isEmpty
         ? 'POI belum tersedia'
         : route.poiSummary;
+    final router = GoRouter.maybeOf(context);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -194,6 +196,21 @@ class _RouteTile extends StatelessWidget {
                 ),
               const SizedBox(height: 12),
               Text('$distance · $elevation · $poi'),
+              if (route.points.length >= 2) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      if (router == null) return;
+                      Navigator.of(context).pop();
+                      router.push('/routes/navigation', extra: route);
+                    },
+                    icon: const Icon(Icons.navigation),
+                    label: const Text('Ikuti rute'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -203,15 +220,21 @@ class _RouteTile extends StatelessWidget {
 }
 
 class RouteMapPreview extends StatelessWidget {
-  const RouteMapPreview({required this.points, super.key});
+  const RouteMapPreview({
+    required this.points,
+    this.currentPosition,
+    super.key,
+  });
 
   final List<RoutePoint> points;
+  final RoutePoint? currentPosition;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
-      label: 'Jejak rute offline dengan ${points.length} titik',
+      label:
+          'Jejak rute offline dengan ${points.length} titik${currentPosition == null ? '' : ' dan posisi GPS'}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
@@ -220,6 +243,7 @@ class RouteMapPreview extends StatelessWidget {
           child: CustomPaint(
             painter: _RoutePathPainter(
               points: points,
+              currentPosition: currentPosition,
               background: colors.surfaceContainerHighest,
               pathColor: colors.primary,
               startColor: colors.tertiary,
@@ -235,6 +259,7 @@ class RouteMapPreview extends StatelessWidget {
 class _RoutePathPainter extends CustomPainter {
   const _RoutePathPainter({
     required this.points,
+    required this.currentPosition,
     required this.background,
     required this.pathColor,
     required this.startColor,
@@ -242,6 +267,7 @@ class _RoutePathPainter extends CustomPainter {
   });
 
   final List<RoutePoint> points;
+  final RoutePoint? currentPosition;
   final Color background;
   final Color pathColor;
   final Color startColor;
@@ -252,12 +278,17 @@ class _RoutePathPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, Paint()..color = background);
     if (points.length < 2) return;
 
-    final minLatitude = points.map((point) => point.latitude).reduce(math.min);
-    final maxLatitude = points.map((point) => point.latitude).reduce(math.max);
-    final minLongitude = points
+    final allPoints = [...points, ?currentPosition];
+    final minLatitude = allPoints
+        .map((point) => point.latitude)
+        .reduce(math.min);
+    final maxLatitude = allPoints
+        .map((point) => point.latitude)
+        .reduce(math.max);
+    final minLongitude = allPoints
         .map((point) => point.longitude)
         .reduce(math.min);
-    final maxLongitude = points
+    final maxLongitude = allPoints
         .map((point) => point.longitude)
         .reduce(math.max);
     const inset = 24.0;
@@ -293,11 +324,17 @@ class _RoutePathPainter extends CustomPainter {
     );
     canvas.drawCircle(project(points.first), 7, Paint()..color = startColor);
     canvas.drawCircle(project(points.last), 7, Paint()..color = endColor);
+    if (currentPosition != null) {
+      final location = project(currentPosition!);
+      canvas.drawCircle(location, 11, Paint()..color = background);
+      canvas.drawCircle(location, 7, Paint()..color = Colors.blue.shade700);
+    }
   }
 
   @override
   bool shouldRepaint(_RoutePathPainter oldDelegate) =>
       oldDelegate.points != points ||
+      oldDelegate.currentPosition != currentPosition ||
       oldDelegate.background != background ||
       oldDelegate.pathColor != pathColor ||
       oldDelegate.startColor != startColor ||

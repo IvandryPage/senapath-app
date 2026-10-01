@@ -28,6 +28,7 @@ dependencies:
   supabase_flutter: ^2.18.0
   timezone: ^0.11.1
   url_launcher: ^6.3.2
+  wakelock_plus: ^1.8.0
   xml: ^7.1.0
 
 dev_dependencies:

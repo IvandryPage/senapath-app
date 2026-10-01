@@ -18,7 +18,7 @@ Dokumen ini mendefinisikan kebutuhan produk, bukan keputusan implementasi. Fitur
 ### A. Akun dan Persiapan
 
 **FR-01 — Buka aplikasi dan identitas akun**  
-Biometrik/PIN perangkat adalah *local unlock*, bukan identitas akun cloud. Penolakan atau pembatalan unlock tidak membuka data lokal. Fitur yang menyimpan atau menyinkronkan data online harus memakai akun cloud yang dapat dipulihkan dan sesi yang dapat dicabut; aplikasi tidak boleh menyebut pengguna sudah login online hanya karena local unlock berhasil. Kredensial dan token disimpan melalui fasilitas aman platform.
+Biometrik/PIN perangkat adalah _local unlock_, bukan identitas akun cloud. Penolakan atau pembatalan unlock tidak membuka data lokal. Fitur yang menyimpan atau menyinkronkan data online harus memakai akun cloud yang dapat dipulihkan dan sesi yang dapat dicabut; aplikasi tidak boleh menyebut pengguna sudah login online hanya karena local unlock berhasil. Kredensial dan token disimpan melalui fasilitas aman platform.
 
 **Kriteria penerimaan:** local unlock gagal tidak membuka data; status akun cloud ditampilkan terpisah; sign-out cloud mencabut sesi server dan local lock tidak menghapus data lokal.
 
@@ -115,9 +115,9 @@ Sistem harus menyediakan pilihan satuan Metrik (km, km/jam, meter) atau Imperial
 **Kriteria penerimaan:** perubahan satuan berlaku pada seluruh tampilan yang relevan, termasuk riwayat; nilai dasar sesi tetap sama dan hanya format tampilannya yang dikonversi.
 
 **FR-22 — Ekspor dan impor berkas sesi/rute**  
-Sistem harus memungkinkan pengguna mengekspor hasil sesi ke GPX atau JSON ke penyimpanan lokal perangkat, serta mengimpor berkas GPX rute untuk ditampilkan pada fitur pencarian rute. Berkas yang tidak valid atau tidak didukung harus ditolak dengan pesan yang dapat dipahami.
+Sistem harus memungkinkan pengguna mengekspor hasil sesi ke GPX atau JSON ke penyimpanan lokal perangkat, serta mengimpor track/route GPX yang valid ke pustaka rute. Impor mempertahankan geometri, nama dan metadata yang tersedia; koordinat sensitif disimpan terenkripsi. Berkas besar, track tanpa titik, koordinat tidak valid, dan format tidak didukung harus ditolak dengan pesan yang dapat dipahami tanpa membuat rute setengah tersimpan.
 
-**Kriteria penerimaan:** berkas GPX yang diekspor dapat dibuka oleh aplikasi peta/navigasi yang mendukung GPX; berkas GPX rute yang valid dapat diimpor dan ditampilkan di aplikasi.
+**Kriteria penerimaan:** GPX yang diekspor dapat dibuka aplikasi kompatibel; GPX yang valid muncul di daftar, dapat dibuka sebagai geometri, dan tetap tersedia setelah restart/offline; kegagalan impor tidak meninggalkan record parsial; UI menunjukkan sumber serta metadata yang memang tersedia.
 
 **FR-23 — Manajemen penyimpanan dan peta offline**  
 Sistem harus menyediakan tampilan penggunaan penyimpanan lokal, termasuk ukuran database dan cache/peta offline, serta memungkinkan pengguna menghapus cache peta dan mengatur batas penyimpanan offline. Penghapusan cache tidak boleh menghapus sesi yang belum tersinkron atau riwayat balapan.
@@ -136,6 +136,11 @@ Untuk setiap fitur remote, sistem harus membedakan `belum dikonfigurasi`, `offli
 
 **Kriteria penerimaan:** build tanpa URL/key/provider tetap dapat menjalankan fitur lokal dan menyatakan integrasi belum dikonfigurasi; timeout, autentikasi ditolak, rate limit, dan respons invalid mendapat status yang dapat dipahami; hanya operasi yang diakui server yang ditampilkan berhasil.
 
+**FR-26 — Panduan mengikuti rute**  
+Pembalap dapat memulai dan mengakhiri panduan dari rute tersimpan. Selama panduan foreground, layar fokus mempertahankan peta/visualisasi jalur, posisi GPS saat ini, progres, jarak tersisa, kualitas fix, dan status keluar jalur; layar dicegah tidur selama panduan aktif. GPX track biasa tidak berisi instruksi belokan yang dapat dipercaya, sehingga sistem tidak boleh mengarang turn-by-turn. Dengan provider navigasi yang dipilih, aplikasi dapat menampilkan basemap dan instruksi belokan/reroute sesuai kontrak provider. Tanpa provider tersebut, panduan GPX offline tetap menunjukkan bentuk jalur dan status GPS dengan batasan yang jelas.
+
+**Kriteria penerimaan:** izin lokasi/GPS ditolak menghasilkan status dan opsi keluar yang jelas; kualitas GPS buruk tidak menghasilkan peringatan off-route palsu; posisi dan progres mengikuti geometri tersimpan; pengguna dapat mengakhiri panduan dan menghentikan stream/wakelock; panduan GPX tetap bisa dibuka offline; instruksi belokan hanya muncul dari provider/rute yang memang menyediakannya.
+
 ## 4. Kebutuhan Nonfungsional
 
 **NFR-01 — Keamanan:** data lokal sensitif dan kredensial sesi harus dilindungi dengan mekanisme aman platform dan enkripsi saat tersimpan. Rahasia/API key layanan eksternal tidak boleh ditanam di aplikasi klien.
@@ -147,6 +152,8 @@ Untuk setiap fitur remote, sistem harus membedakan `belum dikonfigurasi`, `offli
 **NFR-04 — Keandalan sinkronisasi:** sinkronisasi harus dapat dilanjutkan setelah gagal, tidak menggandakan sesi, dan mempertahankan data lokal sampai server mengonfirmasi penerimaan.
 
 **NFR-05 — Usabilitas dan keselamatan:** kontrol utama selama bersepeda harus mudah dikenali dan meminimalkan interaksi yang memerlukan perhatian lama. Peringatan penting harus dapat dibedakan dari informasi biasa.
+
+Panduan berkendara harus dapat dibaca sekilas, tidak memerlukan mengetik saat bergerak, menjaga target sentuh besar, dan menyarankan berhenti di tempat aman sebelum memeriksa ponsel. Panduan aplikasi bukan pengganti perhatian pada jalan atau perangkat navigasi yang tervalidasi.
 
 **NFR-06 — Kompatibilitas perangkat:** aplikasi harus menangani izin ditolak, sensor tidak tersedia, GPS lemah, aplikasi berjalan di latar belakang, keterbatasan baterai, serta perbedaan dukungan perangkat/protokol wearable secara terkontrol.
 

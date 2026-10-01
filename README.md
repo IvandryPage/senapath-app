@@ -19,6 +19,15 @@ flutter test
 
 GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests pada push ke `main` serta pull request.
 
+## Rute GPX dan panduan offline
+
+1. Buka tab **Rute**, lalu pilih tombol **Impor GPX**.
+2. Pilih berkas GPX yang berisi minimal dua titik track.
+3. Ketuk rute yang tersimpan untuk melihat bentuk jalur, jarak, dan elevasi yang tersedia.
+4. Pilih **Ikuti rute** untuk melihat jalur bersama posisi GPS, progres, jarak tersisa, dan peringatan bila fix GPS akurat menunjukkan kamu keluar jalur.
+
+Panduan GPX dapat digunakan tanpa internet setelah file tersimpan. Preview belum menampilkan basemap jalan, petunjuk belokan, atau reroute; fitur online tersebut menunggu provider peta/routing yang disetujui. Izin lokasi dan layanan GPS perangkat tetap diperlukan untuk posisi langsung.
+
 ## Chat AI (Supabase + Gemini)
 
 Chat hanya mengirim pesan setelah pengguna menyetujui. Rute lokal dan preferensi latihan hanya disertakan bila dipilih. Percakapan tidak disimpan di riwayat lokal; permintaan diteruskan melalui Supabase ke Google Gemini. Jangan masukkan kontak darurat atau informasi sensitif.
