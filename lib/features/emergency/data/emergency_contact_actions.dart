@@ -38,10 +38,9 @@ class UrlLauncherEmergencyContactActions implements EmergencyContactActions {
 }
 
 String? normalizeWhatsAppPhone(String phone) {
-  var digits = phone.replaceAll(RegExp(r'\D'), '');
-  if (digits.startsWith('0')) {
-    digits = '62${digits.substring(1)}';
-  }
+  final trimmed = phone.trim();
+  if (!RegExp(r'^\+[0-9 ()-]+$').hasMatch(trimmed)) return null;
+  final digits = trimmed.replaceAll(RegExp(r'\D'), '');
   if (digits.length < 7 || digits.length > 15) return null;
   return digits;
 }

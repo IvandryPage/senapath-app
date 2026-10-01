@@ -5,18 +5,17 @@ import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
 
 void main() {
-  test('normalizes Indonesian local phone numbers for WhatsApp', () {
-    expect(normalizeWhatsAppPhone('0812 3456 7890'), '6281234567890');
+  test('normalizes explicit international numbers for WhatsApp', () {
+    expect(normalizeWhatsAppPhone('+49 151-2345-6789'), '4915123456789');
     expect(normalizeWhatsAppPhone('+62 812-3456-7890'), '6281234567890');
   });
 
-  test(
-    'rejects WhatsApp phone numbers outside international length limits',
-    () {
-      expect(normalizeWhatsAppPhone('01234'), isNull);
-      expect(normalizeWhatsAppPhone('0812345678901234'), isNull);
-    },
-  );
+  test('rejects local or invalid WhatsApp phone numbers', () {
+    expect(normalizeWhatsAppPhone('0812 3456 7890'), isNull);
+    expect(normalizeWhatsAppPhone('6281234567890'), isNull);
+    expect(normalizeWhatsAppPhone('01234'), isNull);
+    expect(normalizeWhatsAppPhone('0812345678901234'), isNull);
+  });
 
   test('cancelling SOS countdown prevents WhatsApp handoff', () async {
     final actions = _FakeEmergencyActions();

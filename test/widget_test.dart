@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:phone_form_field/phone_form_field.dart';
 import 'package:senapath/app/app.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
@@ -77,6 +78,12 @@ void main() {
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     expect(find.text('Kontak darurat'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Tambah kontak darurat'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PhoneFormField), findsOneWidget);
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Keluar'));
     await tester.pumpAndSettle();

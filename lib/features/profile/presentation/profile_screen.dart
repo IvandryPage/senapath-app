@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
@@ -439,15 +440,18 @@ class _ContactEditor extends StatefulWidget {
 
 class _ContactEditorState extends State<_ContactEditor> {
   late final TextEditingController _nameController;
-  late final TextEditingController _phoneController;
+  late final PhoneController _phoneController;
   late final TextEditingController _relationshipController;
   final _formKey = GlobalKey<FormState>();
+  bool _phoneRequiredError = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.contact?.name ?? '');
-    _phoneController = TextEditingController(text: widget.contact?.phone ?? '');
+    _phoneController = PhoneController(
+      _parseStoredPhone(widget.contact?.phone),
+    );
     _relationshipController = TextEditingController(
       text: widget.contact?.relationship ?? '',
     );
@@ -478,14 +482,33 @@ class _ContactEditorState extends State<_ContactEditor> {
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Isi nama.' : null,
             ),
-            TextFormField(
+            PhoneFormField(
               controller: _phoneController,
-              keyboardType: TextInputType.phone,
+              defaultCountry: _defaultCountryCode,
+              errorText: 'Periksa format nomor telepon.',
               decoration: const InputDecoration(
                 labelText: 'Nomor telepon atau WhatsApp',
               ),
-              validator: _validatePhone,
+              onChanged: (phone) {
+                if (_phoneRequiredError && phone?.nsn.isNotEmpty == true) {
+                  setState(() => _phoneRequiredError = false);
+                }
+              },
             ),
+            if (_phoneRequiredError)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 12, top: 8),
+                  child: Text(
+                    'Isi nomor telepon.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
             TextFormField(
               controller: _relationshipController,
               textCapitalization: TextCapitalization.sentences,
@@ -507,24 +530,45 @@ class _ContactEditorState extends State<_ContactEditor> {
     );
   }
 
-  String? _validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Isi nomor telepon.';
-    final digits = value.replaceAll(RegExp(r'\D'), '');
-    final validCharacters = RegExp(r'^\+?[0-9 ()-]+$').hasMatch(value.trim());
-    if (!validCharacters || digits.length < 7 || digits.length > 15) {
-      return 'Periksa format nomor telepon.';
+  String get _defaultCountryCode {
+    final localeCountry = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .locale
+        .countryCode
+        ?.toUpperCase();
+    if (localeCountry != null &&
+        allCountries.any((country) => country.isoCode == localeCountry)) {
+      return localeCountry;
     }
-    return null;
+    return 'ID';
+  }
+
+  PhoneNumber? _parseStoredPhone(String? phone) {
+    final value = phone?.trim();
+    if (value == null || value.isEmpty) return null;
+    final parser = PhoneParser();
+    try {
+      return value.startsWith('+')
+          ? parser.parseRaw(value)
+          : parser.parseWithIsoCode(_defaultCountryCode, value);
+    } on Exception {
+      return null;
+    }
   }
 
   void _save() {
-    if (!_formKey.currentState!.validate()) return;
+    final isFormValid = _formKey.currentState!.validate();
+    final phone = _phoneController.value;
+    final hasPhone = phone != null && phone.nsn.isNotEmpty;
+    setState(() => _phoneRequiredError = !hasPhone);
+    if (!isFormValid || !hasPhone) return;
     Navigator.pop(
       context,
       EmergencyContact(
         id: widget.contact?.id ?? _newContactId(),
         name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
+        phone: phone.international,
         relationship: _relationshipController.text.trim(),
       ),
     );
