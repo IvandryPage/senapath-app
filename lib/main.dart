@@ -22,6 +22,8 @@ import 'features/session/data/ride_session_repository.dart';
 import 'features/session/presentation/session_cubit.dart';
 import 'features/logistics/data/logistics_repository.dart';
 import 'features/logistics/presentation/logistics_cubit.dart';
+import 'features/reaction/data/reaction_test_repository.dart';
+import 'features/reaction/presentation/reaction_test_cubit.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +52,7 @@ void main() {
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
+      reactionTestCubit: ReactionTestCubit(ReactionTestRepository(database)),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
         readinessChecker: const DeviceReadinessChecker(),

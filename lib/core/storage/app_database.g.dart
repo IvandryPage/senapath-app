@@ -1780,6 +1780,329 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
   }
 }
 
+class $ReactionTestResultsTable extends ReactionTestResults
+    with TableInfo<$ReactionTestResultsTable, ReactionTestResult> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReactionTestResultsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultJsonMeta = const VerificationMeta(
+    'resultJson',
+  );
+  @override
+  late final GeneratedColumn<String> resultJson = GeneratedColumn<String>(
+    'result_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    completedAt,
+    resultJson,
+    syncStatus,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reaction_test_results';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReactionTestResult> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_completedAtMeta);
+    }
+    if (data.containsKey('result_json')) {
+      context.handle(
+        _resultJsonMeta,
+        resultJson.isAcceptableOrUnknown(data['result_json']!, _resultJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_resultJsonMeta);
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReactionTestResult map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReactionTestResult(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      )!,
+      resultJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result_json'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+    );
+  }
+
+  @override
+  $ReactionTestResultsTable createAlias(String alias) {
+    return $ReactionTestResultsTable(attachedDatabase, alias);
+  }
+}
+
+class ReactionTestResult extends DataClass
+    implements Insertable<ReactionTestResult> {
+  final String id;
+  final DateTime completedAt;
+  final String resultJson;
+  final String syncStatus;
+  const ReactionTestResult({
+    required this.id,
+    required this.completedAt,
+    required this.resultJson,
+    required this.syncStatus,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['completed_at'] = Variable<DateTime>(completedAt);
+    map['result_json'] = Variable<String>(resultJson);
+    map['sync_status'] = Variable<String>(syncStatus);
+    return map;
+  }
+
+  ReactionTestResultsCompanion toCompanion(bool nullToAbsent) {
+    return ReactionTestResultsCompanion(
+      id: Value(id),
+      completedAt: Value(completedAt),
+      resultJson: Value(resultJson),
+      syncStatus: Value(syncStatus),
+    );
+  }
+
+  factory ReactionTestResult.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReactionTestResult(
+      id: serializer.fromJson<String>(json['id']),
+      completedAt: serializer.fromJson<DateTime>(json['completedAt']),
+      resultJson: serializer.fromJson<String>(json['resultJson']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'completedAt': serializer.toJson<DateTime>(completedAt),
+      'resultJson': serializer.toJson<String>(resultJson),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+    };
+  }
+
+  ReactionTestResult copyWith({
+    String? id,
+    DateTime? completedAt,
+    String? resultJson,
+    String? syncStatus,
+  }) => ReactionTestResult(
+    id: id ?? this.id,
+    completedAt: completedAt ?? this.completedAt,
+    resultJson: resultJson ?? this.resultJson,
+    syncStatus: syncStatus ?? this.syncStatus,
+  );
+  ReactionTestResult copyWithCompanion(ReactionTestResultsCompanion data) {
+    return ReactionTestResult(
+      id: data.id.present ? data.id.value : this.id,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      resultJson: data.resultJson.present
+          ? data.resultJson.value
+          : this.resultJson,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionTestResult(')
+          ..write('id: $id, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('resultJson: $resultJson, ')
+          ..write('syncStatus: $syncStatus')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, completedAt, resultJson, syncStatus);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReactionTestResult &&
+          other.id == this.id &&
+          other.completedAt == this.completedAt &&
+          other.resultJson == this.resultJson &&
+          other.syncStatus == this.syncStatus);
+}
+
+class ReactionTestResultsCompanion extends UpdateCompanion<ReactionTestResult> {
+  final Value<String> id;
+  final Value<DateTime> completedAt;
+  final Value<String> resultJson;
+  final Value<String> syncStatus;
+  final Value<int> rowid;
+  const ReactionTestResultsCompanion({
+    this.id = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.resultJson = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReactionTestResultsCompanion.insert({
+    required String id,
+    required DateTime completedAt,
+    required String resultJson,
+    this.syncStatus = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       completedAt = Value(completedAt),
+       resultJson = Value(resultJson);
+  static Insertable<ReactionTestResult> custom({
+    Expression<String>? id,
+    Expression<DateTime>? completedAt,
+    Expression<String>? resultJson,
+    Expression<String>? syncStatus,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (resultJson != null) 'result_json': resultJson,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReactionTestResultsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? completedAt,
+    Value<String>? resultJson,
+    Value<String>? syncStatus,
+    Value<int>? rowid,
+  }) {
+    return ReactionTestResultsCompanion(
+      id: id ?? this.id,
+      completedAt: completedAt ?? this.completedAt,
+      resultJson: resultJson ?? this.resultJson,
+      syncStatus: syncStatus ?? this.syncStatus,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (resultJson.present) {
+      map['result_json'] = Variable<String>(resultJson.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionTestResultsCompanion(')
+          ..write('id: $id, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('resultJson: $resultJson, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1789,6 +2112,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $SavedRoutesTable savedRoutes = $SavedRoutesTable(this);
+  late final $ReactionTestResultsTable reactionTestResults =
+      $ReactionTestResultsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1798,6 +2123,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     rideSessions,
     telemetryPoints,
     savedRoutes,
+    reactionTestResults,
   ];
 }
 
@@ -2958,6 +3284,220 @@ typedef $$SavedRoutesTableProcessedTableManager =
       SavedRoute,
       PrefetchHooks Function()
     >;
+typedef $$ReactionTestResultsTableCreateCompanionBuilder =
+    ReactionTestResultsCompanion Function({
+      required String id,
+      required DateTime completedAt,
+      required String resultJson,
+      Value<String> syncStatus,
+      Value<int> rowid,
+    });
+typedef $$ReactionTestResultsTableUpdateCompanionBuilder =
+    ReactionTestResultsCompanion Function({
+      Value<String> id,
+      Value<DateTime> completedAt,
+      Value<String> resultJson,
+      Value<String> syncStatus,
+      Value<int> rowid,
+    });
+
+class $$ReactionTestResultsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReactionTestResultsTable> {
+  $$ReactionTestResultsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReactionTestResultsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReactionTestResultsTable> {
+  $$ReactionTestResultsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReactionTestResultsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReactionTestResultsTable> {
+  $$ReactionTestResultsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+}
+
+class $$ReactionTestResultsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReactionTestResultsTable,
+          ReactionTestResult,
+          $$ReactionTestResultsTableFilterComposer,
+          $$ReactionTestResultsTableOrderingComposer,
+          $$ReactionTestResultsTableAnnotationComposer,
+          $$ReactionTestResultsTableCreateCompanionBuilder,
+          $$ReactionTestResultsTableUpdateCompanionBuilder,
+          (
+            ReactionTestResult,
+            BaseReferences<
+              _$AppDatabase,
+              $ReactionTestResultsTable,
+              ReactionTestResult
+            >,
+          ),
+          ReactionTestResult,
+          PrefetchHooks Function()
+        > {
+  $$ReactionTestResultsTableTableManager(
+    _$AppDatabase db,
+    $ReactionTestResultsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReactionTestResultsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReactionTestResultsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ReactionTestResultsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> completedAt = const Value.absent(),
+                Value<String> resultJson = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionTestResultsCompanion(
+                id: id,
+                completedAt: completedAt,
+                resultJson: resultJson,
+                syncStatus: syncStatus,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime completedAt,
+                required String resultJson,
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionTestResultsCompanion.insert(
+                id: id,
+                completedAt: completedAt,
+                resultJson: resultJson,
+                syncStatus: syncStatus,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ReactionTestResultsTable, ReactionTestResult>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ReactionTestResultsTable,
+                    ReactionTestResult
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReactionTestResultsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReactionTestResultsTable,
+      ReactionTestResult,
+      $$ReactionTestResultsTableFilterComposer,
+      $$ReactionTestResultsTableOrderingComposer,
+      $$ReactionTestResultsTableAnnotationComposer,
+      $$ReactionTestResultsTableCreateCompanionBuilder,
+      $$ReactionTestResultsTableUpdateCompanionBuilder,
+      (
+        ReactionTestResult,
+        BaseReferences<
+          _$AppDatabase,
+          $ReactionTestResultsTable,
+          ReactionTestResult
+        >,
+      ),
+      ReactionTestResult,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2970,4 +3510,6 @@ class $AppDatabaseManager {
       $$TelemetryPointsTableTableManager(_db, _db.telemetryPoints);
   $$SavedRoutesTableTableManager get savedRoutes =>
       $$SavedRoutesTableTableManager(_db, _db.savedRoutes);
+  $$ReactionTestResultsTableTableManager get reactionTestResults =>
+      $$ReactionTestResultsTableTableManager(_db, _db.reactionTestResults);
 }

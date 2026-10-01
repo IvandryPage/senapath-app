@@ -7,6 +7,7 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
+import '../../features/reaction/presentation/reaction_test_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
 
@@ -31,13 +32,19 @@ final appRouter = GoRouter(
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
-          _AppShell(navigationShell: navigationShell),
+          _AppShell(navigationShell: navigationShell, location: state.uri.path),
       branches: [
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/',
               builder: (context, state) => const OverviewScreen(),
+              routes: [
+                GoRoute(
+                  path: 'reaction',
+                  builder: (context, state) => const ReactionTestScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -79,9 +86,10 @@ final appRouter = GoRouter(
 );
 
 class _AppShell extends StatefulWidget {
-  const _AppShell({required this.navigationShell});
+  const _AppShell({required this.navigationShell, required this.location});
 
   final StatefulNavigationShell navigationShell;
+  final String location;
 
   @override
   State<_AppShell> createState() => _AppShellState();
@@ -101,11 +109,13 @@ class _AppShellState extends State<_AppShell> {
       return const Scaffold(body: SafeArea(child: DeviceUnlockScreen()));
     }
 
-    final destination = _destinations[widget.navigationShell.currentIndex];
+    final title = widget.location == '/reaction'
+        ? 'Tes Reaksi'
+        : _destinations[widget.navigationShell.currentIndex].label;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(destination.label),
+        title: Text(title),
         actions: [
           if (widget.navigationShell.currentIndex == 4)
             IconButton(

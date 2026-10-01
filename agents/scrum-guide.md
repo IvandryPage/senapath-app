@@ -192,6 +192,7 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 - **PBI-9.3 (Q-03/Q-04):** bila sinkronisasi tersedia, statuskan hasil dan retry idempotent; lokal tetap tersimpan sampai konfirmasi.
 - **PBI-9.4:** uji interupsi aplikasi, timer, konsistensi penyimpanan dan interpretasi skor.
 - **Penerimaan:** hasil lokal tidak hilang; skor tidak digunakan sendiri untuk menentukan kelayakan balapan.
+- **Status increment lokal:** game visual berjalan dua menit; respons terlalu awal, waktu reaksi, dan rata-rata dicatat. Hasil selesai tersimpan offline di Drift dengan status `pending`; sesi yang dibatalkan/terputus tidak menghasilkan skor.
 
 ### Sprint 10 — AI strategi dan tren
 

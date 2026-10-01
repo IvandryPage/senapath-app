@@ -52,8 +52,24 @@ class SavedRoutes extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class ReactionTestResults extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get completedAt => dateTime()();
+  TextColumn get resultJson => text()();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
-  tables: [AppPreferences, RideSessions, TelemetryPoints, SavedRoutes],
+  tables: [
+    AppPreferences,
+    RideSessions,
+    TelemetryPoints,
+    SavedRoutes,
+    ReactionTestResults,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'senapath'));
@@ -61,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -73,6 +89,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await migrator.createTable(savedRoutes);
+      }
+      if (from < 4) {
+        await migrator.createTable(reactionTestResults);
       }
     },
   );

@@ -85,6 +85,14 @@ class OverviewScreen extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.go('/session'),
         ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.flash_on_outlined, color: colorScheme.primary),
+          title: const Text('Tes reaksi'),
+          subtitle: const Text('Latihan respons visual dua menit'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/reaction'),
+        ),
       ],
     );
   }

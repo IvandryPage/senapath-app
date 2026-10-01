@@ -19,6 +19,8 @@ import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/logistics/data/logistics_repository.dart';
 import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
+import 'package:senapath/features/reaction/data/reaction_test_repository.dart';
+import 'package:senapath/features/reaction/presentation/reaction_test_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
@@ -40,6 +42,9 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
+    final reactionTestCubit = ReactionTestCubit(
+      ReactionTestRepository(database),
+    );
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final routesCubit = RoutesCubit(
       SavedRouteRepository(database),
@@ -65,11 +70,28 @@ void main() {
         unitSettingsCubit: settingsCubit,
         sessionCubit: sessionCubit,
         logisticsCubit: logisticsCubit,
+        reactionTestCubit: reactionTestCubit,
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Belum ada sesi'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Tes reaksi'), 400);
+    await tester.tap(find.text('Tes reaksi'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Latihan respons visual selama dua menit.'),
+      findsOneWidget,
+    );
+    expect(find.text('02:00'), findsOneWidget);
+    expect(find.text('Mulai tes'), findsOneWidget);
+    await tester.tap(find.text('Mulai tes'));
+    await tester.pump();
+    expect(find.text('Batalkan tes'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(reactionTestCubit.state.phase, ReactionTestPhase.idle);
 
     await tester.tap(find.text('Rute').last);
     await tester.pumpAndSettle();
@@ -159,6 +181,7 @@ void main() {
     await settingsCubit.close();
     await sessionCubit.close();
     await logisticsCubit.close();
+    await reactionTestCubit.close();
   });
 
   testWidgets('loading state is announced with progress', (tester) async {
