@@ -11,7 +11,9 @@ import 'package:senapath/core/units/unit_settings_cubit.dart';
 import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/widgets/feature_state_view.dart';
 import 'package:senapath/features/authentication/data/device_authenticator.dart';
+import 'package:senapath/features/authentication/data/supabase_cloud_account_gateway.dart';
 import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
+import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 import 'package:senapath/features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'package:senapath/features/assistant/presentation/ai_chat_cubit.dart';
 import 'package:senapath/features/feedback/data/feedback_repository.dart';
@@ -72,6 +74,9 @@ void main() {
     await tester.pumpWidget(
       SenapathApp(
         authCubit: authCubit,
+        cloudAccountCubit: CloudAccountCubit(
+          const SupabaseCloudAccountGateway(null),
+        ),
         emergencyCubit: emergencyCubit,
         profileCubit: profileCubit,
         routesCubit: routesCubit,
@@ -172,6 +177,12 @@ void main() {
 
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Akun online'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lupa password?'), findsOneWidget);
+    expect(find.textContaining('Supabase belum dikonfigurasi'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     expect(find.text('Kontak darurat'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Tambah kontak darurat'));
@@ -193,7 +204,7 @@ void main() {
     await tester.tap(find.text('Batal'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Keluar'));
+    await tester.tap(find.byTooltip('Kunci aplikasi'));
     await tester.pumpAndSettle();
     expect(find.text('Buka Senapath'), findsOneWidget);
 

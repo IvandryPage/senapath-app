@@ -12,6 +12,8 @@ import '../../features/logistics/presentation/logistics_screen.dart';
 import '../../features/reaction/presentation/reaction_test_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
+import '../../features/authentication/presentation/cloud_account_screen.dart';
+import '../../features/authentication/presentation/cloud_account_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/assistant/presentation/ai_chat_cubit.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
@@ -56,6 +58,10 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'feedback',
                   builder: (context, state) => const FeedbackScreen(),
+                ),
+                GoRoute(
+                  path: 'account',
+                  builder: (context, state) => const CloudAccountScreen(),
                 ),
               ],
             ),
@@ -120,6 +126,7 @@ class _AppShellState extends State<_AppShell> {
   void initState() {
     super.initState();
     context.read<DeviceAuthCubit>().initialize();
+    context.read<CloudAccountCubit>().initialize();
   }
 
   @override
@@ -133,6 +140,7 @@ class _AppShellState extends State<_AppShell> {
       '/reaction' => 'Tes Reaksi',
       '/assistant' => 'Chat AI',
       '/feedback' => 'Saran & kesan',
+      '/account' => 'Akun online',
       '/routes/navigation' => 'Panduan Rute',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
@@ -143,7 +151,7 @@ class _AppShellState extends State<_AppShell> {
         actions: [
           if (widget.navigationShell.currentIndex == 4)
             IconButton(
-              tooltip: 'Keluar',
+              tooltip: 'Kunci aplikasi',
               onPressed: () {
                 context.read<AiChatCubit>().clearConversation();
                 context.read<DeviceAuthCubit>().logout();

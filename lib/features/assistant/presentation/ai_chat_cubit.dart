@@ -101,7 +101,7 @@ class AiChatCubit extends Cubit<AiChatState> {
       emit(
         state.copyWith(
           isSending: false,
-          error: 'AI tidak dapat menjawab. Periksa koneksi, Supabase Auth anonim, dan konfigurasi Edge Function.',
+          error: 'AI tidak dapat menjawab. Periksa koneksi, akun online, dan konfigurasi Edge Function.',
         ),
       );
     }

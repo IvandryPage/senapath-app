@@ -8,13 +8,12 @@ Product Backlog v2 ini menggantikan asumsi lama bahwa penyelesaian 12 sprint oto
 
 ## 2. Baseline yang Terverifikasi
 
-Ada implementasi lokal untuk unlock perangkat, sesi Drift, impor/ekspor GPX/JSON, latihan reaksi, konversi logistik, chat AI, feedback, dan penyimpanan offline. GPX kini menyimpan geometri terenkripsi; rute dapat dipreview dan diikuti dengan posisi GPS, progres, jarak tersisa, dan peringatan keluar jalur. Ini panduan track offline, bukan basemap jalan atau instruksi belok.
+Ada implementasi lokal untuk unlock perangkat, sesi Drift, impor/ekspor GPX/JSON, latihan reaksi, konversi logistik, chat AI, feedback, dan penyimpanan offline. Auth email/password Supabase kini punya UI/gateway lokal dan tetap terpisah dari unlock perangkat. GPX tersimpan terenkripsi dan memiliki panduan track offline; ini bukan basemap jalan atau instruksi belok.
 
 Berikut ini **belum boleh diklaim berfungsi produksi**:
 
-- Basemap, pencarian rute online, geocoding, elevasi, dan POI provider belum dipilih atau dikonfigurasi. Preview GPX adalah bentuk jalur, bukan peta jalan atau navigasi.
 - Basemap, pencarian rute online, geocoding, elevasi, dan POI provider belum dipilih atau dikonfigurasi. Panduan GPX offline adalah track-follow, bukan peta jalan atau turn-by-turn.
-- Unlock biometrik adalah local unlock, bukan akun cloud. Login akun dan pemulihan identitas belum tersedia.
+- Unlock biometrik adalah local unlock, bukan akun cloud. Provider Email, verifikasi, SMTP, redirect recovery, dan runtime auth harus dikonfirmasi pada proyek Supabase nyata.
 - Sinkronisasi sesi dan telemetri ke backend belum menjadi alur produksi end-to-end.
 - Supabase Edge Functions untuk Gemini dan feedback serta migrasinya perlu diterapkan ke proyek nyata, dikonfigurasi, dan diuji. Paket Flutter saja tidak mengaktifkan layanan.
 - SOS masih bergantung pada handoff aplikasi/kanal yang tersedia; tidak boleh disebut pesan terkirim tanpa acknowledgment kanal.
@@ -37,14 +36,14 @@ Planning menetapkan satu Sprint Goal dan PBI yang dapat selesai; Daily Scrum men
 
 ### P0 — Keterpakaian inti dan online yang jujur
 
-| Urut | PBI                                                   | Hasil dan kriteria penerimaan                                                                                                                                                                                                           | Status                                                          |
-| ---: | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-|    1 | **PB2-01 — Impor GPX dan panduan track offline**      | Geometri terenkripsi; rute bertahan restart/offline; mode panduan menampilkan track, GPS, progres, jarak tersisa, kualitas fix, dan status off-route; stop menghentikan stream/wakelock; GPX mentah tidak mengarang instruksi belok.    | Implementasi lokal dan focused tests ada; device smoke pending. |
-|    2 | **PB2-02 — Basemap dan navigasi online**              | PO menyetujui provider, lisensi, biaya, attribution, kuota, cache/offline policy, dan kebijakan lokasi. Basemap, turn-by-turn, serta reroute hanya aktif bila provider nyata siap; GPX offline tetap berfungsi.                         | Blocked oleh keputusan provider.                                |
-|    3 | **PB2-03 — Identitas dan konfigurasi cloud**          | Pisahkan local unlock dari akun; sediakan sign-in/out, pemulihan akun, konfigurasi environment dev/staging/prod, status `belum dikonfigurasi/offline/siap/gagal`, dan aturan sesi/token.                                                | Belum lengkap; Supabase anon untuk function bukan akun produk.  |
-|    4 | **PB2-04 — Sinkronisasi sesi nyata**                  | Outbox lokal stabil; autentikasi, RLS, upload bertahap, retry idempotent, acknowledgment, konflik, logout, dan restart diuji terhadap backend staging. Item pending tidak hilang atau ditandai tersinkron sebelum server mengonfirmasi. | Blocked oleh schema, project, auth, dan kontrak sync.           |
-|    5 | **PB2-05 — Integrasi online yang sudah direncanakan** | Deploy/test Edge Functions AI dan feedback pada staging; validasi secrets, kuota, RLS, rate limit, retensi, timeout, serta status remote. Rilis tetap menyebut integrasi belum tersedia bila deployment belum dilakukan.                | Kode lokal ada; deploy/runtime test pending.                    |
-|    6 | **PB2-06 — Navigasi dan alur tanpa jalan buntu**      | Tiap fitur inti bisa ditemukan dari navigasi; rute kosong mengarahkan ke impor/aksi yang relevan; seluruh loading/error memiliki pemulihan; target sentuh, kontras, dan teks diuji di ukuran layar sasaran.                             | Audit E2E masih pending.                                        |
+| Urut | PBI                                                   | Hasil dan kriteria penerimaan                                                                                                                                                                                                           | Status                                                                                                 |
+| ---: | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+|    1 | **PB2-01 — Impor GPX dan panduan track offline**      | Geometri terenkripsi; rute bertahan restart/offline; mode panduan menampilkan track, GPS, progres, jarak tersisa, kualitas fix, dan status off-route; stop menghentikan stream/wakelock; GPX mentah tidak mengarang instruksi belok.    | Implementasi lokal dan focused tests ada; device smoke pending.                                        |
+|    2 | **PB2-02 — Basemap dan navigasi online**              | PO menyetujui provider, lisensi, biaya, attribution, kuota, cache/offline policy, dan kebijakan lokasi. Basemap, turn-by-turn, serta reroute hanya aktif bila provider nyata siap; GPX offline tetap berfungsi.                         | Blocked oleh keputusan provider.                                                                       |
+|    3 | **PB2-03 — Identitas dan konfigurasi cloud**          | Pisahkan local unlock dari akun; registrasi/login email, verifikasi, reset, sign-out, environment dev/staging/prod, status konfigurasi, dan aturan sesi/token.                                                                          | UI/gateway dan unit tests ada; runtime project, email confirmation, dan recovery redirect belum diuji. |
+|    4 | **PB2-04 — Sinkronisasi sesi nyata**                  | Outbox lokal stabil; autentikasi, RLS, upload bertahap, retry idempotent, acknowledgment, konflik, logout, dan restart diuji terhadap backend staging. Item pending tidak hilang atau ditandai tersinkron sebelum server mengonfirmasi. | Blocked oleh schema, project, auth, dan kontrak sync.                                                  |
+|    5 | **PB2-05 — Integrasi online yang sudah direncanakan** | Deploy/test Edge Functions AI dan feedback pada staging; validasi secrets, kuota, RLS, rate limit, retensi, timeout, serta status remote. Rilis tetap menyebut integrasi belum tersedia bila deployment belum dilakukan.                | Kode lokal ada; deploy/runtime test pending.                                                           |
+|    6 | **PB2-06 — Navigasi dan alur tanpa jalan buntu**      | Tiap fitur inti bisa ditemukan dari navigasi; rute kosong mengarahkan ke impor/aksi yang relevan; seluruh loading/error memiliki pemulihan; target sentuh, kontras, dan teks diuji di ukuran layar sasaran.                             | Audit E2E masih pending.                                                                               |
 
 ### P1 — Keandalan perangkat dan keselamatan
 
@@ -67,11 +66,9 @@ Planning menetapkan satu Sprint Goal dan PBI yang dapat selesai; Daily Scrum men
 
 **Sprint Goal:** hentikan kebingungan utama dan kurangi risiko kehilangan/penyajian data palsu. Jangan mengambil seluruh PB2 sekaligus; PO memilih scope yang dapat diuji.
 
-- **PBI-12.1:** selesai lokal: geometri GPX dienkripsi dengan codec lokal, dipulihkan dari storage, dan preview rute offline dapat dibuka. Full-suite 47 tes dan `flutter analyze` lulus; verifikasi pada perangkat sasaran masih pending.
-- **PBI-12.1:** increment lokal: geometri GPX dienkripsi/dipulihkan; preview; panduan foreground dengan GPS, progres, jarak tersisa, off-route sesuai akurasi, dan screen wake. Full-suite 52 tes dan `flutter analyze` lulus; device smoke masih pending. Basemap/turn-by-turn online belum tersedia tanpa provider.
-- **PBI-12.2:** selesai lokal: logout membersihkan transcript AI dan membuang respons request yang datang terlambat. Sisa: integrasi dengan sign-out akun cloud setelah akun produk tersedia.
+- **PBI-12.1:** increment lokal: geometri GPX terenkripsi/dipulihkan dan panduan foreground menampilkan GPS, progres, jarak tersisa, off-route sesuai akurasi, serta screen wake. Full-suite 56 tes dan `flutter analyze` lulus; device smoke masih pending. Basemap/turn-by-turn belum tersedia tanpa provider.
+- **PBI-12.2:** local lock dipisahkan dari akun email/password; logout menghapus transcript AI dan respons terlambat. UI/gateway daftar, login, reset request, verifikasi, dan cloud sign-out tersedia; email provider, SMTP/redirect, dan runtime project belum diuji.
 - **PBI-12.3:** buat inventaris setiap tombol/layar inti: aksi, online dependency, empty/loading/error, status data, pemulihan, dan sumber/attribution.
-- **PBI-12.4:** smoke test alur GPX import → tutup/buka aplikasi → cari → buka preview dalam mode pesawat; uji GPX invalid dan geometry lama.
 - **PBI-12.4:** smoke test alur GPX import → tutup/buka → cari → preview → mulai/akhiri panduan dalam mode pesawat; uji izin ditolak, GPS lemah, GPX invalid, serta geometry lama.
 - **PBI-12.5:** nyatakan belum tersedia untuk map provider, akun cloud, session sync, SOS server, AI/feedback yang belum deploy, ledger dan wearable.
 - **Penerimaan sprint:** jalur GPX terlihat dan bertahan offline; tidak ada status online palsu; fokus tests, analyze, full test, dan build target dicatat. Sprint belum menjadi release candidate hanya karena tes lokal lulus.
@@ -132,7 +129,6 @@ Jika satu gate belum memiliki bukti, catat `belum siap` dan batasi distribusi ke
 
 ## 8. Transparansi Status
 
-Setiap fitur online menggunakan istilah konsisten: `belum dikonfigurasi`, `offline`, `memuat`, `tersedia`, `pending`, `gagal`, dan `terkonfirmasi`. `Tersimpan lokal` bukan `tersinkron`; `dibuka` bukan `terkirim`; `hash dibuat` bukan `proof terverifikasi`; preview GPX bukan basemap/navigasi.
 Setiap fitur online menggunakan istilah konsisten: `belum dikonfigurasi`, `offline`, `memuat`, `tersedia`, `pending`, `gagal`, dan `terkonfirmasi`. `Tersimpan lokal` bukan `tersinkron`; `dibuka` bukan `terkirim`; `hash dibuat` bukan `proof terverifikasi`; panduan track GPX bukan basemap atau turn-by-turn.
 
 Pada Review, catat PBI selesai beserta hasil tes, platform yang diuji, environment/provider, blocker yang tersisa, serta apakah penerimaan PO terpenuhi. Velocity digunakan untuk forecast tim, bukan target individu.

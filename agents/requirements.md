@@ -17,10 +17,10 @@ Dokumen ini mendefinisikan kebutuhan produk, bukan keputusan implementasi. Fitur
 
 ### A. Akun dan Persiapan
 
-**FR-01 — Buka aplikasi dan identitas akun**  
-Biometrik/PIN perangkat adalah _local unlock_, bukan identitas akun cloud. Penolakan atau pembatalan unlock tidak membuka data lokal. Fitur yang menyimpan atau menyinkronkan data online harus memakai akun cloud yang dapat dipulihkan dan sesi yang dapat dicabut; aplikasi tidak boleh menyebut pengguna sudah login online hanya karena local unlock berhasil. Kredensial dan token disimpan melalui fasilitas aman platform.
+**FR-01 — Akun cloud dan buka aplikasi**  
+Pengguna dapat mendaftar dan masuk dengan email/password melalui Supabase Auth. Bila verifikasi email diwajibkan, UI menjelaskan bahwa pengguna harus memverifikasi sebelum masuk. Pengguna dapat meminta reset password melalui email. Password hanya dikirim melalui koneksi TLS ke Supabase Auth; aplikasi tidak menyimpan password atau menulisnya ke tabel profil. Biometrik/PIN perangkat tetap _local unlock_, terpisah dari identitas cloud. Sign-out cloud mencabut sesi online; local lock tidak menghapus data lokal.
 
-**Kriteria penerimaan:** local unlock gagal tidak membuka data; status akun cloud ditampilkan terpisah; sign-out cloud mencabut sesi server dan local lock tidak menghapus data lokal.
+**Kriteria penerimaan:** email/password invalid tidak dikirim; sukses/gagal/menunggu verifikasi dibedakan; sesi Supabase dipulihkan dari secure storage SDK; reset password mengungkapkan hasil generik yang tidak membocorkan keberadaan email; sign-out cloud mengakhiri sesi tanpa menghapus riwayat lokal; aplikasi tanpa Supabase tetap membuka fitur offline dengan status akun belum tersedia.
 
 **FR-02 — Konversi mata uang**  
 Sistem harus dapat mengonversi nilai EUR ke IDR, USD, dan CHF menggunakan kurs terbaru yang tersedia. Hasil harus menampilkan waktu pembaruan dan sumber kurs. Jika offline, sistem boleh menampilkan kurs tersimpan terakhir dengan penanda bahwa kurs tersebut bukan kurs real-time. Sistem juga harus menyediakan simulasi anggaran yang memungkinkan manajer menambahkan beberapa item pengeluaran dengan nama, nominal, dan mata uang, lalu melihat total dalam mata uang tujuan.

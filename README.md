@@ -6,8 +6,11 @@ Aplikasi pendamping latihan dan balapan sepeda.
 
 ```sh
 flutter pub get
-flutter run
+Copy-Item .env.example .env
+./scripts/flutter_with_env.ps1 run
 ```
+
+Jalankan `Copy-Item` hanya saat `.env` belum ada agar konfigurasi lokal tidak tertimpa. Isi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` di `.env`. Keduanya adalah konfigurasi klien yang dapat diekstrak dari aplikasi; keamanan data wajib ditegakkan dengan Supabase Auth dan RLS. `.env` diabaikan Git. Jangan masukkan password pengguna, service-role key, atau Gemini API key ke Flutter.
 
 ## Pemeriksaan kualitas
 
@@ -32,7 +35,7 @@ Panduan GPX dapat digunakan tanpa internet setelah file tersimpan. Preview belum
 
 Chat hanya mengirim pesan setelah pengguna menyetujui. Rute lokal dan preferensi latihan hanya disertakan bila dipilih. Percakapan tidak disimpan di riwayat lokal; permintaan diteruskan melalui Supabase ke Google Gemini. Jangan masukkan kontak darurat atau informasi sensitif.
 
-1. Buat proyek Supabase, pasang Supabase CLI, lalu aktifkan **Anonymous Sign-Ins** pada Authentication.
+1. Buat proyek Supabase dan aktifkan provider **Email** di Authentication. Pilih kebijakan verifikasi email; untuk produksi, atur SMTP tepercaya dan redirect URL verifikasi/reset yang diizinkan.
 2. Login dan tautkan proyek lokal sebelum menerapkan migrasi:
 
 ```sh
@@ -49,10 +52,12 @@ supabase functions deploy rider-assistant
 supabase functions deploy submit-feedback
 ```
 
-4. Jalankan aplikasi dengan URL proyek dan publishable key Supabase:
+Untuk menjalankan Edge Function secara lokal, isi `GEMINI_API_KEY` di `.env` lalu gunakan `supabase functions serve --env-file .env`; Supabase CLI menyediakan variabel Supabase lokal bagi function. Saat deploy, masukkan Gemini key ke Supabase Secrets seperti perintah di atas. Jangan simpan `SUPABASE_SERVICE_ROLE_KEY` di Flutter atau commit ke repo.
+
+4. Jalankan aplikasi dengan URL proyek dan publishable key Supabase dari `.env`:
 
 ```sh
-flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+./scripts/flutter_with_env.ps1 run -d <device-id>
 ```
 
-Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan service-role key atau Gemini API key ke `--dart-define`. Function membatasi tiap akun anonim hingga 30 permintaan per hari; tabel kuota hanya menyimpan ID anonim, tanggal, dan jumlah permintaan, bukan isi chat. Feedback terkirim disimpan di tabel `user_feedback` untuk ditinjau tim; hapus data secara berkala melalui dashboard/database sesuai kebijakan retensi proyek. Atur juga kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat dan pengiriman feedback belum aktif sampai function berhasil dideploy dan konfigurasi Supabase diberikan.
+Publishable key memang digunakan oleh aplikasi klien dan diteruskan sebagai compile-time define; jangan pernah memasukkan service-role key atau Gemini API key ke runner Flutter. Email/password dikelola Supabase Auth; aplikasi tidak menyimpan password. Function AI membatasi setiap akun Supabase hingga 30 permintaan per hari. Feedback terkirim disimpan di tabel `user_feedback` untuk ditinjau tim; hapus data secara berkala sesuai kebijakan retensi proyek. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat dan feedback memerlukan sesi akun online. Email confirmation/reset juga memerlukan provider Email, template, SMTP, serta redirect URL yang sesuai.

@@ -16,7 +16,7 @@ class SupabaseFeedbackGateway implements FeedbackGateway {
     final client = _client;
     if (client == null) throw StateError('Supabase belum dikonfigurasi.');
     if (client.auth.currentUser == null) {
-      await client.auth.signInAnonymously();
+      throw StateError('Masuk ke akun online sebelum mengirim feedback.');
     }
 
     final response = await client.functions.invoke(

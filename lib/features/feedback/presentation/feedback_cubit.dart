@@ -162,7 +162,7 @@ class FeedbackCubit extends Cubit<FeedbackState> {
       emit(
         state.copyWith(
           isSubmitting: false,
-          error: 'Feedback belum terkirim. Data tetap tersimpan terenkripsi; coba lagi saat jaringan tersedia.',
+          error: 'Feedback belum terkirim. Data tetap tersimpan terenkripsi; periksa login dan koneksi sebelum mencoba lagi.',
         ),
       );
     }

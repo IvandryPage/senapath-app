@@ -7,7 +7,9 @@ import 'core/storage/secure_vault.dart';
 import 'core/units/unit_settings_cubit.dart';
 import 'core/units/unit_settings_repository.dart';
 import 'features/authentication/data/device_authenticator.dart';
+import 'features/authentication/data/supabase_cloud_account_gateway.dart';
 import 'features/authentication/presentation/device_auth_cubit.dart';
+import 'features/authentication/presentation/cloud_account_cubit.dart';
 import 'features/emergency/data/emergency_contact_actions.dart';
 import 'features/emergency/presentation/emergency_cubit.dart';
 import 'features/profile/data/encrypted_avatar_store.dart';
@@ -57,6 +59,9 @@ Future<void> main() async {
   runApp(
     SenapathApp(
       authCubit: DeviceAuthCubit(LocalDeviceAuthenticator()),
+      cloudAccountCubit: CloudAccountCubit(
+        SupabaseCloudAccountGateway(supabaseClient),
+      ),
       emergencyCubit: EmergencyCubit(
         const UrlLauncherEmergencyContactActions(),
       ),

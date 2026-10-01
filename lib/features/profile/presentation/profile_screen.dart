@@ -3,12 +3,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
+import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../domain/user_profile.dart';
 import 'profile_cubit.dart';
 
@@ -56,6 +58,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
+              _buildCloudAccountEntry(context),
+              const SizedBox(height: 20),
               _buildProfileSection(context, state),
               const SizedBox(height: 28),
               _buildContactsSection(context, state),
@@ -71,6 +75,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildCloudAccountEntry(BuildContext context) {
+    final account = context.watch<CloudAccountCubit>().state;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        account.isSignedIn ? Icons.cloud_done_outlined : Icons.cloud_outlined,
+      ),
+      title: const Text('Akun online'),
+      subtitle: Text(
+        account.email ??
+            (account.isConfigured
+                ? 'Belum masuk'
+                : 'Supabase belum dikonfigurasi'),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => context.push('/account'),
     );
   }
 

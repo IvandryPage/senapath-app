@@ -22,7 +22,7 @@ class SupabaseAiChatGateway implements AiChatGateway {
     }
 
     if (client.auth.currentUser == null) {
-      await client.auth.signInAnonymously();
+      throw StateError('Masuk ke akun online sebelum memakai chat AI.');
     }
 
     final response = await client.functions.invoke(
