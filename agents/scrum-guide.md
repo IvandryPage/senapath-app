@@ -153,13 +153,13 @@ Developers memilih PBI berdasarkan kapasitas pada Sprint Planning dan memecah ta
 
 **Goal:** rute dapat dicari, ditinjau, dan dibuka offline.
 
-- **PBI-6.1 (US-09/FR-04):** putuskan provider/format tile, geocoding, elevasi, cache, lisensi dan biaya; jangan hardcode rahasia.
-- **PBI-6.2:** implementasi pencarian dengan hasil, kosong, loading, offline, dan error yang jelas.
-- **PBI-6.3:** tampilkan elevasi bila ada dan POI nutrisi/medis; tandai sumber/waktu data.
-- **PBI-6.4 (NFR-03):** simpan rute dan metadata; buka dalam mode pesawat; tandai sumber/waktu/keterbatasan.
+- **PBI-6.1 (US-09/FR-04):** catat keputusan provider/format tile, geocoding, elevasi, cache, lisensi dan biaya; jangan hardcode rahasia. Sampai provider dipilih, implementasi memakai boundary repository yang provider-agnostic.
+- **PBI-6.2:** implementasi pencarian rute tersimpan lokal dengan hasil, kosong, loading, dan error yang jelas.
+- **PBI-6.3:** tampilkan metadata elevasi/POI nutrisi/medis bila tersedia dan tandai sumber/waktu data.
+- **PBI-6.4 (NFR-03):** simpan route metadata di Drift dan buka dalam mode offline; geometry/map tile belum diklaim tersedia sebelum provider peta dipilih.
 - **PBI-6.5:** uji layanan gagal, cache kosong/penuh, unduhan terputus, kuota dan perangkat sasaran.
 - **PBI-6.6 (US-24/FR-24):** setelah provider dipilih dan aksesnya disetujui, implementasikan koneksi/otorisasi dan pemutusan akses; petakan hanya metrik yang didukung; tampilkan sumber/waktu/status; sinkronkan dengan ID stabil dan cegah duplikasi; uji izin dicabut, offline, dan retry. Sinkronisasi real-time hanya masuk cakupan bila API/perangkat benar-benar mendukungnya.
-- **Penerimaan:** rute tersimpan dapat dibuka offline; layar kosong tidak menyamarkan kegagalan pencarian.
+- **Penerimaan:** rute tersimpan dan metadata dapat dicari offline; layar kosong tidak menyamarkan kegagalan pencarian; provider peta yang belum dipilih tidak ditampilkan seolah tersedia.
 
 ### Sprint 7 — Berkas dan storage
 

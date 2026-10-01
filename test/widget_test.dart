@@ -16,6 +16,8 @@ import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
+import 'package:senapath/features/routes/data/saved_route_repository.dart';
+import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
@@ -33,6 +35,7 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
+    final routesCubit = RoutesCubit(SavedRouteRepository(database));
     final sessionCubit = RideSessionCubit(
       repository: DriftRideSessionRepository(
         database: database,
@@ -49,6 +52,7 @@ void main() {
         authCubit: authCubit,
         emergencyCubit: emergencyCubit,
         profileCubit: profileCubit,
+        routesCubit: routesCubit,
         unitSettingsCubit: settingsCubit,
         sessionCubit: sessionCubit,
       ),
@@ -82,6 +86,7 @@ void main() {
     await authCubit.close();
     await profileCubit.close();
     await emergencyCubit.close();
+    await routesCubit.close();
     await settingsCubit.close();
     await sessionCubit.close();
   });

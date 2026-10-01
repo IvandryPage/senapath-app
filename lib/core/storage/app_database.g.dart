@@ -1186,6 +1186,600 @@ class TelemetryPointsCompanion extends UpdateCompanion<TelemetryPoint> {
   }
 }
 
+class $SavedRoutesTable extends SavedRoutes
+    with TableInfo<$SavedRoutesTable, SavedRoute> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedRoutesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _distanceMetersMeta = const VerificationMeta(
+    'distanceMeters',
+  );
+  @override
+  late final GeneratedColumn<double> distanceMeters = GeneratedColumn<double>(
+    'distance_meters',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _elevationGainMetersMeta =
+      const VerificationMeta('elevationGainMeters');
+  @override
+  late final GeneratedColumn<double> elevationGainMeters =
+      GeneratedColumn<double>(
+        'elevation_gain_meters',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _poiSummaryMeta = const VerificationMeta(
+    'poiSummary',
+  );
+  @override
+  late final GeneratedColumn<String> poiSummary = GeneratedColumn<String>(
+    'poi_summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _availabilityMeta = const VerificationMeta(
+    'availability',
+  );
+  @override
+  late final GeneratedColumn<String> availability = GeneratedColumn<String>(
+    'availability',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('offline'),
+  );
+  static const VerificationMeta _encryptedGeometryMeta = const VerificationMeta(
+    'encryptedGeometry',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> encryptedGeometry =
+      GeneratedColumn<Uint8List>(
+        'encrypted_geometry',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    source,
+    updatedAt,
+    distanceMeters,
+    elevationGainMeters,
+    poiSummary,
+    availability,
+    encryptedGeometry,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_routes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedRoute> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('distance_meters')) {
+      context.handle(
+        _distanceMetersMeta,
+        distanceMeters.isAcceptableOrUnknown(
+          data['distance_meters']!,
+          _distanceMetersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('elevation_gain_meters')) {
+      context.handle(
+        _elevationGainMetersMeta,
+        elevationGainMeters.isAcceptableOrUnknown(
+          data['elevation_gain_meters']!,
+          _elevationGainMetersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('poi_summary')) {
+      context.handle(
+        _poiSummaryMeta,
+        poiSummary.isAcceptableOrUnknown(data['poi_summary']!, _poiSummaryMeta),
+      );
+    }
+    if (data.containsKey('availability')) {
+      context.handle(
+        _availabilityMeta,
+        availability.isAcceptableOrUnknown(
+          data['availability']!,
+          _availabilityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('encrypted_geometry')) {
+      context.handle(
+        _encryptedGeometryMeta,
+        encryptedGeometry.isAcceptableOrUnknown(
+          data['encrypted_geometry']!,
+          _encryptedGeometryMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SavedRoute map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedRoute(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      distanceMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_meters'],
+      ),
+      elevationGainMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}elevation_gain_meters'],
+      ),
+      poiSummary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}poi_summary'],
+      )!,
+      availability: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}availability'],
+      )!,
+      encryptedGeometry: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}encrypted_geometry'],
+      ),
+    );
+  }
+
+  @override
+  $SavedRoutesTable createAlias(String alias) {
+    return $SavedRoutesTable(attachedDatabase, alias);
+  }
+}
+
+class SavedRoute extends DataClass implements Insertable<SavedRoute> {
+  final String id;
+  final String name;
+  final String source;
+  final DateTime updatedAt;
+  final double? distanceMeters;
+  final double? elevationGainMeters;
+  final String poiSummary;
+  final String availability;
+  final Uint8List? encryptedGeometry;
+  const SavedRoute({
+    required this.id,
+    required this.name,
+    required this.source,
+    required this.updatedAt,
+    this.distanceMeters,
+    this.elevationGainMeters,
+    required this.poiSummary,
+    required this.availability,
+    this.encryptedGeometry,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['source'] = Variable<String>(source);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || distanceMeters != null) {
+      map['distance_meters'] = Variable<double>(distanceMeters);
+    }
+    if (!nullToAbsent || elevationGainMeters != null) {
+      map['elevation_gain_meters'] = Variable<double>(elevationGainMeters);
+    }
+    map['poi_summary'] = Variable<String>(poiSummary);
+    map['availability'] = Variable<String>(availability);
+    if (!nullToAbsent || encryptedGeometry != null) {
+      map['encrypted_geometry'] = Variable<Uint8List>(encryptedGeometry);
+    }
+    return map;
+  }
+
+  SavedRoutesCompanion toCompanion(bool nullToAbsent) {
+    return SavedRoutesCompanion(
+      id: Value(id),
+      name: Value(name),
+      source: Value(source),
+      updatedAt: Value(updatedAt),
+      distanceMeters: distanceMeters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanceMeters),
+      elevationGainMeters: elevationGainMeters == null && nullToAbsent
+          ? const Value.absent()
+          : Value(elevationGainMeters),
+      poiSummary: Value(poiSummary),
+      availability: Value(availability),
+      encryptedGeometry: encryptedGeometry == null && nullToAbsent
+          ? const Value.absent()
+          : Value(encryptedGeometry),
+    );
+  }
+
+  factory SavedRoute.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedRoute(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      source: serializer.fromJson<String>(json['source']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      distanceMeters: serializer.fromJson<double?>(json['distanceMeters']),
+      elevationGainMeters: serializer.fromJson<double?>(
+        json['elevationGainMeters'],
+      ),
+      poiSummary: serializer.fromJson<String>(json['poiSummary']),
+      availability: serializer.fromJson<String>(json['availability']),
+      encryptedGeometry: serializer.fromJson<Uint8List?>(
+        json['encryptedGeometry'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'source': serializer.toJson<String>(source),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'distanceMeters': serializer.toJson<double?>(distanceMeters),
+      'elevationGainMeters': serializer.toJson<double?>(elevationGainMeters),
+      'poiSummary': serializer.toJson<String>(poiSummary),
+      'availability': serializer.toJson<String>(availability),
+      'encryptedGeometry': serializer.toJson<Uint8List?>(encryptedGeometry),
+    };
+  }
+
+  SavedRoute copyWith({
+    String? id,
+    String? name,
+    String? source,
+    DateTime? updatedAt,
+    Value<double?> distanceMeters = const Value.absent(),
+    Value<double?> elevationGainMeters = const Value.absent(),
+    String? poiSummary,
+    String? availability,
+    Value<Uint8List?> encryptedGeometry = const Value.absent(),
+  }) => SavedRoute(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    source: source ?? this.source,
+    updatedAt: updatedAt ?? this.updatedAt,
+    distanceMeters: distanceMeters.present
+        ? distanceMeters.value
+        : this.distanceMeters,
+    elevationGainMeters: elevationGainMeters.present
+        ? elevationGainMeters.value
+        : this.elevationGainMeters,
+    poiSummary: poiSummary ?? this.poiSummary,
+    availability: availability ?? this.availability,
+    encryptedGeometry: encryptedGeometry.present
+        ? encryptedGeometry.value
+        : this.encryptedGeometry,
+  );
+  SavedRoute copyWithCompanion(SavedRoutesCompanion data) {
+    return SavedRoute(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      source: data.source.present ? data.source.value : this.source,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      distanceMeters: data.distanceMeters.present
+          ? data.distanceMeters.value
+          : this.distanceMeters,
+      elevationGainMeters: data.elevationGainMeters.present
+          ? data.elevationGainMeters.value
+          : this.elevationGainMeters,
+      poiSummary: data.poiSummary.present
+          ? data.poiSummary.value
+          : this.poiSummary,
+      availability: data.availability.present
+          ? data.availability.value
+          : this.availability,
+      encryptedGeometry: data.encryptedGeometry.present
+          ? data.encryptedGeometry.value
+          : this.encryptedGeometry,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedRoute(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('source: $source, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('distanceMeters: $distanceMeters, ')
+          ..write('elevationGainMeters: $elevationGainMeters, ')
+          ..write('poiSummary: $poiSummary, ')
+          ..write('availability: $availability, ')
+          ..write('encryptedGeometry: $encryptedGeometry')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    source,
+    updatedAt,
+    distanceMeters,
+    elevationGainMeters,
+    poiSummary,
+    availability,
+    $driftBlobEquality.hash(encryptedGeometry),
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedRoute &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.source == this.source &&
+          other.updatedAt == this.updatedAt &&
+          other.distanceMeters == this.distanceMeters &&
+          other.elevationGainMeters == this.elevationGainMeters &&
+          other.poiSummary == this.poiSummary &&
+          other.availability == this.availability &&
+          $driftBlobEquality.equals(
+            other.encryptedGeometry,
+            this.encryptedGeometry,
+          ));
+}
+
+class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> source;
+  final Value<DateTime> updatedAt;
+  final Value<double?> distanceMeters;
+  final Value<double?> elevationGainMeters;
+  final Value<String> poiSummary;
+  final Value<String> availability;
+  final Value<Uint8List?> encryptedGeometry;
+  final Value<int> rowid;
+  const SavedRoutesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.source = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.distanceMeters = const Value.absent(),
+    this.elevationGainMeters = const Value.absent(),
+    this.poiSummary = const Value.absent(),
+    this.availability = const Value.absent(),
+    this.encryptedGeometry = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedRoutesCompanion.insert({
+    required String id,
+    required String name,
+    required String source,
+    required DateTime updatedAt,
+    this.distanceMeters = const Value.absent(),
+    this.elevationGainMeters = const Value.absent(),
+    this.poiSummary = const Value.absent(),
+    this.availability = const Value.absent(),
+    this.encryptedGeometry = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       source = Value(source),
+       updatedAt = Value(updatedAt);
+  static Insertable<SavedRoute> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? source,
+    Expression<DateTime>? updatedAt,
+    Expression<double>? distanceMeters,
+    Expression<double>? elevationGainMeters,
+    Expression<String>? poiSummary,
+    Expression<String>? availability,
+    Expression<Uint8List>? encryptedGeometry,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (source != null) 'source': source,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (distanceMeters != null) 'distance_meters': distanceMeters,
+      if (elevationGainMeters != null)
+        'elevation_gain_meters': elevationGainMeters,
+      if (poiSummary != null) 'poi_summary': poiSummary,
+      if (availability != null) 'availability': availability,
+      if (encryptedGeometry != null) 'encrypted_geometry': encryptedGeometry,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedRoutesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? source,
+    Value<DateTime>? updatedAt,
+    Value<double?>? distanceMeters,
+    Value<double?>? elevationGainMeters,
+    Value<String>? poiSummary,
+    Value<String>? availability,
+    Value<Uint8List?>? encryptedGeometry,
+    Value<int>? rowid,
+  }) {
+    return SavedRoutesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      source: source ?? this.source,
+      updatedAt: updatedAt ?? this.updatedAt,
+      distanceMeters: distanceMeters ?? this.distanceMeters,
+      elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
+      poiSummary: poiSummary ?? this.poiSummary,
+      availability: availability ?? this.availability,
+      encryptedGeometry: encryptedGeometry ?? this.encryptedGeometry,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (distanceMeters.present) {
+      map['distance_meters'] = Variable<double>(distanceMeters.value);
+    }
+    if (elevationGainMeters.present) {
+      map['elevation_gain_meters'] = Variable<double>(
+        elevationGainMeters.value,
+      );
+    }
+    if (poiSummary.present) {
+      map['poi_summary'] = Variable<String>(poiSummary.value);
+    }
+    if (availability.present) {
+      map['availability'] = Variable<String>(availability.value);
+    }
+    if (encryptedGeometry.present) {
+      map['encrypted_geometry'] = Variable<Uint8List>(encryptedGeometry.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedRoutesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('source: $source, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('distanceMeters: $distanceMeters, ')
+          ..write('elevationGainMeters: $elevationGainMeters, ')
+          ..write('poiSummary: $poiSummary, ')
+          ..write('availability: $availability, ')
+          ..write('encryptedGeometry: $encryptedGeometry, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1194,6 +1788,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TelemetryPointsTable telemetryPoints = $TelemetryPointsTable(
     this,
   );
+  late final $SavedRoutesTable savedRoutes = $SavedRoutesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1202,6 +1797,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appPreferences,
     rideSessions,
     telemetryPoints,
+    savedRoutes,
   ];
 }
 
@@ -2067,6 +2663,301 @@ typedef $$TelemetryPointsTableProcessedTableManager =
       TelemetryPoint,
       PrefetchHooks Function({bool sessionId})
     >;
+typedef $$SavedRoutesTableCreateCompanionBuilder =
+    SavedRoutesCompanion Function({
+      required String id,
+      required String name,
+      required String source,
+      required DateTime updatedAt,
+      Value<double?> distanceMeters,
+      Value<double?> elevationGainMeters,
+      Value<String> poiSummary,
+      Value<String> availability,
+      Value<Uint8List?> encryptedGeometry,
+      Value<int> rowid,
+    });
+typedef $$SavedRoutesTableUpdateCompanionBuilder =
+    SavedRoutesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> source,
+      Value<DateTime> updatedAt,
+      Value<double?> distanceMeters,
+      Value<double?> elevationGainMeters,
+      Value<String> poiSummary,
+      Value<String> availability,
+      Value<Uint8List?> encryptedGeometry,
+      Value<int> rowid,
+    });
+
+class $$SavedRoutesTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedRoutesTable> {
+  $$SavedRoutesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get elevationGainMeters => $composableBuilder(
+    column: $table.elevationGainMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get poiSummary => $composableBuilder(
+    column: $table.poiSummary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get availability => $composableBuilder(
+    column: $table.availability,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get encryptedGeometry => $composableBuilder(
+    column: $table.encryptedGeometry,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedRoutesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedRoutesTable> {
+  $$SavedRoutesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get elevationGainMeters => $composableBuilder(
+    column: $table.elevationGainMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get poiSummary => $composableBuilder(
+    column: $table.poiSummary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get availability => $composableBuilder(
+    column: $table.availability,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get encryptedGeometry => $composableBuilder(
+    column: $table.encryptedGeometry,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedRoutesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedRoutesTable> {
+  $$SavedRoutesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get elevationGainMeters => $composableBuilder(
+    column: $table.elevationGainMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get poiSummary => $composableBuilder(
+    column: $table.poiSummary,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get availability => $composableBuilder(
+    column: $table.availability,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get encryptedGeometry => $composableBuilder(
+    column: $table.encryptedGeometry,
+    builder: (column) => column,
+  );
+}
+
+class $$SavedRoutesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedRoutesTable,
+          SavedRoute,
+          $$SavedRoutesTableFilterComposer,
+          $$SavedRoutesTableOrderingComposer,
+          $$SavedRoutesTableAnnotationComposer,
+          $$SavedRoutesTableCreateCompanionBuilder,
+          $$SavedRoutesTableUpdateCompanionBuilder,
+          (
+            SavedRoute,
+            BaseReferences<_$AppDatabase, $SavedRoutesTable, SavedRoute>,
+          ),
+          SavedRoute,
+          PrefetchHooks Function()
+        > {
+  $$SavedRoutesTableTableManager(_$AppDatabase db, $SavedRoutesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedRoutesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedRoutesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedRoutesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<double?> distanceMeters = const Value.absent(),
+                Value<double?> elevationGainMeters = const Value.absent(),
+                Value<String> poiSummary = const Value.absent(),
+                Value<String> availability = const Value.absent(),
+                Value<Uint8List?> encryptedGeometry = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedRoutesCompanion(
+                id: id,
+                name: name,
+                source: source,
+                updatedAt: updatedAt,
+                distanceMeters: distanceMeters,
+                elevationGainMeters: elevationGainMeters,
+                poiSummary: poiSummary,
+                availability: availability,
+                encryptedGeometry: encryptedGeometry,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String source,
+                required DateTime updatedAt,
+                Value<double?> distanceMeters = const Value.absent(),
+                Value<double?> elevationGainMeters = const Value.absent(),
+                Value<String> poiSummary = const Value.absent(),
+                Value<String> availability = const Value.absent(),
+                Value<Uint8List?> encryptedGeometry = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedRoutesCompanion.insert(
+                id: id,
+                name: name,
+                source: source,
+                updatedAt: updatedAt,
+                distanceMeters: distanceMeters,
+                elevationGainMeters: elevationGainMeters,
+                poiSummary: poiSummary,
+                availability: availability,
+                encryptedGeometry: encryptedGeometry,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SavedRoutesTable, SavedRoute>(table),
+                  BaseReferences<_$AppDatabase, $SavedRoutesTable, SavedRoute>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedRoutesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedRoutesTable,
+      SavedRoute,
+      $$SavedRoutesTableFilterComposer,
+      $$SavedRoutesTableOrderingComposer,
+      $$SavedRoutesTableAnnotationComposer,
+      $$SavedRoutesTableCreateCompanionBuilder,
+      $$SavedRoutesTableUpdateCompanionBuilder,
+      (
+        SavedRoute,
+        BaseReferences<_$AppDatabase, $SavedRoutesTable, SavedRoute>,
+      ),
+      SavedRoute,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2077,4 +2968,6 @@ class $AppDatabaseManager {
       $$RideSessionsTableTableManager(_db, _db.rideSessions);
   $$TelemetryPointsTableTableManager get telemetryPoints =>
       $$TelemetryPointsTableTableManager(_db, _db.telemetryPoints);
+  $$SavedRoutesTableTableManager get savedRoutes =>
+      $$SavedRoutesTableTableManager(_db, _db.savedRoutes);
 }

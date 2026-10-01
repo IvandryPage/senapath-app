@@ -12,6 +12,8 @@ import 'features/emergency/presentation/emergency_cubit.dart';
 import 'features/profile/data/encrypted_avatar_store.dart';
 import 'features/profile/data/user_profile_repository.dart';
 import 'features/profile/presentation/profile_cubit.dart';
+import 'features/routes/data/saved_route_repository.dart';
+import 'features/routes/presentation/routes_cubit.dart';
 import 'features/session/data/encrypted_telemetry_codec.dart';
 import 'features/session/data/readiness_checker.dart';
 import 'features/session/data/ride_session_repository.dart';
@@ -38,6 +40,7 @@ void main() {
           avatarStore: EncryptedAvatarStore(secureVault: secureVault),
         ),
       ),
+      routesCubit: RoutesCubit(SavedRouteRepository(database)),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,

@@ -36,14 +36,32 @@ class TelemetryPoints extends Table {
   BlobColumn get encryptedPayload => blob()();
 }
 
-@DriftDatabase(tables: [AppPreferences, RideSessions, TelemetryPoints])
+class SavedRoutes extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get source => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+  RealColumn get distanceMeters => real().nullable()();
+  RealColumn get elevationGainMeters => real().nullable()();
+  TextColumn get poiSummary => text().withDefault(const Constant(''))();
+  TextColumn get availability =>
+      text().withDefault(const Constant('offline'))();
+  BlobColumn get encryptedGeometry => blob().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [AppPreferences, RideSessions, TelemetryPoints, SavedRoutes],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'senapath'));
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +70,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await migrator.createTable(rideSessions);
         await migrator.createTable(telemetryPoints);
+      }
+      if (from < 3) {
+        await migrator.createTable(savedRoutes);
       }
     },
   );
