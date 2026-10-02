@@ -338,45 +338,49 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
             ],
           ),
         ],
-        if (selectedInstant != null) ...[
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Waktu tujuan',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Waktu tujuan',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              TextButton.icon(
-                onPressed: () async {
-                  final zone = await _pickTimeZone();
-                  if (zone == null ||
-                      !mounted ||
-                      _destinationZones.contains(zone)) {
-                    return;
-                  }
-                  setState(() => _destinationZones = [..._destinationZones, zone]);
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Tambah zona'),
-              ),
-            ],
-          ),
-          for (final zone in _destinationZones)
-            _buildConvertedTime(zone, selectedInstant),
-        ],
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                final zone = await _pickTimeZone();
+                if (zone == null ||
+                    !mounted ||
+                    _destinationZones.contains(zone)) {
+                  return;
+                }
+                setState(
+                  () => _destinationZones = [..._destinationZones, zone],
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Tambah zona'),
+            ),
+          ],
+        ),
+        for (final zone in _destinationZones)
+          _buildConvertedTime(zone, selectedInstant),
       ],
     );
   }
 
-  Widget _buildConvertedTime(EventTimeZone zone, DateTime instant) {
-    final converted = _timeConverter.convertInstant(instant, zone);
+  Widget _buildConvertedTime(EventTimeZone zone, DateTime? instant) {
+    final converted = instant == null
+        ? null
+        : _timeConverter.convertInstant(instant, zone);
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(zone.label),
       subtitle: Text(
-        '${_formatDate(converted)} · ${_formatTime(converted)} ${converted.timeZone.abbreviation} (${_offsetLabel(converted.timeZone.offset)}) · ${zone.ianaName}',
+        converted == null
+            ? 'Pilih waktu valid untuk melihat hasil · ${zone.ianaName}'
+            : '${_formatDate(converted)} · ${_formatTime(converted)} ${converted.timeZone.abbreviation} (${_offsetLabel(converted.timeZone.offset)}) · ${zone.ianaName}',
       ),
       trailing: _destinationZones.length < 2
           ? null
@@ -540,11 +544,13 @@ class _TimeZonePickerDialogState extends State<_TimeZonePickerDialog> {
   @override
   Widget build(BuildContext context) {
     final query = _query.trim().toLowerCase();
-    final matches = _zones.where((zone) {
-      return query.isEmpty ||
-          zone.label.toLowerCase().contains(query) ||
-          zone.ianaName.toLowerCase().contains(query);
-    }).toList(growable: false);
+    final matches = _zones
+        .where((zone) {
+          return query.isEmpty ||
+              zone.label.toLowerCase().contains(query) ||
+              zone.ianaName.toLowerCase().contains(query);
+        })
+        .toList(growable: false);
 
     return AlertDialog(
       title: const Text('Pilih zona waktu'),

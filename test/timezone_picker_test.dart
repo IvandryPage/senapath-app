@@ -45,9 +45,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Tokyo');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Asia/Tokyo'));
+    await tester.tap(find.text('Asia/Tokyo').first);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Asia/Tokyo'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, 'Asia/Tokyo'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.textContaining('Asia/Tokyo'), findsWidgets);
   });
 }
