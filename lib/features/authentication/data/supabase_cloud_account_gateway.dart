@@ -41,6 +41,12 @@ class SupabaseCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
+  Future<bool> signInWithGoogle() => _requiredClient.auth.signInWithOAuth(
+    OAuthProvider.google,
+    redirectTo: googleOAuthRedirectUri,
+  );
+
+  @override
   Future<void> sendPasswordReset(String email) async {
     await _requiredClient.auth.resetPasswordForEmail(email);
   }

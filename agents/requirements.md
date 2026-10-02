@@ -28,9 +28,9 @@ Sistem harus dapat mengonversi nilai EUR ke IDR, USD, dan CHF menggunakan kurs t
 **Kriteria penerimaan:** pengguna dapat memasukkan nominal tunggal atau beberapa item anggaran dan melihat hasil/total dalam mata uang tujuan; item dapat diubah atau dihapus; kegagalan mengambil kurs tidak ditampilkan sebagai data real-time.
 
 **FR-03 — Konversi zona waktu**  
-Sistem harus mengonversi tanggal dan waktu acara dari zona waktu sumber (misalnya CEST) ke London, WIB, WITA, dan WIT. Konversi harus memperhitungkan perubahan daylight saving time dan pergantian tanggal.
+Sistem harus dapat mencari dan memilih zona waktu IANA di seluruh dunia untuk sumber maupun satu atau lebih tujuan. Konversi harus memperhitungkan perubahan daylight saving time dan pergantian tanggal.
 
-**Kriteria penerimaan:** waktu tujuan dan tanggal lokal ditampilkan untuk setiap zona; perubahan tanggal dan aturan daylight saving tidak menghasilkan waktu yang keliru.
+**Kriteria penerimaan:** pengguna dapat mencari kota/zona seperti `America/New_York`; waktu dan tanggal lokal serta offset ditampilkan untuk setiap tujuan; perubahan tanggal dan aturan daylight saving tidak menghasilkan waktu yang keliru; jam lokal yang hilang/berulang ditangani eksplisit.
 
 **FR-04 — Pencarian, visualisasi, dan rute offline**  
 Sistem harus menampilkan geometri rute yang dipilih, bukan hanya metadata. Pengguna dapat mengimpor GPX, melihat jalurnya di atas basemap OpenStreetMap online, jarak/elevasi yang tersedia, dan POI yang memang ada. Tile basemap memerlukan koneksi dan atribusi; jejak GPX lokal tetap dapat dibuka tanpa jaringan. Pencarian online, geocoding, elevasi, dan POI eksternal hanya tersedia jika provider terpisah telah dipilih, dikonfigurasi, dan dapat dijangkau. Rute yang diimpor/diunduh harus dapat dibuka kembali tanpa jaringan; geometri lokasi disimpan terenkripsi.

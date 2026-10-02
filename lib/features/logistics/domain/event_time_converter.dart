@@ -1,19 +1,43 @@
 import 'package:timezone/data/latest.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as timezone;
 
-enum EventTimeZone {
-  london('London', 'Europe/London'),
-  centralEurope('Central Europe (CET/CEST)', 'Europe/Berlin'),
-  wib('WIB', 'Asia/Jakarta'),
-  wita('WITA', 'Asia/Makassar'),
-  wit('WIT', 'Asia/Jayapura');
-
+class EventTimeZone {
   const EventTimeZone(this.label, this.ianaName);
+
+  static const london = EventTimeZone('London', 'Europe/London');
+  static const centralEurope = EventTimeZone(
+    'Central Europe (CET/CEST)',
+    'Europe/Berlin',
+  );
+  static const wib = EventTimeZone('WIB', 'Asia/Jakarta');
+  static const wita = EventTimeZone('WITA', 'Asia/Makassar');
+  static const wit = EventTimeZone('WIT', 'Asia/Jayapura');
+  static const destinations = [london, wib, wita, wit];
 
   final String label;
   final String ianaName;
 
-  static const destinations = [london, wib, wita, wit];
+  static List<EventTimeZone> get all {
+    _initializeTimezoneDatabase();
+    return [
+      for (final name in timezone.timeZoneDatabase.locations.keys)
+        if (name == 'UTC' || name.contains('/'))
+          EventTimeZone(name.replaceAll('_', ' '), name),
+    ];
+  }
+
+  static EventTimeZone? fromIanaName(String name) {
+    _initializeTimezoneDatabase();
+    if (!timezone.timeZoneDatabase.locations.containsKey(name)) return null;
+    return EventTimeZone(name.replaceAll('_', ' '), name);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is EventTimeZone && other.ianaName == ianaName;
+
+  @override
+  int get hashCode => ianaName.hashCode;
 }
 
 class LocalTimeResolution {
@@ -27,13 +51,8 @@ class LocalTimeResolution {
 
 class EventTimeConverter {
   EventTimeConverter() {
-    if (!_isTimezoneDatabaseInitialized) {
-      timezone_data.initializeTimeZones();
-      _isTimezoneDatabaseInitialized = true;
-    }
+    _initializeTimezoneDatabase();
   }
-
-  static bool _isTimezoneDatabaseInitialized = false;
 
   LocalTimeResolution resolveLocalTime(DateTime localTime, EventTimeZone zone) {
     final location = timezone.getLocation(zone.ianaName);
@@ -85,4 +104,12 @@ class EventTimeConverter {
       a.second == b.second &&
       a.millisecond == b.millisecond &&
       a.microsecond == b.microsecond;
+}
+
+bool _isTimezoneDatabaseInitialized = false;
+
+void _initializeTimezoneDatabase() {
+  if (_isTimezoneDatabaseInitialized) return;
+  timezone_data.initializeTimeZones();
+  _isTimezoneDatabaseInitialized = true;
 }

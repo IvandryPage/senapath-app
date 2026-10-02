@@ -44,6 +44,44 @@ void main() {
     },
   );
 
+  test(
+    'Google sign-in starts OAuth and waits for auth state confirmation',
+    () async {
+      final gateway = _FakeCloudAccountGateway();
+      final cubit = CloudAccountCubit(gateway);
+      addTearDown(cubit.close);
+
+      await cubit.signInWithGoogle();
+
+      expect(gateway.googleSignInCalls, 1);
+      expect(cubit.state.isLoading, isFalse);
+      expect(cubit.state.isSignedIn, isFalse);
+      expect(cubit.state.status, contains('Selesaikan login Google'));
+    },
+  );
+
+  test('Google sign-in reports missing Supabase configuration', () async {
+    final gateway = _FakeCloudAccountGateway(isConfigured: false);
+    final cubit = CloudAccountCubit(gateway);
+    addTearDown(cubit.close);
+
+    await cubit.signInWithGoogle();
+
+    expect(gateway.googleSignInCalls, 0);
+    expect(cubit.state.error, contains('belum dikonfigurasi'));
+  });
+
+  test('Google sign-in reports browser launch failure', () async {
+    final gateway = _FakeCloudAccountGateway()
+      ..googleSignInLaunchResult = false;
+    final cubit = CloudAccountCubit(gateway);
+    addTearDown(cubit.close);
+
+    await cubit.signInWithGoogle();
+
+    expect(cubit.state.error, contains('Browser login Google'));
+  });
+
   test('rejects invalid credentials before calling Supabase', () async {
     final gateway = _FakeCloudAccountGateway();
     final cubit = CloudAccountCubit(gateway);
@@ -83,7 +121,9 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   String? resetEmail;
   bool registrationHasSession = true;
   int signInCalls = 0;
+  int googleSignInCalls = 0;
   int signOutCalls = 0;
+  bool googleSignInLaunchResult = true;
 
   @override
   Stream<String?> get authChanges => const Stream.empty();
@@ -108,6 +148,12 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   Future<void> signIn({required String email, required String password}) async {
     signInCalls++;
     currentEmail = email;
+  }
+
+  @override
+  Future<bool> signInWithGoogle() async {
+    googleSignInCalls++;
+    return googleSignInLaunchResult;
   }
 
   @override

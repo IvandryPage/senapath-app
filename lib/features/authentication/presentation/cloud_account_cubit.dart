@@ -150,6 +150,45 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    if (state.isLoading) return;
+    if (!_gateway.isConfigured) {
+      emit(
+        state.copyWith(
+          error:
+              'Akun online belum tersedia karena Supabase belum dikonfigurasi.',
+          clearStatus: true,
+        ),
+      );
+      return;
+    }
+
+    emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
+    try {
+      final browserOpened = await _gateway.signInWithGoogle();
+      emit(
+        state.copyWith(
+          isLoading: false,
+          status: browserOpened
+              ? 'Selesaikan login Google di browser. Aplikasi akan tersambung setelah autentikasi dikonfirmasi.'
+              : null,
+          error: browserOpened
+              ? null
+              : 'Browser login Google tidak dapat dibuka. Coba lagi.',
+          clearStatus: !browserOpened,
+          clearError: browserOpened,
+        ),
+      );
+    } catch (_) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          error: 'Login Google gagal dimulai. Periksa konfigurasi provider Google dan redirect URL Supabase.',
+        ),
+      );
+    }
+  }
+
   Future<void> sendPasswordReset(String email) async {
     final normalizedEmail = email.trim();
     if (!_isValidEmail(normalizedEmail)) {

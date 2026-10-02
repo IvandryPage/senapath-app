@@ -160,6 +160,26 @@ void main() {
       expect(wit.hour, 8);
       expect(wit.minute, 30);
     });
+
+    test('supports searchable IANA zones outside the preset destinations', () {
+      final newYork = EventTimeZone.fromIanaName('America/New_York');
+
+      expect(EventTimeZone.all, isNotEmpty);
+      expect(
+        EventTimeZone.all.any(
+          (zone) => zone.ianaName == 'America/New_York',
+        ),
+        isTrue,
+      );
+      expect(newYork, isNotNull);
+      expect(
+        converter
+            .resolveLocalTime(DateTime(2026, 3, 8, 2, 30), newYork!)
+            .isNonexistent,
+        isTrue,
+      );
+      expect(EventTimeZone.fromIanaName('Not/A_Timezone'), isNull);
+    });
   });
 
   test('persists budget items and manual rates across cubit reloads', () async {

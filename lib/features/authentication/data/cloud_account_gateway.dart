@@ -4,6 +4,8 @@ class CloudAccountRegistrationResult {
   final bool hasSession;
 }
 
+const googleOAuthRedirectUri = 'senapath://login-callback/';
+
 abstract interface class CloudAccountGateway {
   bool get isConfigured;
   String? get currentEmail;
@@ -15,6 +17,7 @@ abstract interface class CloudAccountGateway {
   });
 
   Future<void> signIn({required String email, required String password});
+  Future<bool> signInWithGoogle();
   Future<void> sendPasswordReset(String email);
   Future<void> signOut();
 }

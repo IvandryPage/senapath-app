@@ -20,6 +20,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   final _eurAmountController = TextEditingController(text: '1');
   DateTime _eventTime = DateTime.now();
   EventTimeZone _sourceZone = EventTimeZone.centralEurope;
+  List<EventTimeZone> _destinationZones = [...EventTimeZone.destinations];
   int? _selectedOccurrence;
   bool _requestedLoad = false;
 
@@ -283,15 +284,14 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       children: [
         Text('Waktu acara', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
-        DropdownButtonFormField<EventTimeZone>(
-          initialValue: _sourceZone,
-          decoration: const InputDecoration(labelText: 'Zona waktu sumber'),
-          items: [
-            for (final zone in EventTimeZone.values)
-              DropdownMenuItem(value: zone, child: Text(zone.label)),
-          ],
-          onChanged: (zone) {
-            if (zone == null) return;
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Zona waktu sumber'),
+          subtitle: Text('${_sourceZone.label} · ${_sourceZone.ianaName}'),
+          trailing: const Icon(Icons.search),
+          onTap: () async {
+            final zone = await _pickTimeZone();
+            if (zone == null || !mounted) return;
             setState(() {
               _sourceZone = zone;
               _selectedOccurrence = null;
@@ -340,7 +340,30 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         ],
         if (selectedInstant != null) ...[
           const SizedBox(height: 12),
-          for (final zone in EventTimeZone.destinations)
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Waktu tujuan',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final zone = await _pickTimeZone();
+                  if (zone == null ||
+                      !mounted ||
+                      _destinationZones.contains(zone)) {
+                    return;
+                  }
+                  setState(() => _destinationZones = [..._destinationZones, zone]);
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Tambah zona'),
+              ),
+            ],
+          ),
+          for (final zone in _destinationZones)
             _buildConvertedTime(zone, selectedInstant),
         ],
       ],
@@ -353,10 +376,26 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       contentPadding: EdgeInsets.zero,
       title: Text(zone.label),
       subtitle: Text(
-        '${_formatDate(converted)} · ${_formatTime(converted)} ${converted.timeZone.abbreviation} (${_offsetLabel(converted.timeZone.offset)})',
+        '${_formatDate(converted)} · ${_formatTime(converted)} ${converted.timeZone.abbreviation} (${_offsetLabel(converted.timeZone.offset)}) · ${zone.ianaName}',
       ),
+      trailing: _destinationZones.length < 2
+          ? null
+          : IconButton(
+              tooltip: 'Hapus zona ${zone.label}',
+              onPressed: () => setState(
+                () => _destinationZones = _destinationZones
+                    .where((destination) => destination != zone)
+                    .toList(),
+              ),
+              icon: const Icon(Icons.close),
+            ),
     );
   }
+
+  Future<EventTimeZone?> _pickTimeZone() => showDialog<EventTimeZone>(
+    context: context,
+    builder: (_) => const _TimeZonePickerDialog(),
+  );
 
   Future<void> _pickDate() async {
     final date = await showDatePicker(
@@ -477,6 +516,79 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     final hours = (absoluteMinutes ~/ 60).toString().padLeft(2, '0');
     final minutes = (absoluteMinutes % 60).toString().padLeft(2, '0');
     return 'UTC$sign$hours:$minutes';
+  }
+}
+
+class _TimeZonePickerDialog extends StatefulWidget {
+  const _TimeZonePickerDialog();
+
+  @override
+  State<_TimeZonePickerDialog> createState() => _TimeZonePickerDialogState();
+}
+
+class _TimeZonePickerDialogState extends State<_TimeZonePickerDialog> {
+  final _searchController = TextEditingController();
+  late final List<EventTimeZone> _zones = EventTimeZone.all;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final matches = _zones.where((zone) {
+      return query.isEmpty ||
+          zone.label.toLowerCase().contains(query) ||
+          zone.ianaName.toLowerCase().contains(query);
+    }).toList(growable: false);
+
+    return AlertDialog(
+      title: const Text('Pilih zona waktu'),
+      content: SizedBox(
+        width: 420,
+        height: 420,
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Cari kota atau zona',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: matches.isEmpty
+                  ? const Center(child: Text('Zona waktu tidak ditemukan.'))
+                  : ListView.builder(
+                      itemCount: matches.length,
+                      itemBuilder: (context, index) {
+                        final zone = matches[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(zone.label),
+                          subtitle: Text(zone.ianaName),
+                          onTap: () => Navigator.of(context).pop(zone),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+      ],
+    );
   }
 }
 

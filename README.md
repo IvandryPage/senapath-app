@@ -23,6 +23,16 @@ flutter test
 
 GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests pada push ke `main` serta pull request.
 
+## Login Google (Supabase Auth)
+
+Layar **Akun online** mendukung login Google melalui OAuth Supabase. Agar login dapat bekerja:
+
+1. Di Supabase Dashboard, buka **Authentication → Providers → Google**, aktifkan provider, lalu isi OAuth Client ID dan Client Secret yang dibuat di Google Cloud. Pada Google Cloud, tambahkan callback URL yang ditampilkan Supabase sebagai authorized redirect URI. Credential provider disimpan di Supabase, bukan di aplikasi.
+2. Di Supabase Dashboard, buka **Authentication → URL Configuration** dan tambahkan `senapath://login-callback/` ke daftar **Redirect URLs** yang diizinkan.
+3. Pastikan `.env` lokal berisi URL proyek dan publishable key Supabase, lalu jalankan aplikasi ulang. Tombol **Lanjutkan dengan Google** membuka alur OAuth; session hanya dianggap aktif setelah callback kembali ke aplikasi dan Supabase mengonfirmasi perubahan auth.
+
+Callback scheme native `senapath` sudah didaftarkan pada Android dan iOS. Setup Google Cloud/Supabase serta alur OAuth live tetap perlu diuji menggunakan project dan perangkat target. Login Google ini tidak mengaktifkan biometric unlock; biometrik tetap merupakan kunci lokal terpisah.
+
 ## Rute GPX dan panduan offline
 
 1. Buka tab **Rute**, lalu pilih tombol **Impor GPX**.
@@ -33,6 +43,10 @@ GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests
 Preview rute dan panduan menampilkan basemap OpenStreetMap saat internet tersedia, dengan geometri GPX dan posisi GPS di atasnya. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Atribusi OpenStreetMap ditampilkan pada peta. Pencarian tempat/rute, petunjuk belokan, dan reroute belum tersedia karena memerlukan provider/service terpisah. Izin lokasi dan layanan GPS perangkat tetap diperlukan untuk posisi langsung.
 
 Integrasi menggunakan layanan tile publik OpenStreetMap untuk penggunaan ringan. Jangan melakukan prefetch/download tile atau mengandalkan layanan publik ini untuk trafik produksi berskala besar; evaluasi provider tile yang sesuai dengan kebutuhan, lisensi, dan kebijakan penggunaan sebelum rilis publik.
+
+## Konversi zona waktu dunia
+
+Di tab **Logistik → Waktu acara**, pilih tanggal/waktu dan tekan zona waktu sumber untuk mencari kota atau zona IANA, misalnya `America/New_York`. Tambahkan satu atau lebih zona tujuan melalui **Tambah zona**. Aturan DST dan pergantian tanggal ditangani oleh database zona waktu yang dibundel; jam lokal yang tidak ada atau ambigu meminta pengguna memilih waktu/kemunculan yang valid.
 
 ## Chat AI (Supabase + Gemini)
 

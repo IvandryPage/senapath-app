@@ -59,6 +59,33 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                   }),
           ),
           const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: state.isConfigured && !state.isLoading
+                ? context.read<CloudAccountCubit>().signInWithGoogle
+                : null,
+            icon: state.isLoading
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.account_circle_outlined),
+            label: Text(
+              state.isLoading ? 'Memulai login Google…' : 'Lanjutkan dengan Google',
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('atau gunakan email'),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+          ),
           Form(
             key: _formKey,
             child: Column(

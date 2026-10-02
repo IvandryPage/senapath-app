@@ -53,11 +53,11 @@ Dokumen sebelumnya mencatat implementasi lokal untuk unlock perangkat, sesi Drif
 
 Status yang perlu diverifikasi lagi sebelum planning:
 
-- Auth Google/OAuth, konfigurasi provider/redirect, validasi token, session refresh/revoke, serta deployment Supabase belum boleh dianggap siap tanpa uji terhadap project nyata.
+- Gateway dan callback Google OAuth melalui Supabase tersedia di aplikasi; provider credentials/redirect allow-list pada dashboard dan pengujian live di project/perangkat nyata masih harus diverifikasi sebelum dinyatakan siap.
 - Login biometrik yang sudah ada merupakan local unlock; bukan Google login atau autentikasi backend.
 - Sinkronisasi sesi lokal-ke-Supabase, schema/RLS, retry idempotent, serta konflik offline belum dinyatakan sebagai alur produksi teruji.
 - Basemap GPX menggunakan tile OpenStreetMap online dengan atribusi; track lokal tetap terlihat offline, tetapi tile tidak tersedia offline. Geocoding, pencarian rute online, turn-by-turn, dan provider tile produksi belum tersedia/diputuskan.
-- Konversi yang ada tidak otomatis memenuhi konversi kurs live atau zona waktu seluruh dunia. Sumber data, freshness, dan perilaku offline perlu ditentukan.
+- Konversi waktu kini memakai database zona waktu IANA lokal yang dapat dicari, termasuk penanganan waktu DST hilang/berulang; konversi kurs tetap hanya referensi harian/manual, bukan kurs live.
 - Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.
 - Push notification, integrasi sensor produksi, mini-game aman, dan proof blockchain belum dianggap tersedia sampai diuji pada perangkat dan layanan yang ditargetkan.
 - Build distribusi, perangkat sasaran, pemantauan, pemulihan, serta dukungan rilis perlu memiliki bukti yang dapat diulang.
