@@ -1,134 +1,223 @@
-# Scrum Guide dan Product Backlog v2 Senapath
+# Scrum Guide dan Product Backlog — Senapath
 
-## 1. Tujuan dan Product Goal
+## 1. Visi Produk
 
-**Product Goal:** pembalap dapat menyiapkan rute yang terlihat, merekam sesi dengan andal, tetap memakai data penting secara offline, dan memahami dengan tepat fitur online mana yang aktif. Produk hanya disebut siap produksi setelah layanan, keamanan, perangkat sasaran, dan pemulihan benar-benar diuji.
+**Senapath adalah pendamping perjalanan dan bersepeda yang membantu pengguna merencanakan perjalanan, merekam aktivitas secara aman, dan memahami informasi perjalanan meskipun koneksi tidak selalu tersedia.**
 
-Product Backlog v2 ini menggantikan asumsi lama bahwa penyelesaian 12 sprint otomatis berarti produk siap. Urutan berikut berbasis risiko dan keluhan penggunaan, bukan kalender atau velocity yang belum diukur. PO dapat mengubah urutan setelah bukti Sprint Review.
+Peta dan Location-Based Services (LBS) menjadi konteks utama. Akun dan sinkronisasi menjaga data antarperangkat; sensor membantu memahami aktivitas; pencarian, konversi mata uang/waktu, serta rekomendasi mendukung perencanaan; AI dan LLM memiliki tanggung jawab berbeda; mini-game menjadi latihan singkat terkait aktivitas; notifikasi bersifat opt-in; dan blockchain hanya menyimpan bukti perjalanan minimal yang dipilih pengguna. Semua fitur harus tetap menjelaskan asal, status, izin, dan keterbatasan datanya.
 
-## 2. Baseline yang Terverifikasi
+**Product Goal:** menghasilkan aplikasi mobile yang memungkinkan pengguna masuk dengan Google secara aman, mengunci akses lokal dengan biometrik, merencanakan dan merekam perjalanan berbasis lokasi, menyimpan data secara lokal dan menyinkronkannya ke Supabase, serta menggunakan alat dan fitur pendamping perjalanan tanpa mengaburkan status offline/online atau mengorbankan privasi.
 
-Ada implementasi lokal untuk unlock perangkat, sesi Drift, impor/ekspor GPX/JSON, latihan reaksi, konversi logistik, chat AI, feedback, dan penyimpanan offline. Auth email/password Supabase kini punya UI/gateway lokal dan tetap terpisah dari unlock perangkat. GPX tersimpan terenkripsi dan memiliki panduan track offline; ini bukan basemap jalan atau instruksi belok.
+Target platform, provider peta/kurs/cuaca, biaya, serta lingkungan deployment harus diputuskan dan dicatat sebelum integrasi provider. Rencana sprint di bawah adalah urutan usulan, bukan estimasi tanggal atau janji rilis.
 
-Berikut ini **belum boleh diklaim berfungsi produksi**:
+## 2. Konsep dan Batasan Produk
 
-- Basemap, pencarian rute online, geocoding, elevasi, dan POI provider belum dipilih atau dikonfigurasi. Panduan GPX offline adalah track-follow, bukan peta jalan atau turn-by-turn.
-- Unlock biometrik adalah local unlock, bukan akun cloud. Provider Email, verifikasi, SMTP, redirect recovery, dan runtime auth harus dikonfirmasi pada proyek Supabase nyata.
-- Sinkronisasi sesi dan telemetri ke backend belum menjadi alur produksi end-to-end.
-- Supabase Edge Functions untuk Gemini dan feedback serta migrasinya perlu diterapkan ke proyek nyata, dikonfigurasi, dan diuji. Paket Flutter saja tidak mengaktifkan layanan.
-- SOS masih bergantung pada handoff aplikasi/kanal yang tersedia; tidak boleh disebut pesan terkirim tanpa acknowledgment kanal.
-- Ledger, proof, leaderboard, wearable, dan cuaca belum punya provider/aturan produksi yang disetujui.
-- Uji perangkat sasaran, build distribusi bertanda tangan, pemantauan, prosedur insiden, dan dukungan rilis belum dibuktikan.
+### Pengalaman inti
 
-Status ini harus diperbarui hanya dengan bukti yang dapat diulang: konfigurasi environment, hasil uji, log tanpa data sensitif, dan demonstrasi pada perangkat.
+1. Pengguna membuat akun atau masuk dengan Google; setelah autentikasi, biometrik dapat dipakai untuk membuka akses lokal pada perangkat.
+2. Pengguna mencari dan memilih tempat/rute, melihat detail dan kondisi koneksi, lalu menyimpan rencana agar informasi penting tetap tersedia offline.
+3. Saat perjalanan, pengguna merekam sesi lokasi dan sensor yang diizinkan. Aplikasi menampilkan status izin, akurasi, perekaman, dan sinkronisasi dengan jelas.
+4. Pengguna membuka **Tools** untuk konversi mata uang dan waktu dunia, serta **Profil** untuk pengaturan, saran dan kesan mata kuliah Pemrograman Aplikasi Mobile, dan logout.
+5. AI non-generatif menghasilkan klasifikasi atau rekomendasi terukur; LLM menangani percakapan dan ringkasan kontekstual. Hasil keduanya diberi label dan tidak dipakai sebagai jaminan keselamatan.
+6. Pengguna dapat memilih notifikasi yang diinginkan, mencoba mini-game latihan yang aman, serta secara terpisah memilih membuat bukti perjalanan berbasis hash.
 
-## 3. Aturan Kerja
+### Navigasi utama
 
-**Product Owner:** menetapkan urutan, menerima PBI terhadap kriteria, menyetujui data/provider/retensi/biaya. **Developers:** memilih scope sesuai kapasitas dan menghasilkan increment terintegrasi. **Scrum Master:** membantu transparansi, inspeksi, dan penghilangan hambatan.
+Bottom navigation yang diusulkan:
 
-Planning menetapkan satu Sprint Goal dan PBI yang dapat selesai; Daily Scrum menyelaraskan rencana Developers; Review mendemonstrasikan increment beserta keterbatasannya; Retrospective memilih perubahan cara kerja. Jangan menetapkan tanggal produksi sebelum gerbang provider, keamanan, perangkat, dan operasi lolos.
+| Tab | Isi utama |
+| --- | --- |
+| **Beranda** | Ringkasan perjalanan, sesi terakhir, status offline/sinkronisasi, pintasan. |
+| **Jelajah** | Pencarian tempat/rute, hasil yang dapat dipilih, detail, simpan rencana. |
+| **Rekam** | Mulai/jeda/lanjutkan/akhiri sesi, peta/LBS, status sensor dan lokasi. |
+| **Tools** | Konversi mata uang, konversi waktu dunia, latihan/mini-game, asisten. |
+| **Profil** | Akun, preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, penghapusan data, dan **Logout**. |
 
-**Definition of Ready:** hasil pengguna jelas; kriteria dapat diuji; pemilik keputusan dan dependensi diketahui; data yang diproses, izin, retensi, biaya, keadaan offline/gagal, dan platform sasaran ditentukan.
+Nama dan jumlah tab dapat diselaraskan dengan pola UI aplikasi yang sudah ada saat refinement, tetapi seluruh fungsi dan jalan kembali harus dapat ditemukan. Logout bukan pengganti penghapusan akun atau data.
 
-**Definition of Done:** kode terintegrasi; format, analisis, tes terkait, migrasi, serta build platform target lulus; loading/empty/offline/error/permission-denied ditangani; data sensitif dilindungi; status hanya berdasarkan acknowledgment nyata; dokumentasi deployment/rollback diperbarui; demonstrasi dan hasil uji dapat diulang. Mock, fixture, atau sekadar dependency tidak memenuhi Done untuk integrasi online.
+### Batasan keselamatan, privasi, dan kejujuran produk
 
-## 4. Product Backlog v2 — Urutan Improvement
+- Google OAuth menggunakan alur resmi, TLS untuk komunikasi, validasi token di backend, serta penyimpanan token/session dengan mekanisme aman platform. Aplikasi tidak meminta atau menyimpan kata sandi Google.
+- Biometrik adalah **local unlock** setelah akun terautentikasi, bukan metode login cloud dan bukan pengganti pemulihan akun. Harus ada fallback PIN/kredensial perangkat sesuai kebijakan platform.
+- Enkripsi saat transit dan penyimpanan token adalah syarat dasar. Enkripsi database lokal at-rest dan manajemen kuncinya harus dibuktikan pada platform sasaran sebelum data sensitif dinyatakan terlindungi; jangan mengklaimnya hanya karena aplikasi memakai Supabase atau secure storage.
+- Data lokasi dan sensor bersifat sensitif: minta izin saat relevan, kumpulkan seperlunya, batasi retensi, sediakan penghapusan/ekspor, dan jangan masukkan koordinat mentah ke log, analitik, prompt LLM, atau blockchain secara default.
+- Rute dan sesi inti harus tetap dapat dibaca lokal tanpa jaringan. Status **tersimpan lokal**, **menunggu sinkronisasi**, dan **terkonfirmasi server** harus berbeda.
+- Mini-game hanya untuk kondisi diam/aman; nonaktifkan atau tampilkan peringatan yang jelas jika sesi perjalanan sedang direkam. Tidak mendorong pengguna berinteraksi dengan layar saat bergerak.
+- AI untuk klasifikasi/rekomendasi dan LLM generatif adalah dua fitur, pipeline, kriteria evaluasi, dan label UI yang terpisah.
+- Blockchain bukan database perjalanan: simpan hash/bukti minimal saja setelah consent; jangan mencatat lokasi pribadi atau data akun on-chain. Tanpa jaringan/acknowledgment tidak boleh menyatakan proof terverifikasi.
+- Push notification harus opt-in, dapat dimatikan per kategori, dan tidak memuat data lokasi sensitif di teks notifikasi.
 
-### P0 — Keterpakaian inti dan online yang jujur
+## 3. Baseline dan Asumsi Implementasi
 
-| Urut | PBI                                                   | Hasil dan kriteria penerimaan                                                                                                                                                                                                           | Status                                                                                                 |
-| ---: | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-|    1 | **PB2-01 — Impor GPX dan panduan track offline**      | Geometri terenkripsi; rute bertahan restart/offline; mode panduan menampilkan track, GPS, progres, jarak tersisa, kualitas fix, dan status off-route; stop menghentikan stream/wakelock; GPX mentah tidak mengarang instruksi belok.    | Implementasi lokal dan focused tests ada; device smoke pending.                                        |
-|    2 | **PB2-02 — Basemap dan navigasi online**              | PO menyetujui provider, lisensi, biaya, attribution, kuota, cache/offline policy, dan kebijakan lokasi. Basemap, turn-by-turn, serta reroute hanya aktif bila provider nyata siap; GPX offline tetap berfungsi.                         | Blocked oleh keputusan provider.                                                                       |
-|    3 | **PB2-03 — Identitas dan konfigurasi cloud**          | Pisahkan local unlock dari akun; registrasi/login email, verifikasi, reset, sign-out, environment dev/staging/prod, status konfigurasi, dan aturan sesi/token.                                                                          | UI/gateway dan unit tests ada; runtime project, email confirmation, dan recovery redirect belum diuji. |
-|    4 | **PB2-04 — Sinkronisasi sesi nyata**                  | Outbox lokal stabil; autentikasi, RLS, upload bertahap, retry idempotent, acknowledgment, konflik, logout, dan restart diuji terhadap backend staging. Item pending tidak hilang atau ditandai tersinkron sebelum server mengonfirmasi. | Blocked oleh schema, project, auth, dan kontrak sync.                                                  |
-|    5 | **PB2-05 — Integrasi online yang sudah direncanakan** | Deploy/test Edge Functions AI dan feedback pada staging; validasi secrets, kuota, RLS, rate limit, retensi, timeout, serta status remote. Rilis tetap menyebut integrasi belum tersedia bila deployment belum dilakukan.                | Kode lokal ada; deploy/runtime test pending.                                                           |
-|    6 | **PB2-06 — Navigasi dan alur tanpa jalan buntu**      | Tiap fitur inti bisa ditemukan dari navigasi; rute kosong mengarahkan ke impor/aksi yang relevan; seluruh loading/error memiliki pemulihan; target sentuh, kontras, dan teks diuji di ukuran layar sasaran.                             | Audit E2E masih pending.                                                                               |
+Dokumen sebelumnya mencatat implementasi lokal untuk unlock perangkat, sesi Drift, impor/ekspor GPX/JSON, latihan reaksi, konversi logistik, chat AI, feedback, dan penyimpanan offline. Ada UI/gateway auth email/password Supabase. Catatan tersebut bukan bukti bahwa integrasi provider berjalan di semua environment.
 
-### P1 — Keandalan perangkat dan keselamatan
+Status yang perlu diverifikasi lagi sebelum planning:
 
-| Urut | PBI                                           | Hasil dan kriteria penerimaan                                                                                                                                                                              |
-| ---: | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|    7 | **PB2-07 — Siklus sesi**                      | Uji start/pause/resume/stop, background/terminate/restart, GPS lemah, izin ditolak, storage penuh, dan pemulihan; data yang hilang/terestimasi diberi label.                                               |
-|    8 | **PB2-08 — SOS dan kesiapan**                 | Uji batal countdown, kontak invalid, app handoff gagal, permission/lokasi tidak tersedia; tampilkan `dibuka untuk handoff` terpisah dari `terkirim`. Tidak mengklaim deteksi sebagai kepastian kecelakaan. |
-|    9 | **PB2-09 — Retensi, ekspor, dan penghapusan** | Ekspor dapat dibuka ulang; data cache dipisahkan dari sesi; pengguna dapat menghapus data sesuai kebijakan; hapus akun menangani cloud/local dengan konfirmasi dan status yang jelas.                      |
-|   10 | **PB2-10 — Kompatibilitas dan baterai**       | Tetapkan perangkat/OS minimum; ukur sesi panjang, background, panas, baterai, sensor hilang, dan recovery pada perangkat nyata.                                                                            |
+- Auth Google/OAuth, konfigurasi provider/redirect, validasi token, session refresh/revoke, serta deployment Supabase belum boleh dianggap siap tanpa uji terhadap project nyata.
+- Login biometrik yang sudah ada merupakan local unlock; bukan Google login atau autentikasi backend.
+- Sinkronisasi sesi lokal-ke-Supabase, schema/RLS, retry idempotent, serta konflik offline belum dinyatakan sebagai alur produksi teruji.
+- GPX offline bukan basemap, geocoding, pencarian rute, atau turn-by-turn. Provider peta/LBS belum diputuskan.
+- Konversi yang ada tidak otomatis memenuhi konversi kurs live atau zona waktu seluruh dunia. Sumber data, freshness, dan perilaku offline perlu ditentukan.
+- Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.
+- Push notification, integrasi sensor produksi, mini-game aman, dan proof blockchain belum dianggap tersedia sampai diuji pada perangkat dan layanan yang ditargetkan.
+- Build distribusi, perangkat sasaran, pemantauan, pemulihan, serta dukungan rilis perlu memiliki bukti yang dapat diulang.
 
-### P2 — Integrasi tambahan setelah gerbang dasar
+Perbarui baseline ini hanya berdasarkan demonstrasi, konfigurasi yang aman, hasil tes, dan bukti deployment. Jangan menandai item selesai hanya karena UI, dependency, mock, atau fungsi lokal tersedia.
 
-| Urut | PBI                              | Hasil dan prasyarat                                                                                                                                                                                            |
-| ---: | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   11 | **PB2-11 — Proof of Completion** | Pilih ledger/biaya/kontrak; consent; hash file saja; retry/status terverifikasi dari jaringan nyata; kegagalan tidak menghalangi hasil lokal. Jangan mulai publikasi sebelum threat model dan biaya disetujui. |
-|   12 | **PB2-12 — Leaderboard**         | Aturan kelayakan, moderasi, identitas, privasi, anti-duplikasi, dan verifikasi proof disepakati; pending tidak pernah tampil terverifikasi.                                                                    |
-|   13 | **PB2-13 — Wearable/cuaca**      | Provider dan hak akses disetujui; izin dapat dicabut; sumber/waktu/kualitas data ditampilkan; offline dan retry diuji.                                                                                         |
+## 4. Peran dan Cara Kerja Scrum
 
-## 5. Sprint 12 — Release Recovery
+- **Product Owner (PO):** memaksimalkan nilai produk, menetapkan urutan backlog, memutuskan provider/biaya/retensi, serta menerima hasil berdasarkan kriteria.
+- **Developers:** menyepakati cara dan scope yang realistis, membangun increment terintegrasi, menguji, dan menjaga transparansi status.
+- **Scrum Master:** membantu Scrum berjalan efektif, menghilangkan hambatan, dan memastikan inspeksi/adaptasi menghasilkan tindakan nyata.
 
-**Sprint Goal:** hentikan kebingungan utama dan kurangi risiko kehilangan/penyajian data palsu. Jangan mengambil seluruh PB2 sekaligus; PO memilih scope yang dapat diuji.
+Setiap Sprint Planning menetapkan Sprint Goal dan memilih PBI siap berdasarkan kapasitas aktual, bukan mengambil seluruh backlog. Daily Scrum adalah inspeksi rencana Developers. Sprint Review mendemonstrasikan increment dan keterbatasan yang masih ada kepada stakeholder. Retrospective memilih perbaikan proses untuk Sprint berikutnya.
 
-- **PBI-12.1:** increment lokal: geometri GPX terenkripsi/dipulihkan dan panduan foreground menampilkan GPS, progres, jarak tersisa, off-route sesuai akurasi, serta screen wake. Full-suite 56 tes dan `flutter analyze` lulus; device smoke masih pending. Basemap/turn-by-turn belum tersedia tanpa provider.
-- **PBI-12.2:** local lock dipisahkan dari akun email/password; logout menghapus transcript AI dan respons terlambat. UI/gateway daftar, login, reset request, verifikasi, dan cloud sign-out tersedia; email provider, SMTP/redirect, dan runtime project belum diuji.
-- **PBI-12.3:** buat inventaris setiap tombol/layar inti: aksi, online dependency, empty/loading/error, status data, pemulihan, dan sumber/attribution.
-- **PBI-12.4:** smoke test alur GPX import → tutup/buka → cari → preview → mulai/akhiri panduan dalam mode pesawat; uji izin ditolak, GPS lemah, GPX invalid, serta geometry lama.
-- **PBI-12.5:** nyatakan belum tersedia untuk map provider, akun cloud, session sync, SOS server, AI/feedback yang belum deploy, ledger dan wearable.
-- **Penerimaan sprint:** jalur GPX terlihat dan bertahan offline; tidak ada status online palsu; fokus tests, analyze, full test, dan build target dicatat. Sprint belum menjadi release candidate hanya karena tes lokal lulus.
+### Definition of Ready
 
-## 6. Sprint Berikutnya dan Urutan Gerbang
+PBI siap diambil jika:
 
-Sprint berikut adalah usulan urutan; kalender, estimasi, dan kapasitas ditentukan saat Planning setelah blocker provider diketahui.
+- persona, kebutuhan, dan hasil yang ingin dicapai jelas;
+- acceptance criteria dapat diuji dan mencakup keadaan sukses, kosong, loading, offline, gagal, serta izin ditolak;
+- dependensi, pemilik keputusan, provider, platform, biaya/kuota, dan data yang diproses diketahui;
+- consent, retensi, penghapusan, risiko keselamatan/privasi, serta fallback telah dibahas;
+- data kontrak API/schema dan strategi migrasi diketahui bila diperlukan.
 
-### Sprint 13 — Peta dan pencarian rute online
+### Definition of Done
 
-**Goal:** pembalap bisa membandingkan track GPX dengan peta jalan online yang memiliki attribution dan fallback offline.
+PBI selesai jika:
 
-- Putuskan provider, lisensi, biaya, kuota, attribution, geocoding, routing, elevasi, tile cache, dan kebijakan lokasi sebelum integrasi.
-- Buat adapter provider dan peta layar penuh; tampilkan lokasi/GPS, jalur tersimpan, status jaringan, sumber data, dan error provider.
-- Uji GPX offline, timeout, rate limit, tile gagal, izin lokasi ditolak, dan penghapusan cache tanpa menyentuh sesi.
-- Jika provider belum disetujui, jangan memakai public tile endpoint sebagai layanan produksi; pertahankan panduan GPX lokal.
+- perubahan terintegrasi, diformat, dianalisis statis, dan tes relevan lulus;
+- alur loading/empty/offline/error/permission-denied dan pemulihannya diuji;
+- perubahan schema punya migrasi yang dapat diuji; API punya validasi, otorisasi, timeout, dan penanganan kegagalan;
+- data sensitif, izin, session, log, dan penghapusan memenuhi kriteria PBI;
+- uji dilakukan pada platform/perangkat dan provider yang diklaim didukung;
+- dokumentasi konfigurasi, deployment, rollback, keterbatasan, dan cara mengulang tes diperbarui;
+- Review menunjukkan bukti nyata. Mock/fixture boleh untuk tes, tetapi tidak membuktikan integrasi produksi.
 
-### Sprint 14 — Akun cloud dan sinkronisasi
+## 5. Product Backlog Terurut
 
-**Goal:** pengguna dapat berpindah perangkat dan mengetahui data mana yang benar-benar tersinkron.
+Urutan berikut mengutamakan fondasi identitas/data dan risiko perjalanan sebelum fitur tambahan. PBI dapat dipecah saat refinement. P0/P1/P2 menunjukkan prioritas relatif, bukan komitmen rilis.
 
-- Tetapkan auth akun, pemulihan, sign-out, session lifetime, Supabase schema/RLS, environment staging, serta kebijakan retensi.
-- Implementasikan sync outbox sesi/kontak dengan ID stabil, acknowledgment, retry idempotent, konflik, dan pemulihan setelah force-stop.
-- Deploy dan uji feedback/AI functions; verifikasi secrets, consent, kuota, rate-limit, observability tanpa payload sensitif, dan deletion policy.
+### P0 — Fondasi aman dan perjalanan yang dapat diandalkan
 
-### Sprint 15 — Uji lapangan dan keselamatan
+| ID | PBI | Hasil dan kriteria penerimaan |
+| --- | --- | --- |
+| SP-01 | **Autentikasi Google dan lifecycle session** | Login/registrasi Google lewat alur OAuth resmi yang sesuai untuk mobile (state/PKCE/validasi callback), HTTPS/TLS, dan validasi token di sisi server; token tidak ditulis ke log; session dapat dipulihkan sesuai aturan, diperbarui, dan dicabut saat logout; error provider, cancel, jaringan putus, dan akun tidak terkonfigurasi memiliki pesan/pemulihan. Tidak meminta password Google. |
+| SP-02 | **Biometric local unlock** | Setelah login cloud berhasil, pengguna dapat mengaktifkan biometrik di perangkat yang mendukungnya. Validasi biometrik membuka akses lokal, tidak membuat session cloud baru; penolakan, sensor tidak tersedia, lockout, dan fallback ditangani. Pengguna dapat menonaktifkannya. |
+| SP-03 | **Penyimpanan lokal dan Supabase** | Data inti punya model lokal dan remote yang konsisten; migrasi Drift dan schema Supabase terdokumentasi; RLS membatasi data per pengguna; keputusan enkripsi local at-rest diuji; uji restart/offline/reinstall/penghapusan membuktikan perilaku data. |
+| SP-04 | **Sinkronisasi offline-first** | Outbox memakai ID stabil, retry idempotent, acknowledgment server, kebijakan konflik dan status terlihat. Force-stop/restart atau logout tidak menghilangkan item pending; item tidak pernah ditandai tersinkron sebelum server mengonfirmasi. |
+| SP-05 | **API dan service boundary** | Kontrak endpoint/service, autentikasi/otorisasi, validasi input, timeout, error mapping, rate limit untuk endpoint publik/mahal, versioning, dan observability tanpa payload sensitif tersedia. Environment dev/staging/prod terpisah; secret server tidak masuk bundle aplikasi. |
+| SP-06 | **Pencarian dan pemilihan perjalanan** | Pengguna dapat mencari tempat/rute, memfilter atau mengurutkan hasil yang disepakati, membuka detail dan memilih/menyimpan item. Sumber, waktu pembaruan, loading/empty/error, izin lokasi, offline, dan timeout provider terlihat. Hasil palsu tidak ditampilkan saat API gagal. |
+| SP-07 | **LBS, peta dan sesi perjalanan** | Pengguna dapat melihat lokasi dengan izin yang sesuai, memilih rencana/GPX, lalu start/pause/resume/stop sesi. Tampilkan kualitas/akurasi fix, status recording, progres dan status offline. Stop membersihkan subscription/service; data sesi tersimpan lokal dan dapat dipulihkan. Turn-by-turn hanya bila provider berlisensi dan aktif. |
+| SP-08 | **Siklus data akun** | Pengguna dapat melihat status sync, logout dengan pencabutan/clear session lokal yang tepat, mengekspor data, meminta penghapusan akun, dan memahami apa yang tetap tersimpan. Kebijakan local-vs-cloud dan retensi dijelaskan; kegagalan penghapusan tidak dilaporkan sukses. |
 
-**Goal:** panduan dan perekaman dapat dipakai saat bersepeda tanpa status menyesatkan atau kehilangan data.
+### P1 — Pendamping perjalanan dan fitur perangkat
 
-- Uji GPS fix/akurasi, keluar jalur, screen wake, background/foreground, baterai, panas, permission revoke, dan recovery pada perangkat target.
-- Uji start/pause/resume/stop sesi bersamaan dengan route guidance; pastikan GPS stream/foreground service dan lifecycle tidak saling mengganggu.
-- Uji SOS cancel/handoff/gagal, data sesi offline, file besar/rusak, penyimpanan penuh, ekspor, serta akses hasil setelah logout/restart.
-- Turn-by-turn/reroute hanya diterima bila kontrak provider dan hasil uji nyata mendukungnya.
+| ID | PBI | Hasil dan kriteria penerimaan |
+| --- | --- | --- |
+| SP-09 | **Sensor gerak: accelerometer dan gyroscope** | Minta akses hanya saat fitur terkait dipakai. Uji bahwa kedua sensor terdeteksi dan menghasilkan nilai/waktu dengan sampling serta konsumsi baterai yang disepakati. Sensor yang hilang/ditolak tidak merusak sesi; data mentah tidak dikirim tanpa kebutuhan/consent. UI menjelaskan kegunaan dan status sensor. |
+| SP-10 | **AI non-generatif untuk aktivitas/rekomendasi** | Pipeline AI yang terpisah dari LLM mengklasifikasikan pola gerak atau memberi rekomendasi perjalanan berdasarkan fitur/data yang disetujui. Sumber input dan versi model diketahui; hasil diuji terhadap data representatif dengan metrik/ambang penerimaan yang disepakati PO; confidence rendah ditandai tidak pasti. Bukan deteksi kecelakaan atau saran keselamatan yang dijamin. |
+| SP-11 | **Asisten LLM perjalanan** | Percakapan LLM terpisah dari AI klasifikasi; menjawab pertanyaan perjalanan menggunakan konteks yang diizinkan (misalnya rencana/ringkasan yang dipilih), menyebut batas pengetahuan, dan tidak mengarang status API. Persetujuan sebelum mengirim data kontekstual; server menyimpan provider secret; batas ukuran, timeout, rate/quota, moderasi, penghapusan riwayat, dan respons gagal diuji. |
+| SP-12 | **Konversi mata uang** | Pengguna memilih mata uang sumber/tujuan, nominal, dan melihat nilai serta waktu/sumber kurs. Mode offline memakai kurs tersimpan yang diberi label tanggal, bukan kurs live. Nilai invalid, kurs tidak tersedia, pembulatan, dan kegagalan API ditangani. |
+| SP-13 | **Konversi waktu dunia** | Cari dan pilih lokasi/zona waktu dari daftar zona waktu dunia berbasis IANA; konversi waktu/tanggal antar zona menampilkan nama lokasi, offset, dan tanggal lokal dengan dukungan daylight-saving serta perubahan tanggal. Tes mencakup zona berbeda dan transisi DST; jangan hanya menggeser jam dengan offset statis. |
+| SP-14 | **Bottom navigation dan profil** | Lima tab Beranda/Jelajah/Rekam/Tools/Profil membuka alur utama dan mempertahankan state yang wajar. Profil menyediakan preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, dan **Logout**. Form saran/feedback memvalidasi input, menampilkan acknowledgment nyata, dan menyatakan jika pengiriman offline/pending/gagal. |
+| SP-15 | **Push notification berbasis mobile** | Pengguna memilih opt-in dan kategori; izin OS dapat ditolak/dicabut; token perangkat diikat ke akun secara aman dan dapat dihapus saat logout. Uji delivery, deep link, token kedaluwarsa, offline, duplikasi, dan pengaturan. Payload lock-screen tidak menyertakan koordinat atau data sensitif. |
+| SP-16 | **Mini-game latihan perjalanan** | Sedikitnya satu mini-game singkat terkait kesiapan/perhatian atau respons perjalanan; skor lokal dan aturan dijelaskan. Tidak memberikan klaim medis/kemampuan berkendara; menghentikan atau membatasi permainan saat sesi recording aktif dan mencegah ajakan interaksi saat bergerak. |
 
-### Sprint 16 — Release candidate
+### P2 — Nilai tambahan setelah fondasi lulus
 
-**Goal:** menghasilkan build terbatas yang bisa dipasang, diamati, dipulihkan, dan didukung.
+| ID | PBI | Hasil dan kriteria penerimaan |
+| --- | --- | --- |
+| SP-17 | **Proof perjalanan blockchain sederhana** | Dengan consent eksplisit, buat hash dari ringkasan terpilih (bukan lokasi mentah/identitas) dan simpan proof melalui mekanisme/ledger yang dipilih. Tampilkan pending/confirmed/failed dan referensi verifikasi; perubahan data membatalkan kecocokan hash. Biaya, jaringan, retensi, dan threat model disetujui. Tidak ada klaim decentralized/immutable sebelum diuji. |
+| SP-18 | **Notifikasi dan rekomendasi kontekstual** | Setelah opt-in, pengguna bisa memilih pengingat perjalanan atau pembaruan rencana. Frekuensi, timezone, duplikasi, quiet hours, kondisi jaringan, dan disable diuji; rekomendasi AI tidak otomatis memulai perjalanan atau tindakan eksternal. |
+| SP-19 | **Peningkatan peta dan layanan perjalanan** | Tambahkan POI/rute/fitur provider (misalnya geocoding, elevasi, atau reroute) hanya jika lisensi, biaya, kuota, atribusi, kualitas, dan cache/offline policy disetujui dan diuji. GPX offline tetap tersedia bila provider gagal. |
 
-- Siapkan environment prod, signed build, migrasi dan rollback, backup/restore, monitoring/alert, incident/support runbook, privacy disclosure, serta batas biaya.
-- Jalankan full automated tests, static analysis, integration/device matrix, accessibility dasar, instalasi baru/upgrade, dan smoke test offline/online.
-- PO menerima daftar fitur aktif, belum tersedia, risiko residual, serta provider/platform yang memang telah diuji sebelum distribusi.
+## 6. Rencana Sprint Usulan
 
-Perencanaan sprint memakai kapasitas aktual dan blocker nyata. PBI eksternal boleh ditunda; jangan mengganti integrasi yang belum tersedia dengan mock yang tampil seolah hasil produksi.
+Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan tim; PO memilih scope setelah kapasitas dan blocker diverifikasi.
 
-## 7. Release Gates — Syarat “Production Ready”
+### Sprint A — Discovery, arsitektur dan risiko
 
-Produk hanya dapat disebut production-ready bila semua gate yang masuk scope rilis lulus:
+**Sprint Goal:** menyepakati pengalaman Senapath, platform sasaran, batas privasi/keselamatan, provider/API, dan kontrak data sebelum memperluas implementasi.
 
-- **Build/release:** build signed, instalasi baru dan upgrade database diuji pada OS/perangkat minimum; rollback tersedia.
-- **Online:** staging dan production punya URL/key terpisah; server secrets tidak ada di bundle; auth, RLS, kuota, rate limit, migrasi dan acknowledgment diverifikasi.
-- **Offline/data:** rute/session/outbox tetap ada setelah force-stop/restart; retry tidak menggandakan; status lokal/remote tepat; restore/penghapusan diuji.
-- **Keselamatan:** izin ditolak/GPS lemah/handoff gagal dan pembatalan diuji; tidak ada klaim metrik/provider yang tidak didukung.
-- **Privasi/keamanan:** audit data flows, consent, retensi/deletion, backup, export, logs, dependency advisories, secrets, dan akses admin.
-- **Kualitas:** full automated tests, analisis, integrasi, smoke test, accessibility dasar, serta manual device matrix lulus; defect blocker/high ditutup atau dikecualikan tertulis oleh PO.
-- **Operasi:** health monitoring, alert, backup/restore, incident owner, support contact, release notes, batas layanan/biaya, dan prosedur gangguan tersedia.
+- Petakan layar/alur yang sudah ada dan bukti baseline; tandai implementasi lokal vs integrasi terdeploy.
+- Putuskan OAuth Google/Supabase, auth callback, session lifecycle, model data, RLS, local encryption decision, serta skenario logout/penghapusan.
+- Evaluasi provider map/search, kurs, LLM, push, dan blockchain: lisensi, biaya, kuota, wilayah, data yang keluar, fallback.
+- Definisikan event/data sensor minimum, izin runtime, target sampling/baterai, evaluasi AI non-generatif, dan data yang boleh menjadi konteks LLM.
+- Hasil Review: keputusan/risiko tercatat, acceptance criteria disetujui, backlog dipecah, dan item blocked diberi pemilik.
 
-Jika satu gate belum memiliki bukti, catat `belum siap` dan batasi distribusi ke internal/tester; jangan membuat klaim produksi.
+### Sprint B — Identitas, session dan fondasi data
 
-## 8. Transparansi Status
+**Sprint Goal:** pengguna dapat masuk dengan Google secara aman dan mempertahankan data inti lokal tanpa menganggapnya sudah sinkron.
 
-Setiap fitur online menggunakan istilah konsisten: `belum dikonfigurasi`, `offline`, `memuat`, `tersedia`, `pending`, `gagal`, dan `terkonfirmasi`. `Tersimpan lokal` bukan `tersinkron`; `dibuka` bukan `terkirim`; `hash dibuat` bukan `proof terverifikasi`; panduan track GPX bukan basemap atau turn-by-turn.
+- Kerjakan SP-01 sampai slice autentikasi yang siap; uji callback, cancel, refresh, expired/revoked session, dan kegagalan offline.
+- Uji SP-02 sebagai local unlock terpisah dengan fallback perangkat.
+- Bangun migrasi lokal dan Supabase/RLS untuk model inti yang disepakati; jangan migrasikan data sensitif tanpa kebijakan.
+- Hasil Review: demonstrasi pada device/emulator target dan staging; bukti token/log/session serta daftar gap.
 
-Pada Review, catat PBI selesai beserta hasil tes, platform yang diuji, environment/provider, blocker yang tersisa, serta apakah penerimaan PO terpenuhi. Velocity digunakan untuk forecast tim, bukan target individu.
+### Sprint C — API, offline sync dan pencarian
+
+**Sprint Goal:** pengguna dapat menemukan dan menyimpan rencana, serta membedakan data lokal dari data yang server konfirmasi.
+
+- Implementasikan boundary service/API, environment, validasi dan status error (SP-05).
+- Implementasikan sync outbox serta pemulihan dan retry idempotent (SP-04).
+- Implementasikan search/select minimal pada Jelajah (SP-06), dengan provider dan batas penggunaannya disetujui.
+- Hasil Review: uji online/offline, timeout, duplikasi retry, RLS lintas akun, restart, dan fallback provider.
+
+### Sprint D — LBS, perekaman dan sensor
+
+**Sprint Goal:** perjalanan dapat direncanakan dan direkam dengan status lokasi/sensor yang jujur dan alur aman.
+
+- Integrasikan LBS/peta dan lifecycle sesi (SP-07); jaga dukungan track lokal ketika map provider tidak ada.
+- Integrasikan accelerometer dan gyroscope (SP-09) secara opt-in; uji permission, hardware tidak tersedia, lifecycle, sampling, dan baterai.
+- Jalankan uji lapangan terbatas dalam kondisi aman; uji GPS lemah, background, app restart, dan penghentian stream.
+- Hasil Review: demonstrasi perjalanan dan catatan platform/ketepatan serta batasan; tidak mengklaim turn-by-turn tanpa bukti provider.
+
+### Sprint E — Tools, AI dan LLM terpisah
+
+**Sprint Goal:** alat waktu/kurs dan fitur kecerdasan membantu perencanaan tanpa menyamakan model prediktif dengan chatbot generatif.
+
+- Bangun konversi mata uang dan waktu dunia (SP-12, SP-13), termasuk freshness, offline, dan DST.
+- Bangun baseline AI non-generatif beserta dataset uji/metrik (SP-10); bila bukti kualitas belum cukup, tandai eksperimen dan jangan tampilkan sebagai rekomendasi siap pengguna.
+- Bangun LLM lewat service backend dengan consent dan batas data (SP-11); uji prompt/data leakage, timeout, quota, dan respons tanpa sumber.
+- Hasil Review: fitur jelas terpisah di UI dan dokumentasi; hasil AI dievaluasi, interaksi LLM memperlihatkan batasannya.
+
+### Sprint F — Profil, notifikasi dan mini-game
+
+**Sprint Goal:** alur navigasi lengkap dan fitur tambahan dapat dikontrol pengguna dengan aman.
+
+- Selesaikan bottom navigation dan profil termasuk saran/kesan mata kuliah dan logout (SP-14).
+- Implementasikan push notification opt-in dan preferensi (SP-15); uji di perangkat/platform nyata.
+- Implementasikan mini-game (SP-16) dengan pembatasan saat sesi aktif dan uji UX/accessibility.
+- Hasil Review: walkthrough dari login ke logout; uji permission ditolak, push dimatikan, feedback gagal, dan game saat sesi berjalan.
+
+### Sprint G — Proof, hardening dan release candidate
+
+**Sprint Goal:** hanya fitur yang lolos bukti keamanan, integrasi, perangkat, dan operasi masuk build terbatas.
+
+- Kerjakan proof perjalanan (SP-17) hanya jika ledger/biaya/threat model/consent disetujui; jika belum, tetap blocked tanpa mengganti dengan status palsu.
+- Jalankan SP-08 untuk ekspor/penghapusan dan verifikasi retensi lokal/cloud.
+- Uji full flow, migrasi upgrade, perangkat/OS target, offline/online, accessibility, analisis dependensi, konfigurasi release, rollback, monitoring, backup/restore, dan support runbook.
+- PO menerima daftar fitur tersedia, belum tersedia, risiko residual, platform/provider teruji, serta kriteria release. Defect blocker/high harus ditutup atau dikecualikan secara eksplisit dengan alasan dan mitigasi.
+
+## 7. Release Gates
+
+Jangan menyebut produk siap produksi sampai semua gate yang masuk scope rilis memiliki bukti:
+
+- **Build/perangkat:** build distribusi bertanda tangan; instalasi baru dan upgrade; uji OS/perangkat minimum serta lifecycle sensor/lokasi.
+- **Identitas/data:** Google OAuth dan session diuji dengan project nyata; RLS diuji lintas akun; logout, revocation, ekspor, penghapusan lokal/cloud, backup dan restore diverifikasi.
+- **Keamanan/privasi:** TLS, penyimpanan token, local at-rest encryption bila diklaim, secrets, izin, consent, retensi, logs tanpa data sensitif, serta dependency advisories ditinjau.
+- **API/provider:** endpoint nyata, validasi/authorization, rate/kuota, timeout, migrasi, deployment, monitoring, dan fallback diuji; key server tidak ada di app bundle.
+- **Offline:** data lokal bertahan restart/force-stop; retry idempotent; status local/pending/confirmed akurat; cache tidak merusak sesi.
+- **LBS/sensor:** izin dicabut/ditolak, GPS lemah, sensor absen, background, baterai, stop recording, dan recovery diuji pada device.
+- **AI/LLM:** evaluasi AI sesuai metrik yang disetujui; consent dan data flow LLM terverifikasi; output diberi label; kegagalan tidak mengarang hasil.
+- **Notifikasi/game/blockchain:** push opt-in dan penghapusan token lulus; game tidak mendorong interaksi saat bergerak; proof hash dapat diverifikasi dan tidak mengekspos data pribadi.
+- **Kualitas/operasi:** automated tests, static analysis, integration/device smoke, accessibility dasar, observability, incident owner, support contact, batas biaya, release notes, dan rollback tersedia.
+
+Jika gate belum lulus, batasi rilis ke internal/tester dan nyatakan fitur sebagai belum tersedia atau eksperimental.
+
+## 8. Transparansi Status, Risiko dan Pengukuran
+
+Gunakan status konsisten: **belum dikonfigurasi**, **offline**, **memuat**, **tersedia**, **tersimpan lokal**, **menunggu sinkronisasi**, **terkonfirmasi**, dan **gagal**. Tampilkan status sesuai bukti: `hash dibuat` bukan `proof terverifikasi`; `login lokal terbuka` bukan `session cloud valid`; `permintaan push dibuat` bukan `notifikasi diterima`; track GPX bukan navigasi jalan.
+
+Pada setiap Review, catat PBI diterima/ditolak, hasil tes, perangkat dan environment yang diuji, provider/versinya, blocker, risiko residual, keputusan PO, dan langkah tindak lanjut. Metrik awal yang disepakati tim dapat meliputi keberhasilan login/sync, kegagalan crash, usia data kurs, akurasi klasifikasi AI, respons/timeout LLM, konsumsi baterai perekaman, dan status delivery push. Metrik tidak boleh mengumpulkan lokasi atau konten percakapan tanpa kebutuhan dan consent. Velocity untuk forecast tim, bukan target individu.
