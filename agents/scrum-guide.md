@@ -8,7 +8,7 @@ Peta dan Location-Based Services (LBS) menjadi konteks utama. Akun dan sinkronis
 
 **Product Goal:** menghasilkan aplikasi mobile yang memungkinkan pengguna masuk dengan Google secara aman, mengunci akses lokal dengan biometrik, merencanakan dan merekam perjalanan berbasis lokasi, menyimpan data secara lokal dan menyinkronkannya ke Supabase, serta menggunakan alat dan fitur pendamping perjalanan tanpa mengaburkan status offline/online atau mengorbankan privasi.
 
-Target platform, provider peta/kurs/cuaca, biaya, serta lingkungan deployment harus diputuskan dan dicatat sebelum integrasi provider. Rencana sprint di bawah adalah urutan usulan, bukan estimasi tanggal atau janji rilis.
+Target platform, provider kurs/cuaca, biaya, serta lingkungan deployment harus diputuskan dan dicatat sebelum integrasi provider. Rencana sprint di bawah adalah urutan usulan, bukan estimasi tanggal atau janji rilis. Peta GPX menggunakan OpenStreetMap online untuk basemap; geocoding/routing dan provider tile skala produksi tetap memerlukan keputusan tersendiri.
 
 ## 2. Konsep dan Batasan Produk
 
@@ -56,7 +56,7 @@ Status yang perlu diverifikasi lagi sebelum planning:
 - Auth Google/OAuth, konfigurasi provider/redirect, validasi token, session refresh/revoke, serta deployment Supabase belum boleh dianggap siap tanpa uji terhadap project nyata.
 - Login biometrik yang sudah ada merupakan local unlock; bukan Google login atau autentikasi backend.
 - Sinkronisasi sesi lokal-ke-Supabase, schema/RLS, retry idempotent, serta konflik offline belum dinyatakan sebagai alur produksi teruji.
-- GPX offline bukan basemap, geocoding, pencarian rute, atau turn-by-turn. Provider peta/LBS belum diputuskan.
+- Basemap GPX menggunakan tile OpenStreetMap online dengan atribusi; track lokal tetap terlihat offline, tetapi tile tidak tersedia offline. Geocoding, pencarian rute online, turn-by-turn, dan provider tile produksi belum tersedia/diputuskan.
 - Konversi yang ada tidak otomatis memenuhi konversi kurs live atau zona waktu seluruh dunia. Sumber data, freshness, dan perilaku offline perlu ditentukan.
 - Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.
 - Push notification, integrasi sensor produksi, mini-game aman, dan proof blockchain belum dianggap tersedia sampai diuji pada perangkat dan layanan yang ditargetkan.
@@ -108,7 +108,7 @@ Urutan berikut mengutamakan fondasi identitas/data dan risiko perjalanan sebelum
 | SP-04 | **Sinkronisasi offline-first** | Outbox memakai ID stabil, retry idempotent, acknowledgment server, kebijakan konflik dan status terlihat. Force-stop/restart atau logout tidak menghilangkan item pending; item tidak pernah ditandai tersinkron sebelum server mengonfirmasi. |
 | SP-05 | **API dan service boundary** | Kontrak endpoint/service, autentikasi/otorisasi, validasi input, timeout, error mapping, rate limit untuk endpoint publik/mahal, versioning, dan observability tanpa payload sensitif tersedia. Environment dev/staging/prod terpisah; secret server tidak masuk bundle aplikasi. |
 | SP-06 | **Pencarian dan pemilihan perjalanan** | Pengguna dapat mencari tempat/rute, memfilter atau mengurutkan hasil yang disepakati, membuka detail dan memilih/menyimpan item. Sumber, waktu pembaruan, loading/empty/error, izin lokasi, offline, dan timeout provider terlihat. Hasil palsu tidak ditampilkan saat API gagal. |
-| SP-07 | **LBS, peta dan sesi perjalanan** | Pengguna dapat melihat lokasi dengan izin yang sesuai, memilih rencana/GPX, lalu start/pause/resume/stop sesi. Tampilkan kualitas/akurasi fix, status recording, progres dan status offline. Stop membersihkan subscription/service; data sesi tersimpan lokal dan dapat dipulihkan. Turn-by-turn hanya bila provider berlisensi dan aktif. |
+| SP-07 | **LBS, peta dan sesi perjalanan** | Pengguna dapat melihat lokasi dengan izin yang sesuai, memilih rencana/GPX, lalu start/pause/resume/stop sesi. Tampilkan tile basemap OpenStreetMap online beratribusi, kualitas/akurasi fix, status recording, progres dan status offline. Track tetap terlihat saat tile gagal/offline. Stop membersihkan subscription/service; data sesi tersimpan lokal dan dapat dipulihkan. Turn-by-turn hanya bila provider berlisensi dan aktif. |
 | SP-08 | **Siklus data akun** | Pengguna dapat melihat status sync, logout dengan pencabutan/clear session lokal yang tepat, mengekspor data, meminta penghapusan akun, dan memahami apa yang tetap tersimpan. Kebijakan local-vs-cloud dan retensi dijelaskan; kegagalan penghapusan tidak dilaporkan sukses. |
 
 ### P1 — Pendamping perjalanan dan fitur perangkat
@@ -130,7 +130,7 @@ Urutan berikut mengutamakan fondasi identitas/data dan risiko perjalanan sebelum
 | --- | --- | --- |
 | SP-17 | **Proof perjalanan blockchain sederhana** | Dengan consent eksplisit, buat hash dari ringkasan terpilih (bukan lokasi mentah/identitas) dan simpan proof melalui mekanisme/ledger yang dipilih. Tampilkan pending/confirmed/failed dan referensi verifikasi; perubahan data membatalkan kecocokan hash. Biaya, jaringan, retensi, dan threat model disetujui. Tidak ada klaim decentralized/immutable sebelum diuji. |
 | SP-18 | **Notifikasi dan rekomendasi kontekstual** | Setelah opt-in, pengguna bisa memilih pengingat perjalanan atau pembaruan rencana. Frekuensi, timezone, duplikasi, quiet hours, kondisi jaringan, dan disable diuji; rekomendasi AI tidak otomatis memulai perjalanan atau tindakan eksternal. |
-| SP-19 | **Peningkatan peta dan layanan perjalanan** | Tambahkan POI/rute/fitur provider (misalnya geocoding, elevasi, atau reroute) hanya jika lisensi, biaya, kuota, atribusi, kualitas, dan cache/offline policy disetujui dan diuji. GPX offline tetap tersedia bila provider gagal. |
+| SP-19 | **Peningkatan peta dan layanan perjalanan** | Tambahkan POI/rute/fitur provider (misalnya geocoding, elevasi, atau reroute) hanya jika lisensi, biaya, kuota, atribusi, kualitas, dan cache/offline policy disetujui dan diuji. Evaluasi provider tile khusus sebelum trafik produksi; layanan tile publik tidak dianggap komitmen produksi. GPX offline tetap tersedia bila provider gagal. |
 
 ## 6. Rencana Sprint Usulan
 
@@ -142,7 +142,7 @@ Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan t
 
 - Petakan layar/alur yang sudah ada dan bukti baseline; tandai implementasi lokal vs integrasi terdeploy.
 - Putuskan OAuth Google/Supabase, auth callback, session lifecycle, model data, RLS, local encryption decision, serta skenario logout/penghapusan.
-- Evaluasi provider map/search, kurs, LLM, push, dan blockchain: lisensi, biaya, kuota, wilayah, data yang keluar, fallback.
+- Evaluasi provider tile skala produksi dan search, kurs, LLM, push, dan blockchain: lisensi, biaya, kuota, wilayah, data yang keluar, fallback. Basemap GPX MVP menggunakan tile OpenStreetMap online.
 - Definisikan event/data sensor minimum, izin runtime, target sampling/baterai, evaluasi AI non-generatif, dan data yang boleh menjadi konteks LLM.
 - Hasil Review: keputusan/risiko tercatat, acceptance criteria disetujui, backlog dipecah, dan item blocked diberi pemilik.
 
@@ -168,7 +168,7 @@ Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan t
 
 **Sprint Goal:** perjalanan dapat direncanakan dan direkam dengan status lokasi/sensor yang jujur dan alur aman.
 
-- Integrasikan LBS/peta dan lifecycle sesi (SP-07); jaga dukungan track lokal ketika map provider tidak ada.
+- Integrasikan LBS/peta dan lifecycle sesi (SP-07); jaga dukungan track lokal ketika basemap online tidak tersedia.
 - Integrasikan accelerometer dan gyroscope (SP-09) secara opt-in; uji permission, hardware tidak tersedia, lifecycle, sampling, dan baterai.
 - Jalankan uji lapangan terbatas dalam kondisi aman; uji GPS lemah, background, app restart, dan penghentian stream.
 - Hasil Review: demonstrasi perjalanan dan catatan platform/ketepatan serta batasan; tidak mengklaim turn-by-turn tanpa bukti provider.

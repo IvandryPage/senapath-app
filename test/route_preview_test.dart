@@ -12,7 +12,7 @@ import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/session_file_service.dart';
 
 void main() {
-  testWidgets('opens an imported route as an offline path preview', (
+  testWidgets('opens an imported route over an OpenStreetMap basemap', (
     tester,
   ) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
@@ -48,9 +48,12 @@ void main() {
 
     expect(find.textContaining('Jejak GPX lokal'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('Jejak rute offline dengan 3 titik'),
+      find.bySemanticsLabel(
+        'Peta OpenStreetMap dengan jejak GPX lokal 3 titik',
+      ),
       findsOneWidget,
     );
+    expect(find.text('OpenStreetMap contributors'), findsOneWidget);
     expect(find.text('Ikuti rute'), findsOneWidget);
   });
 }

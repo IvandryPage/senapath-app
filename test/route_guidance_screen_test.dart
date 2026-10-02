@@ -27,6 +27,12 @@ void main() {
         find.textContaining('tidak memuat instruksi belokan'),
         findsOneWidget,
       );
+      expect(
+        find.bySemanticsLabel(
+          'Peta OpenStreetMap dengan jejak GPX lokal 2 titik',
+        ),
+        findsOneWidget,
+      );
     },
   );
 }

@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/feature_state_view.dart';
 import '../domain/saved_route.dart';
@@ -219,7 +221,7 @@ class _RouteTile extends StatelessWidget {
   }
 }
 
-class RouteMapPreview extends StatelessWidget {
+class RouteMapPreview extends StatefulWidget {
   const RouteMapPreview({
     required this.points,
     this.currentPosition,
@@ -230,113 +232,144 @@ class RouteMapPreview extends StatelessWidget {
   final RoutePoint? currentPosition;
 
   @override
+  State<RouteMapPreview> createState() => _RouteMapPreviewState();
+}
+
+class _RouteMapPreviewState extends State<RouteMapPreview> {
+  bool _hasTileError = false;
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final routePoints = widget.points
+        .map((point) => LatLng(point.latitude, point.longitude))
+        .toList(growable: false);
+    final position = widget.currentPosition;
+    final positionPoint = position == null
+        ? null
+        : LatLng(position.latitude, position.longitude);
+
     return Semantics(
       label:
-          'Jejak rute offline dengan ${points.length} titik${currentPosition == null ? '' : ' dan posisi GPS'}',
+          'Peta OpenStreetMap dengan jejak GPX lokal ${widget.points.length} titik'
+          '${position == null ? '' : ' dan posisi GPS'}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
           width: double.infinity,
           height: 220,
-          child: CustomPaint(
-            painter: _RoutePathPainter(
-              points: points,
-              currentPosition: currentPosition,
-              background: colors.surfaceContainerHighest,
-              pathColor: colors.primary,
-              startColor: colors.tertiary,
-              endColor: colors.error,
-            ),
+          child: Stack(
+            children: [
+              FlutterMap(
+                options: MapOptions(
+                  initialCenter: routePoints.isEmpty
+                      ? const LatLng(-6.2, 106.8)
+                      : routePoints.first,
+                  initialCameraFit: routePoints.length < 2
+                      ? null
+                      : CameraFit.bounds(
+                          bounds: LatLngBounds.fromPoints(routePoints),
+                          padding: const EdgeInsets.all(32),
+                        ),
+                  minZoom: 3,
+                  maxZoom: 18,
+                  backgroundColor: colors.surfaceContainerHighest,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.senapath',
+                    maxZoom: 19,
+                    errorTileCallback: (_, _, _) {
+                      if (mounted && !_hasTileError) {
+                        setState(() => _hasTileError = true);
+                      }
+                    },
+                  ),
+                  if (routePoints.length >= 2)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: routePoints,
+                          strokeWidth: 5,
+                          color: colors.primary,
+                        ),
+                      ],
+                    ),
+                  MarkerLayer(
+                    markers: [
+                      if (routePoints.isNotEmpty)
+                        Marker(
+                          point: routePoints.first,
+                          width: 32,
+                          height: 36,
+                          child: Icon(
+                            Icons.trip_origin,
+                            color: colors.tertiary,
+                            size: 28,
+                          ),
+                        ),
+                      if (routePoints.length >= 2)
+                        Marker(
+                          point: routePoints.last,
+                          width: 32,
+                          height: 36,
+                          child: Icon(
+                            Icons.flag,
+                            color: colors.error,
+                            size: 28,
+                          ),
+                        ),
+                      if (positionPoint != null)
+                        Marker(
+                          point: positionPoint,
+                          width: 32,
+                          height: 36,
+                          child: Icon(
+                            Icons.my_location,
+                            color: colors.secondary,
+                            size: 28,
+                          ),
+                        ),
+                    ],
+                  ),
+                  RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution(
+                        'OpenStreetMap contributors',
+                        onTap: () => launchUrl(
+                          Uri.parse('https://www.openstreetmap.org/copyright'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (_hasTileError)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  right: 8,
+                  child: Material(
+                    color: colors.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'Basemap tidak tersedia. Jejak GPX tetap ditampilkan.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
-}
-
-class _RoutePathPainter extends CustomPainter {
-  const _RoutePathPainter({
-    required this.points,
-    required this.currentPosition,
-    required this.background,
-    required this.pathColor,
-    required this.startColor,
-    required this.endColor,
-  });
-
-  final List<RoutePoint> points;
-  final RoutePoint? currentPosition;
-  final Color background;
-  final Color pathColor;
-  final Color startColor;
-  final Color endColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = background);
-    if (points.length < 2) return;
-
-    final allPoints = [...points, ?currentPosition];
-    final minLatitude = allPoints
-        .map((point) => point.latitude)
-        .reduce(math.min);
-    final maxLatitude = allPoints
-        .map((point) => point.latitude)
-        .reduce(math.max);
-    final minLongitude = allPoints
-        .map((point) => point.longitude)
-        .reduce(math.min);
-    final maxLongitude = allPoints
-        .map((point) => point.longitude)
-        .reduce(math.max);
-    const inset = 24.0;
-    final width = math.max(1.0, size.width - inset * 2);
-    final height = math.max(1.0, size.height - inset * 2);
-    final longitudeSpan = math.max(0.000001, maxLongitude - minLongitude);
-    final latitudeSpan = math.max(0.000001, maxLatitude - minLatitude);
-    final scale = math.min(width / longitudeSpan, height / latitudeSpan);
-    final renderedWidth = longitudeSpan * scale;
-    final renderedHeight = latitudeSpan * scale;
-    final left = (size.width - renderedWidth) / 2;
-    final top = (size.height - renderedHeight) / 2;
-
-    Offset project(RoutePoint point) => Offset(
-      left + (point.longitude - minLongitude) * scale,
-      size.height - top - (point.latitude - minLatitude) * scale,
-    );
-
-    final path = Path()
-      ..moveTo(project(points.first).dx, project(points.first).dy);
-    for (final point in points.skip(1)) {
-      final offset = project(point);
-      path.lineTo(offset.dx, offset.dy);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = pathColor
-        ..strokeWidth = 5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke,
-    );
-    canvas.drawCircle(project(points.first), 7, Paint()..color = startColor);
-    canvas.drawCircle(project(points.last), 7, Paint()..color = endColor);
-    if (currentPosition != null) {
-      final location = project(currentPosition!);
-      canvas.drawCircle(location, 11, Paint()..color = background);
-      canvas.drawCircle(location, 7, Paint()..color = Colors.blue.shade700);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RoutePathPainter oldDelegate) =>
-      oldDelegate.points != points ||
-      oldDelegate.currentPosition != currentPosition ||
-      oldDelegate.background != background ||
-      oldDelegate.pathColor != pathColor ||
-      oldDelegate.startColor != startColor ||
-      oldDelegate.endColor != endColor;
 }

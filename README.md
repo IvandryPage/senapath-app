@@ -30,7 +30,9 @@ GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests
 3. Ketuk rute yang tersimpan untuk melihat bentuk jalur, jarak, dan elevasi yang tersedia.
 4. Pilih **Ikuti rute** untuk melihat jalur bersama posisi GPS, progres, jarak tersisa, dan peringatan bila fix GPS akurat menunjukkan kamu keluar jalur.
 
-Panduan GPX dapat digunakan tanpa internet setelah file tersimpan. Preview belum menampilkan basemap jalan, petunjuk belokan, atau reroute; fitur online tersebut menunggu provider peta/routing yang disetujui. Izin lokasi dan layanan GPS perangkat tetap diperlukan untuk posisi langsung.
+Preview rute dan panduan menampilkan basemap OpenStreetMap saat internet tersedia, dengan geometri GPX dan posisi GPS di atasnya. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Atribusi OpenStreetMap ditampilkan pada peta. Pencarian tempat/rute, petunjuk belokan, dan reroute belum tersedia karena memerlukan provider/service terpisah. Izin lokasi dan layanan GPS perangkat tetap diperlukan untuk posisi langsung.
+
+Integrasi menggunakan layanan tile publik OpenStreetMap untuk penggunaan ringan. Jangan melakukan prefetch/download tile atau mengandalkan layanan publik ini untuk trafik produksi berskala besar; evaluasi provider tile yang sesuai dengan kebutuhan, lisensi, dan kebijakan penggunaan sebelum rilis publik.
 
 ## Chat AI (Supabase + Gemini)
 
