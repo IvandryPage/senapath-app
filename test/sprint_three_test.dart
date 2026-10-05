@@ -6,6 +6,8 @@ import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
+import 'package:senapath/features/session/data/session_sync_coordinator.dart';
+import 'package:senapath/features/session/data/session_sync_gateway.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
 
 void main() {
@@ -110,6 +112,109 @@ void main() {
     expect(recovered?.status, RideSessionStatus.paused);
     expect(recovered?.pausedAt, isNotNull);
   });
+
+  test('sync status can only change for completed sessions', () async {
+    final startedAt = DateTime.utc(2026, 9, 30, 11, 30);
+    final session = await repository.start(startedAt);
+
+    await expectLater(
+      repository.updateSyncStatus(session.id, 'synced'),
+      throwsStateError,
+    );
+    await expectLater(
+      repository.updateSyncStatus(session.id, 'unknown'),
+      throwsArgumentError,
+    );
+
+    await repository.finish(
+      session.id,
+      startedAt.add(const Duration(minutes: 2)),
+    );
+    await repository.updateSyncStatus(session.id, 'synced');
+
+    final row = await (database.select(
+      database.rideSessions,
+    )..where((item) => item.id.equals(session.id))).getSingle();
+    expect(row.syncStatus, 'synced');
+  });
+
+  test(
+    'syncs a completed summary only after consent and records status',
+    () async {
+      final startedAt = DateTime.utc(2026, 9, 30, 12);
+      final session = await repository.start(startedAt);
+      await repository.finish(
+        session.id,
+        startedAt.add(const Duration(minutes: 5)),
+      );
+      final gateway = _FakeSessionSyncGateway();
+      final coordinator = SessionSyncCoordinator(
+        repository: repository,
+        gateway: gateway,
+      );
+
+      await coordinator.syncSummary(session.id, consented: true);
+
+      final row = await (database.select(
+        database.rideSessions,
+      )..where((item) => item.id.equals(session.id))).getSingle();
+      expect(row.syncStatus, 'synced');
+      expect(gateway.uploadedSummary?.session.id, session.id);
+      expect(gateway.uploadCalls, 1);
+    },
+  );
+
+  test('does not upload without consent or an authenticated session', () async {
+    final startedAt = DateTime.utc(2026, 9, 30, 13);
+    final session = await repository.start(startedAt);
+    await repository.finish(
+      session.id,
+      startedAt.add(const Duration(minutes: 2)),
+    );
+    final gateway = _FakeSessionSyncGateway()..signedIn = false;
+    final coordinator = SessionSyncCoordinator(
+      repository: repository,
+      gateway: gateway,
+    );
+
+    await expectLater(
+      coordinator.syncSummary(session.id, consented: false),
+      throwsStateError,
+    );
+    await expectLater(
+      coordinator.syncSummary(session.id, consented: true),
+      throwsStateError,
+    );
+
+    expect(gateway.uploadCalls, 0);
+  });
+
+  test(
+    'leaves failed uploads retryable without claiming they synced',
+    () async {
+      final startedAt = DateTime.utc(2026, 9, 30, 14);
+      final session = await repository.start(startedAt);
+      await repository.finish(
+        session.id,
+        startedAt.add(const Duration(minutes: 2)),
+      );
+      final gateway = _FakeSessionSyncGateway()..shouldFail = true;
+      final coordinator = SessionSyncCoordinator(
+        repository: repository,
+        gateway: gateway,
+      );
+
+      await expectLater(
+        coordinator.syncSummary(session.id, consented: true),
+        throwsStateError,
+      );
+
+      final row = await (database.select(
+        database.rideSessions,
+      )..where((item) => item.id.equals(session.id))).getSingle();
+      expect(row.syncStatus, 'failed');
+    },
+  );
 }
 
 class _MemorySecureVault implements SecureVault {
@@ -126,5 +231,25 @@ class _MemorySecureVault implements SecureVault {
   @override
   Future<void> write(String key, String value) async {
     _values[key] = value;
+  }
+}
+
+class _FakeSessionSyncGateway implements SessionSyncGateway {
+  bool signedIn = true;
+  bool shouldFail = false;
+  int uploadCalls = 0;
+  RideSessionSummary? uploadedSummary;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  bool get isSignedIn => signedIn;
+
+  @override
+  Future<void> uploadSummary(RideSessionSummary summary) async {
+    uploadCalls++;
+    if (shouldFail) throw StateError('Simulated network failure.');
+    uploadedSummary = summary;
   }
 }

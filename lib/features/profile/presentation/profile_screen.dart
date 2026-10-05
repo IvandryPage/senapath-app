@@ -9,6 +9,7 @@ import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../app/theme/theme_settings_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../domain/user_profile.dart';
@@ -65,6 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildContactsSection(context, state),
               const SizedBox(height: 28),
               _buildUnitSection(context),
+              const SizedBox(height: 28),
+              _buildThemeSection(context),
               const SizedBox(height: 20),
               const Text(
                 'Profil dan kontak disimpan aman di perangkat. '
@@ -277,6 +280,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: EdgeInsets.only(top: 8),
                 child: LinearProgressIndicator(),
               ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeSection(BuildContext context) {
+    return BlocBuilder<ThemeSettingsCubit, ThemeSettingsState>(
+      builder: (context, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Tema tampilan',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text('Sistem'),
+                  icon: Icon(Icons.brightness_auto_outlined),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text('Terang'),
+                  icon: Icon(Icons.light_mode_outlined),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text('Gelap'),
+                  icon: Icon(Icons.dark_mode_outlined),
+                ),
+              ],
+              selected: {state.themeMode},
+              onSelectionChanged: state.isSaving
+                  ? null
+                  : (selection) => context
+                        .read<ThemeSettingsCubit>()
+                        .select(selection.first),
+            ),
+            if (state.isSaving)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(),
+              ),
+            if (state.error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                state.error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              if (!state.isSaving)
+                TextButton.icon(
+                  onPressed: () => context.read<ThemeSettingsCubit>().load(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Coba lagi'),
+                ),
+            ],
           ],
         );
       },

@@ -94,8 +94,8 @@ class _SessionScreenState extends State<SessionScreen> {
               _buildEmergencyPanel(context, emergencyContacts, emergencyState),
               const SizedBox(height: 18),
               const Text(
-                'Sesi disimpan di perangkat. Sinkronisasi cloud menunggu '
-                'konfigurasi Supabase.',
+                'Sesi dan titik lokasi tetap tersimpan terenkripsi di perangkat. '
+                'Hanya ringkasan yang dikirim setelah kamu menyetujuinya.',
                 textAlign: TextAlign.center,
               ),
             ],
@@ -512,7 +512,7 @@ class _SessionScreenState extends State<SessionScreen> {
             subtitle: Text(
               '${_formatDistance(session.distanceMeters, metric)} · '
               '${_formatDuration(session.durationAt(session.endedAt ?? session.startedAt))} · '
-              '${session.syncStatus == 'pending' ? 'Lokal · Pending' : 'Tersinkron'}',
+              '${_syncStatusLabel(session.syncStatus)}',
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () =>
@@ -630,6 +630,8 @@ class _SessionScreenState extends State<SessionScreen> {
         else
           const Text('Belum cukup sampel untuk menampilkan grafik kecepatan.'),
         const SizedBox(height: 16),
+        _buildSummarySync(context, summary),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -649,6 +651,93 @@ class _SessionScreenState extends State<SessionScreen> {
       ],
     );
   }
+
+  Widget _buildSummarySync(BuildContext context, RideSessionSummary summary) {
+    final session = summary.session;
+    final cubit = context.read<RideSessionCubit>();
+    final isSyncing = context.select<RideSessionCubit, bool>(
+      (value) => value.state.syncingSessionId == session.id,
+    );
+
+    if (session.syncStatus == 'synced') {
+      return const ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(Icons.cloud_done_outlined),
+        title: Text('Ringkasan tersinkron'),
+        subtitle: Text('Tidak termasuk koordinat GPS atau titik telemetri.'),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          !cubit.canSyncSessions
+              ? 'Masuk ke akun online untuk menyinkronkan ringkasan. Data tetap lokal.'
+              : session.syncStatus == 'failed'
+              ? 'Sinkronisasi terakhir gagal. Ringkasan masih tersimpan lokal.'
+              : 'Ringkasan belum disinkronkan. Tidak ada koordinat atau titik GPS yang akan dikirim.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: !cubit.canSyncSessions || isSyncing
+              ? null
+              : () => _confirmSummarySync(context, summary),
+          icon: isSyncing
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.cloud_upload_outlined),
+          label: Text(isSyncing ? 'Menyinkronkan…' : 'Sinkronkan ringkasan'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmSummarySync(
+    BuildContext context,
+    RideSessionSummary summary,
+  ) async {
+    final session = summary.session;
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sinkronkan ringkasan sesi?'),
+        content: Text(
+          'Data yang dikirim ke akun Supabase milikmu: waktu mulai/selesai, '
+          'durasi, jarak, jumlah sampel, sumber/elevasi, dan jumlah sampel '
+          'sensor. Koordinat GPS, rute, dan telemetri mentah tidak dikirim. '
+          'Sesi ${session.id} dapat diperbarui secara idempoten dan akan '
+          'terhapus saat akun Supabase dihapus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Setujui & sinkronkan'),
+          ),
+        ],
+      ),
+    );
+    if (approved == true && context.mounted) {
+      await context.read<RideSessionCubit>().syncSummary(
+        session.id,
+        consented: true,
+      );
+    }
+  }
+
+  String _syncStatusLabel(String status) => switch (status) {
+    'synced' => 'Tersinkron ke Supabase',
+    'syncing' => 'Sedang disinkronkan',
+    'failed' => 'Lokal · Sinkronisasi gagal',
+    _ => 'Tersimpan lokal · Belum disinkronkan',
+  };
 
   Future<void> _exportSession(
     BuildContext context,

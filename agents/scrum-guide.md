@@ -55,7 +55,7 @@ Status yang perlu diverifikasi lagi sebelum planning:
 
 - Gateway dan callback Google OAuth melalui Supabase tersedia di aplikasi; provider credentials/redirect allow-list pada dashboard dan pengujian live di project/perangkat nyata masih harus diverifikasi sebelum dinyatakan siap.
 - Login biometrik yang sudah ada merupakan local unlock; bukan Google login atau autentikasi backend.
-- Sinkronisasi sesi lokal-ke-Supabase, schema/RLS, retry idempotent, serta konflik offline belum dinyatakan sebagai alur produksi teruji.
+- Sinkronisasi ringkasan sesi selesai ke Supabase kini memiliki consent eksplisit, pemeriksaan akun/config, upsert idempoten, status lokal, dan migrasi RLS; penerapan migrasi serta pengujian RLS/deployment pada project nyata belum diverifikasi. Koordinat dan telemetri mentah tidak ikut dikirim. Konflik offline dan sync otomatis/outbox umum belum tersedia.
 - Basemap GPX menggunakan tile OpenStreetMap online dengan atribusi; track lokal tetap terlihat offline, tetapi tile tidak tersedia offline. Geocoding, pencarian rute online, turn-by-turn, dan provider tile produksi belum tersedia/diputuskan.
 - Konversi waktu kini memakai database zona waktu IANA lokal yang dapat dicari, termasuk penanganan waktu DST hilang/berulang; konversi kurs tetap hanya referensi harian/manual, bukan kurs live.
 - Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.

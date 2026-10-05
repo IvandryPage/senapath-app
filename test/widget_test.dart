@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 import 'package:senapath/app/app.dart';
+import 'package:senapath/app/theme/theme_settings_cubit.dart';
+import 'package:senapath/app/theme/theme_settings_repository.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/core/units/unit_settings_cubit.dart';
@@ -46,6 +48,10 @@ void main() {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
     final settingsCubit = UnitSettingsCubit(UnitSettingsRepository(database));
     await settingsCubit.load();
+    final themeSettingsCubit = ThemeSettingsCubit(
+      ThemeSettingsRepository(database),
+    );
+    await themeSettingsCubit.load();
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
@@ -77,6 +83,7 @@ void main() {
         cloudAccountCubit: CloudAccountCubit(
           const SupabaseCloudAccountGateway(null),
         ),
+        themeSettingsCubit: themeSettingsCubit,
         emergencyCubit: emergencyCubit,
         profileCubit: profileCubit,
         routesCubit: routesCubit,
@@ -177,6 +184,23 @@ void main() {
 
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Tema tampilan'), 300);
+    expect(find.text('Tema tampilan'), findsOneWidget);
+    await tester.tap(find.text('Gelap'));
+    await tester.pumpAndSettle();
+    expect(themeSettingsCubit.state.themeMode, ThemeMode.dark);
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+      ThemeMode.dark,
+    );
+    await tester.tap(find.text('Terang'));
+    await tester.pumpAndSettle();
+    expect(themeSettingsCubit.state.themeMode, ThemeMode.light);
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+      ThemeMode.light,
+    );
+    await tester.scrollUntilVisible(find.text('Akun online'), -300);
     await tester.tap(find.text('Akun online'));
     await tester.pumpAndSettle();
     expect(find.text('Lupa password?'), findsOneWidget);
@@ -219,6 +243,7 @@ void main() {
     await emergencyCubit.close();
     await routesCubit.close();
     await settingsCubit.close();
+    await themeSettingsCubit.close();
     await sessionCubit.close();
     await logisticsCubit.close();
     await reactionTestCubit.close();

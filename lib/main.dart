@@ -3,6 +3,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
+import 'app/theme/theme_settings_cubit.dart';
+import 'app/theme/theme_settings_repository.dart';
 import 'core/storage/app_database.dart';
 import 'core/storage/secure_vault.dart';
 import 'core/units/unit_settings_cubit.dart';
@@ -23,6 +25,8 @@ import 'features/session/data/session_file_service.dart';
 import 'features/session/data/encrypted_telemetry_codec.dart';
 import 'features/session/data/readiness_checker.dart';
 import 'features/session/data/ride_session_repository.dart';
+import 'features/session/data/session_sync_coordinator.dart';
+import 'features/session/data/supabase_session_sync_gateway.dart';
 import 'features/session/presentation/session_cubit.dart';
 import 'features/logistics/data/logistics_repository.dart';
 import 'features/logistics/presentation/logistics_cubit.dart';
@@ -61,6 +65,10 @@ Future<void> main() async {
     database: database,
     telemetryCodec: telemetryCodec,
   );
+  final themeSettingsCubit = ThemeSettingsCubit(
+    ThemeSettingsRepository(database),
+  );
+  await themeSettingsCubit.load();
 
   runApp(
     SenapathApp(
@@ -68,6 +76,7 @@ Future<void> main() async {
       cloudAccountCubit: CloudAccountCubit(
         SupabaseCloudAccountGateway(supabaseClient),
       ),
+      themeSettingsCubit: themeSettingsCubit,
       emergencyCubit: EmergencyCubit(
         const UrlLauncherEmergencyContactActions(),
       ),
@@ -95,6 +104,10 @@ Future<void> main() async {
         locationSource: const GeolocatorLocationSource(),
         barometerSource: const SensorsPlusBarometerSource(),
         motionSensorSource: const SensorsPlusMotionSensorSource(),
+        syncCoordinator: SessionSyncCoordinator(
+          repository: sessionRepository,
+          gateway: SupabaseSessionSyncGateway(supabaseClient),
+        ),
       ),
     ),
   );

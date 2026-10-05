@@ -33,6 +33,12 @@ Layar **Akun online** mendukung login Google melalui OAuth Supabase. Agar login 
 
 Callback scheme native `senapath` sudah didaftarkan pada Android dan iOS. Setup Google Cloud/Supabase serta alur OAuth live tetap perlu diuji menggunakan project dan perangkat target. Login Google ini tidak mengaktifkan biometric unlock; biometrik tetap merupakan kunci lokal terpisah.
 
+Di **Profil → Akun online**, pengguna dapat mendaftar/masuk dengan email dan password, memulai login Google, meminta reset password, serta keluar dari akun cloud. Password hanya dikirim ke Supabase Auth melalui HTTPS dan tidak disimpan oleh aplikasi. Reset password selalu menampilkan konfirmasi generik agar keberadaan suatu email tidak diungkapkan. Keluar dari akun cloud mempertahankan data lokal; permintaan AI yang sedang berjalan dibuang dari tampilan dan pembaruan UI sync yang tertunda diabaikan saat identitas akun berubah. Permintaan jaringan yang sudah terkirim tidak dapat ditarik kembali.
+
+## Tema tampilan
+
+Pilih **Sistem**, **Terang**, atau **Gelap** di bagian **Profil → Tema tampilan**. Pilihan disimpan di preferensi lokal Drift dan diterapkan ke seluruh aplikasi. Mode Sistem mengikuti pengaturan tampilan perangkat.
+
 ## Rute GPX dan panduan offline
 
 1. Buka tab **Rute**, lalu pilih tombol **Impor GPX**.
@@ -47,6 +53,16 @@ Integrasi menggunakan layanan tile publik OpenStreetMap untuk penggunaan ringan.
 ## Konversi zona waktu dunia
 
 Di tab **Logistik → Waktu acara**, pilih tanggal/waktu dan tekan zona waktu sumber untuk mencari kota atau zona IANA, misalnya `America/New_York`. Tambahkan satu atau lebih zona tujuan melalui **Tambah zona**. Aturan DST dan pergantian tanggal ditangani oleh database zona waktu yang dibundel; jam lokal yang tidak ada atau ambigu meminta pengguna memilih waktu/kemunculan yang valid.
+
+## Sinkronisasi ringkasan sesi
+
+Sinkronisasi memerlukan login online dan migrasi Supabase terbaru:
+
+```sh
+supabase db push
+```
+
+Setelah sesi selesai, buka ringkasannya lalu pilih **Sinkronkan ringkasan** dan setujui pengiriman. Hanya waktu mulai/selesai, durasi, jarak, jumlah sampel, informasi elevasi, dan jumlah sampel sensor yang dikirim ke `ride_session_summaries`; koordinat GPS, geometri rute, dan telemetri mentah tidak dikirim. Status lokal menjadi tersinkron hanya setelah upsert server berhasil. Kunci idempotensi gabungan `user_id, session_id` mencegah retry membuat duplikat, RLS membatasi akses per akun, dan penghapusan akun menghapus ringkasan cloud melalui foreign key cascade.
 
 ## Chat AI (Supabase + Gemini)
 

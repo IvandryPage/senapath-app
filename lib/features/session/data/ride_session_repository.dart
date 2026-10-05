@@ -10,6 +10,7 @@ abstract interface class RideSessionRepository {
   Future<RideSessionSnapshot?> recoverCurrentSession();
   Future<List<RideSessionSnapshot>> loadCompletedSessions();
   Future<RideSessionSummary> loadSummary(String sessionId);
+  Future<void> updateSyncStatus(String sessionId, String status);
   Future<List<TelemetryLocation>> loadTelemetryLocations(String sessionId);
   Future<RideSessionSnapshot> start(DateTime now);
   Future<RideSessionSnapshot> pause(String sessionId, DateTime now);
@@ -166,6 +167,25 @@ class DriftRideSessionRepository implements RideSessionRepository {
       accelerometerSampleCount: accelerometerSampleCount,
       gyroscopeSampleCount: gyroscopeSampleCount,
     );
+  }
+
+  @override
+  Future<void> updateSyncStatus(String sessionId, String status) async {
+    const supportedStatuses = {'pending', 'syncing', 'synced', 'failed'};
+    if (!supportedStatuses.contains(status)) {
+      throw ArgumentError.value(status, 'status', 'Unsupported sync status.');
+    }
+
+    final updated = await (database.update(database.rideSessions)
+          ..where(
+            (session) =>
+                session.id.equals(sessionId) &
+                session.status.equals(RideSessionStatus.completed.name),
+          ))
+        .write(RideSessionsCompanion(syncStatus: Value(status)));
+    if (updated != 1) {
+      throw StateError('Only a completed local session can be synchronized.');
+    }
   }
 
   @override

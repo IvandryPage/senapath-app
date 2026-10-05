@@ -7,6 +7,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 import '../data/readiness_checker.dart';
 import '../data/ride_session_repository.dart';
+import '../data/session_sync_coordinator.dart';
 import '../domain/ride_session.dart';
 
 class RideSessionState {
@@ -19,6 +20,7 @@ class RideSessionState {
     this.completedSessions = const [],
     this.summary,
     this.isLoadingSummary = false,
+    this.syncingSessionId,
     this.now,
     this.message,
   });
@@ -31,6 +33,7 @@ class RideSessionState {
   final List<RideSessionSnapshot> completedSessions;
   final RideSessionSummary? summary;
   final bool isLoadingSummary;
+  final String? syncingSessionId;
   final DateTime? now;
   final String? message;
 
@@ -43,7 +46,9 @@ class RideSessionState {
     List<RideSessionSnapshot>? completedSessions,
     RideSessionSummary? summary,
     bool? isLoadingSummary,
+    String? syncingSessionId,
     bool clearSummary = false,
+    bool clearSyncingSession = false,
     DateTime? now,
     String? message,
     bool clearMessage = false,
@@ -56,6 +61,9 @@ class RideSessionState {
     completedSessions: completedSessions ?? this.completedSessions,
     summary: clearSummary ? null : summary ?? this.summary,
     isLoadingSummary: isLoadingSummary ?? this.isLoadingSummary,
+    syncingSessionId: clearSyncingSession
+        ? null
+        : syncingSessionId ?? this.syncingSessionId,
     now: now ?? this.now,
     message: clearMessage ? null : message ?? this.message,
   );
@@ -74,6 +82,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     required this.locationSource,
     this.barometerSource,
     this.motionSensorSource,
+    this.syncCoordinator,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now,
        super(const RideSessionState());
@@ -83,6 +92,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final LocationSource locationSource;
   final BarometerSource? barometerSource;
   final MotionSensorSource? motionSensorSource;
+  final SessionSyncCoordinator? syncCoordinator;
   final DateTime Function() _clock;
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<double>? _barometerSubscription;
@@ -92,6 +102,11 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   double? _accelerationMagnitude;
   double? _rotationRateMagnitude;
   Timer? _ticker;
+  int _syncGeneration = 0;
+
+  bool get canSyncSessions =>
+      syncCoordinator?.gateway.isConfigured == true &&
+      syncCoordinator?.gateway.isSignedIn == true;
 
   Future<void> initialize() async {
     if (state.isInitialized || state.isLoading) return;
@@ -265,6 +280,63 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         ),
       );
     }
+  }
+
+  Future<void> syncSummary(
+    String sessionId, {
+    required bool consented,
+  }) async {
+    final coordinator = syncCoordinator;
+    if (coordinator == null) {
+      _setMessage('Sinkronisasi Supabase belum dikonfigurasi.');
+      return;
+    }
+    if (state.syncingSessionId != null) return;
+
+    final generation = ++_syncGeneration;
+    emit(
+      state.copyWith(
+        syncingSessionId: sessionId,
+        clearMessage: true,
+      ),
+    );
+    try {
+      await coordinator.syncSummary(sessionId, consented: consented);
+      if (isClosed || generation != _syncGeneration) return;
+      final history = await repository.loadCompletedSessions();
+      if (isClosed || generation != _syncGeneration) return;
+      final summary = await repository.loadSummary(sessionId);
+      if (isClosed || generation != _syncGeneration) return;
+      emit(
+        state.copyWith(
+          completedSessions: history,
+          summary: summary,
+          clearSyncingSession: true,
+          message: 'Ringkasan sesi tersinkron ke akun Supabase.',
+        ),
+      );
+    } catch (_) {
+      if (isClosed || generation != _syncGeneration) return;
+      final history = await repository.loadCompletedSessions();
+      if (isClosed || generation != _syncGeneration) return;
+      final summary = await repository.loadSummary(sessionId);
+      if (isClosed || generation != _syncGeneration) return;
+      emit(
+        state.copyWith(
+          completedSessions: history,
+          summary: summary,
+          clearSyncingSession: true,
+          message:
+              'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal; coba lagi saat online.',
+        ),
+      );
+    }
+  }
+
+  void cancelPendingSync() {
+    if (state.syncingSessionId == null) return;
+    _syncGeneration++;
+    emit(state.copyWith(clearSyncingSession: true));
   }
 
   void closeSummary() => emit(state.copyWith(clearSummary: true));
