@@ -22,7 +22,7 @@ import '../../features/session/domain/ride_session.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
-  (label: 'Rute', icon: Icons.map_outlined, selectedIcon: Icons.map),
+  (label: 'Jelajah', icon: Icons.map_outlined, selectedIcon: Icons.map),
   (
     label: 'Sesi',
     icon: Icons.directions_bike_outlined,

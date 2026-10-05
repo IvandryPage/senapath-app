@@ -34,6 +34,7 @@ import 'package:senapath/features/strategy_game/data/strategy_game_repository.da
 import 'package:senapath/features/strategy_game/presentation/strategy_game_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
+import 'package:senapath/features/routes/presentation/explore_map.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
@@ -105,10 +106,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(ExploreMap), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Belum ada sesi'), 300);
     expect(find.text('Belum ada sesi'), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.text('Papan peringkat'), 400);
-    await tester.tap(find.text('Papan peringkat'));
+    final leaderboardShortcut = find.byKey(
+      const Key('home-shortcut-leaderboard'),
+    );
+    await tester.scrollUntilVisible(leaderboardShortcut, 400);
+    await tester.tap(leaderboardShortcut);
     await tester.pumpAndSettle();
     expect(find.textContaining('Peringkat mingguan bersepeda'), findsOneWidget);
     expect(find.text('Partisipasi dan privasi'), findsOneWidget);
@@ -172,9 +178,11 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Rute').last);
+    await tester.tap(find.text('Jelajah').last);
     await tester.pumpAndSettle();
     expect(find.text('Belum ada rute tersimpan'), findsOneWidget);
+    expect(find.byType(ExploreMap), findsOneWidget);
+    expect(find.text('OpenStreetMap'), findsOneWidget);
 
     await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();

@@ -10,6 +10,7 @@ import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/units/unit_system.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
+import 'package:senapath/features/routes/presentation/explore_map.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/routes/presentation/routes_screen.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
@@ -53,6 +54,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.byType(ExploreMap), findsOneWidget);
+    await tester.ensureVisible(find.text('Loop Utara'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Loop Utara'));
     await tester.pumpAndSettle();
 
@@ -63,7 +67,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.byType(RichAttributionWidget), findsOneWidget);
+    expect(find.byType(RichAttributionWidget), findsNWidgets(2));
     expect(find.text('Ikuti rute'), findsOneWidget);
   });
 

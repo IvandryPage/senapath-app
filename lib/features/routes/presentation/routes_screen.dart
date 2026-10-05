@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,6 +12,7 @@ import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
 import '../domain/saved_route.dart';
 import 'routes_cubit.dart';
+import 'explore_map.dart';
 
 class RoutesScreen extends StatefulWidget {
   const RoutesScreen({super.key});
@@ -52,10 +53,50 @@ class _RoutesScreenState extends State<RoutesScreen> {
       child: BlocBuilder<RoutesCubit, RoutesState>(
         builder: (context, state) {
           final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
-          return Column(
+          return LayoutBuilder(
+            builder: (context, constraints) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Jelajahi',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Lihat peta dan siapkan rute perjalanan.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton.filledTonal(
+                      tooltip: 'Impor GPX',
+                      onPressed: state.isLoading
+                          ? null
+                          : () => context.read<RoutesCubit>().importGpx(),
+                      icon: const Icon(Icons.file_upload_outlined),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ExploreMap(
+                  routes: state.routes,
+                  height: constraints.maxHeight < 570 ? 170 : 280,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -79,19 +120,32 @@ class _RoutesScreenState extends State<RoutesScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      tooltip: 'Impor GPX',
-                      onPressed: state.isLoading
-                          ? null
-                          : () => context.read<RoutesCubit>().importGpx(),
-                      icon: const Icon(Icons.file_upload_outlined),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Rute tersimpan',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    Text(
+                      '${state.routes.length}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
               ),
               Expanded(child: _buildResults(state, unitSystem)),
             ],
+          ),
           );
         },
       ),
@@ -101,14 +155,38 @@ class _RoutesScreenState extends State<RoutesScreen> {
   Widget _buildResults(RoutesState state, UnitSystem unitSystem) {
     if (state.isLoading) return const FeatureStateView.loading();
     if (state.routes.isEmpty) {
-      return FeatureStateView.empty(
-        title: state.query.isEmpty
-            ? 'Belum ada rute tersimpan'
-            : 'Rute tidak ditemukan',
-        message: state.query.isEmpty
-            ? 'Rute offline akan muncul setelah provider peta atau impor rute dikonfigurasi.'
-            : 'Coba kata kunci lain atau periksa data rute offline.',
-        icon: Icons.map_outlined,
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.route_outlined, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      state.query.isEmpty
+                          ? 'Belum ada rute tersimpan'
+                          : 'Rute tidak ditemukan',
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      state.query.isEmpty
+                          ? 'Impor file GPX untuk melihat jalur di peta.'
+                          : 'Coba kata kunci lain.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
