@@ -9,6 +9,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../domain/saved_route.dart';
+import 'google_directions_map.dart';
 import 'route_guidance_cubit.dart';
 import 'routes_screen.dart';
 
@@ -75,11 +76,18 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            RouteMapPreview(
-              points: widget.route.points,
-              currentPosition: positionPoint,
-              height: null,
-            ),
+            widget.route.source.startsWith('Google Maps')
+                ? GoogleDirectionsMap(
+                    route: widget.route,
+                    currentPosition: positionPoint,
+                    height: null,
+                  )
+                : RouteMapPreview(
+                    points: widget.route.points,
+                    source: widget.route.source,
+                    currentPosition: positionPoint,
+                    height: null,
+                  ),
             Positioned(
               top: 12,
               left: 16,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +12,7 @@ import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
 import '../domain/saved_route.dart';
+import 'google_directions_map.dart';
 import 'routes_cubit.dart';
 import 'explore_map.dart';
 
@@ -22,7 +24,8 @@ class RoutesScreen extends StatefulWidget {
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
-  final _searchController = TextEditingController();
+  final _destinationController = TextEditingController();
+  final _destinationFocusNode = FocusNode();
   bool _loaded = false;
 
   @override
@@ -35,7 +38,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _destinationController.dispose();
+    _destinationFocusNode.dispose();
     super.dispose();
   }
 
@@ -54,154 +58,302 @@ class _RoutesScreenState extends State<RoutesScreen> {
         builder: (context, state) {
           final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
           return LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Jelajahi',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Lihat peta dan siapkan rute perjalanan.',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
+            builder: (context, constraints) {
+              final displayedRoutes = [
+                ...state.routes,
+                if (state.plannedRoute != null) state.plannedRoute!,
+              ];
+              final plannedGoogleRoute = state.plannedRoute;
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (plannedGoogleRoute != null)
+                    GoogleDirectionsMap(
+                      route: plannedGoogleRoute,
+                      height: constraints.maxHeight,
+                    )
+                  else
+                    ExploreMap(
+                      routes: state.routes,
+                      height: constraints.maxHeight,
                     ),
-                    IconButton.filledTonal(
-                      tooltip: 'Impor GPX',
-                      onPressed: state.isLoading
-                          ? null
-                          : () => context.read<RoutesCubit>().importGpx(),
-                      icon: const Icon(Icons.file_upload_outlined),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ExploreMap(
-                  routes: state.routes,
-                  height: (constraints.maxHeight * 0.38)
-                      .clamp(260.0, 380.0)
-                      .toDouble(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (value) =>
-                            context.read<RoutesCubit>().search(value),
-                        decoration: InputDecoration(
-                          hintText: 'Cari rute tersimpan',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: IconButton(
-                            tooltip: 'Hapus pencarian',
-                            onPressed: () {
-                              _searchController.clear();
-                              context.read<RoutesCubit>().search('');
-                            },
-                            icon: const Icon(Icons.clear),
-                          ),
-                          border: const OutlineInputBorder(),
+                  Positioned(
+                    top: 12,
+                    left: 16,
+                    right: 16,
+                    child: _buildMapSearch(state),
+                  ),
+                  if (displayedRoutes.isNotEmpty || state.isLoading)
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      bottom: 12,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: constraints.maxHeight * 0.38,
                         ),
+                        child: _buildResults(state, unitSystem),
                       ),
+                    )
+                  else
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 20,
+                      child: _buildEmptyMapCard(),
                     ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Rute tersimpan',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    Text(
-                      '${state.routes.length}',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _buildResults(state, unitSystem),
-            ],
-          ),
-          ));
+                ],
+              );
+            },
+          );
         },
       ),
     );
   }
 
-  Widget _buildResults(RoutesState state, UnitSystem unitSystem) {
-    if (state.isLoading) return const FeatureStateView.loading();
-    if (state.routes.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildMapSearch(RoutesState state) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 4,
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.my_location, color: colors.primary, size: 20),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Lokasi saya',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Tambah atau impor rute',
+                  onPressed: state.isLoading || state.isPlanning
+                      ? null
+                      : _showAddRouteOptions,
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+            const Divider(height: 1),
+            Row(
+              children: [
+                Icon(Icons.place_outlined, color: colors.error, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _destinationController,
+                    focusNode: _destinationFocusNode,
+                    enabled: !state.isPlanning,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _searchGoogleRoute(),
+                    decoration: const InputDecoration(
+                      hintText: 'Cari tujuan atau alamat',
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                IconButton.filled(
+                  tooltip: 'Cari rute sepeda',
+                  onPressed: state.isPlanning ? null : _searchGoogleRoute,
+                  icon: state.isPlanning
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.search),
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 30, top: 2),
+                child: Text(
+                  'Rute sepeda · Google Maps',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyMapCard() => Card(
+    elevation: 3,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
-              Icon(Icons.route_outlined, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      state.query.isEmpty
-                          ? 'Belum ada rute tersimpan'
-                          : 'Rute tidak ditemukan',
-                      style: Theme.of(context).textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      state.query.isEmpty
-                          ? 'Impor file GPX untuk melihat jalur di peta.'
-                          : 'Coba kata kunci lain.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+              const Icon(Icons.route_outlined),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Belum ada rute tersimpan',
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Cari tujuan untuk membuat rute sepeda, atau impor jalur GPX.',
+            textAlign: TextAlign.start,
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _searchGoogleRoute() async {
+    final destination = _destinationController.text.trim();
+    if (destination.length < 2) {
+      _showMessage('Masukkan nama tempat atau alamat tujuan.');
+      return;
+    }
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _showMessage('Aktifkan layanan lokasi untuk mencari rute dari lokasimu.');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (!mounted) return;
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showMessage('Izin lokasi diperlukan untuk menentukan titik awal rute.');
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
         ),
       );
+      if (!mounted) return;
+      await context.read<RoutesCubit>().planCyclingRoute(
+        originLatitude: position.latitude,
+        originLongitude: position.longitude,
+        destination: destination,
+      );
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Lokasi tidak dapat diperoleh. Coba lagi di area terbuka.');
+      }
     }
+  }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      itemCount: state.routes.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) => _RouteTile(
-        route: state.routes[index],
-        unitSystem: unitSystem,
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _showAddRouteOptions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.file_upload_outlined),
+              title: const Text('Impor rute GPX'),
+              onTap: () => Navigator.pop(context, 'gpx'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('Cari rute dari lokasiku'),
+              onTap: () => Navigator.pop(context, 'search'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'gpx') {
+      await context.read<RoutesCubit>().importGpx();
+    } else if (action == 'search') {
+      _destinationFocusNode.requestFocus();
+    }
+  }
+
+  Widget _buildResults(RoutesState state, UnitSystem unitSystem) {
+    final routes = [
+      ...state.routes,
+      if (state.plannedRoute != null) state.plannedRoute!,
+    ];
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 5,
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    state.plannedRoute == null
+                        ? 'Rute tersimpan'
+                        : 'Rute ditemukan',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Tutup daftar rute',
+                  onPressed: state.plannedRoute == null
+                      ? null
+                      : context.read<RoutesCubit>().clearPlannedRoute,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          if (state.isLoading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: FeatureStateView.loading(),
+            )
+          else if (routes.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 18),
+              child: Text(
+                'Belum ada rute tersimpan. Impor GPX atau cari tujuan di peta.',
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                itemCount: routes.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 4),
+                itemBuilder: (context, index) => _RouteTile(
+                  route: routes[index],
+                  unitSystem: unitSystem,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -319,12 +471,19 @@ class _RouteTile extends StatelessWidget {
               Text(
                 route.points.isEmpty
                     ? 'Geometri belum tersimpan untuk rute ini.'
-                    : 'Jejak GPX lokal · ${route.points.length} titik · tersedia offline',
+                    : route.source == 'GPX lokal'
+                    ? 'Jejak GPX lokal · ${route.points.length} titik · tersedia offline'
+                    : 'Rute online · ${route.points.length} titik · perlu koneksi',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
               if (route.points.length >= 2)
-                RouteMapPreview(points: route.points)
+                route.source.startsWith('Google Maps')
+                    ? GoogleDirectionsMap(route: route, height: 220)
+                    : RouteMapPreview(
+                        points: route.points,
+                        source: route.source,
+                      )
               else
                 const SizedBox(
                   height: 180,
@@ -378,12 +537,14 @@ class _RouteTile extends StatelessWidget {
 class RouteMapPreview extends StatefulWidget {
   const RouteMapPreview({
     required this.points,
+    this.source = 'GPX lokal',
     this.currentPosition,
     this.height = 220,
     super.key,
   });
 
   final List<RoutePoint> points;
+  final String source;
   final RoutePoint? currentPosition;
   final double? height;
 
@@ -407,7 +568,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
 
     return Semantics(
       label:
-          'Peta OpenStreetMap dengan jejak GPX lokal ${widget.points.length} titik'
+          'Peta OpenStreetMap dengan ${widget.source == 'GPX lokal' ? 'jejak' : 'jalur'} ${widget.source} ${widget.points.length} titik'
           '${position == null ? '' : ' dan posisi GPS'}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.height == null ? 0 : 20),

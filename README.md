@@ -62,7 +62,28 @@ Pilih **Sistem**, **Terang**, atau **Gelap** di bagian **Profil → Tema tampila
 4. Ketuk rute yang tersimpan untuk melihat bentuk jalur, jarak, dan elevasi yang tersedia.
 5. Pilih **Ikuti rute** untuk melihat jalur bersama posisi GPS, progres, jarak tersisa, dan peringatan bila fix GPS akurat menunjukkan kamu keluar jalur.
 
-Beranda dan tab Jelajah menampilkan basemap OpenStreetMap online, dengan jalur GPX dan posisi GPS di atasnya jika tersedia. Tombol lokasi meminta izin hanya saat digunakan; tanpa izin, peta tetap dapat digeser dan diperbesar di pusat awal Jakarta. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Peta menyediakan status tile dan tombol muat ulang, serta atribusi OpenStreetMap. Pencarian tempat/rute, petunjuk belokan, dan reroute belum tersedia karena memerlukan provider/service terpisah. Izin lokasi dan layanan GPS perangkat diperlukan untuk posisi langsung.
+Beranda dan tab Jelajah menampilkan basemap OpenStreetMap online, dengan jalur GPX dan posisi GPS di atasnya jika tersedia. Tombol lokasi meminta izin hanya saat digunakan; tanpa izin, peta tetap dapat digeser dan diperbesar di sekitar Yogyakarta. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Peta menyediakan status tile dan tombol muat ulang, serta atribusi OpenStreetMap. Izin lokasi dan layanan GPS perangkat diperlukan untuk posisi langsung.
+
+### Pencarian rute sepeda Google Maps
+
+Di **Jelajah**, cari nama tempat/alamat atau gunakan tombol **+ → Cari rute dari lokasiku**. Aplikasi mengambil posisi GPS saat ini, lalu backend `cycling-route` meminta Directions API dengan mode bersepeda. Rute online divisualisasikan di Google Maps SDK (bukan OpenStreetMap); GPX tetap ditampilkan di OpenStreetMap. Rute online hanya sementara dan tidak disimpan sebagai GPX. Fitur ini menghitung jalur, bukan navigasi belokan demi belokan.
+
+Konfigurasi yang diperlukan sebelum pencarian rute aktif:
+
+1. Aktifkan **Directions API** dan **Maps SDK for Android/iOS** serta billing pada Google Cloud project. Siapkan dua API key terpisah: key Directions server-side dan key SDK aplikasi yang dibatasi untuk API/package/bundle ID platform masing-masing.
+2. Atur `GOOGLE_MAPS_API_KEY` sebagai secret Supabase untuk Directions API, lalu deploy Edge Function:
+
+   ```sh
+   supabase secrets set GOOGLE_MAPS_API_KEY="<server-side Directions API key>"
+   supabase functions deploy cycling-route
+   ```
+
+   Function memverifikasi custom JWT, membatasi setiap akun hingga 30 pencarian per hari, dan tidak menyimpan geometri Google.
+3. Untuk Android, tambahkan `GOOGLE_MAPS_API_KEY=<Android SDK key>` ke `android/local.properties` (file lokal, jangan commit), atau set variabel lingkungan `GOOGLE_MAPS_API_KEY` saat build. Batasi key dengan package ID aplikasi dan SHA-1 signing certificate.
+4. Untuk iOS, buat `ios/Flutter/Local.xcconfig` dari lokal dan isi `GOOGLE_MAPS_API_KEY = <iOS SDK key>`. File tersebut diabaikan Git. Batasi key dengan bundle ID aplikasi.
+5. Jalankan ulang build aplikasi setelah mengatur SDK key. Jangan gunakan server-side key sebagai key aplikasi dan jangan commit key.
+
+Tanpa kedua konfigurasi key dan billing yang valid, peta Google tidak dapat memuat tile atau backend tidak dapat menghitung rute; GPX lokal tetap dapat digunakan.
 
 Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. Tab profil dan jelajah dapat dibuka langsung dari dashboard.
 
