@@ -40,6 +40,7 @@ class SavedRoutes extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get source => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
   DateTimeColumn get updatedAt => dateTime()();
   RealColumn get distanceMeters => real().nullable()();
   RealColumn get elevationGainMeters => real().nullable()();
@@ -62,6 +63,15 @@ class ReactionTestResults extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class StrategyGameResults extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get playedAt => dateTime()();
+  TextColumn get resultJson => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     AppPreferences,
@@ -69,6 +79,7 @@ class ReactionTestResults extends Table {
     TelemetryPoints,
     SavedRoutes,
     ReactionTestResults,
+    StrategyGameResults,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -77,7 +88,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -92,6 +103,12 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await migrator.createTable(reactionTestResults);
+      }
+      if (from < 5) {
+        await migrator.addColumn(savedRoutes, savedRoutes.description);
+      }
+      if (from < 6) {
+        await migrator.createTable(strategyGameResults);
       }
     },
   );

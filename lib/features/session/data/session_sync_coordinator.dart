@@ -14,6 +14,7 @@ class SessionSyncCoordinator {
   Future<void> syncSummary(
     String sessionId, {
     required bool consented,
+    bool Function()? shouldContinue,
   }) async {
     if (!consented) {
       throw StateError('Persetujuan sinkronisasi diperlukan.');
@@ -32,9 +33,21 @@ class SessionSyncCoordinator {
 
     await repository.updateSyncStatus(sessionId, 'syncing');
     try {
+      if (shouldContinue != null && !shouldContinue()) {
+        await repository.updateSyncStatus(sessionId, 'pending');
+        return;
+      }
       await gateway.uploadSummary(summary);
+      if (shouldContinue != null && !shouldContinue()) {
+        await repository.updateSyncStatus(sessionId, 'pending');
+        return;
+      }
       await repository.updateSyncStatus(sessionId, 'synced');
     } catch (_) {
+      if (shouldContinue != null && !shouldContinue()) {
+        await repository.updateSyncStatus(sessionId, 'pending');
+        return;
+      }
       await repository.updateSyncStatus(sessionId, 'failed');
       rethrow;
     }

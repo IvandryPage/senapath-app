@@ -9,7 +9,7 @@ import '../../features/routes/presentation/route_guidance_screen.dart';
 import '../../features/routes/domain/saved_route.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
-import '../../features/reaction/presentation/reaction_test_screen.dart';
+import '../../features/strategy_game/presentation/strategy_game_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
 import '../../features/authentication/presentation/cloud_account_screen.dart';
@@ -17,6 +17,8 @@ import '../../features/authentication/presentation/cloud_account_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/assistant/presentation/ai_chat_cubit.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
+import '../../features/leaderboard/presentation/leaderboard_screen.dart';
+import '../../features/session/domain/ride_session.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -48,8 +50,8 @@ final appRouter = GoRouter(
               builder: (context, state) => const OverviewScreen(),
               routes: [
                 GoRoute(
-                  path: 'reaction',
-                  builder: (context, state) => const ReactionTestScreen(),
+                  path: 'strategy',
+                  builder: (context, state) => const StrategyGameScreen(),
                 ),
                 GoRoute(
                   path: 'assistant',
@@ -58,6 +60,12 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'feedback',
                   builder: (context, state) => const FeedbackScreen(),
+                ),
+                GoRoute(
+                  path: 'leaderboard',
+                  builder: (context, state) => LeaderboardScreen(
+                    summary: state.extra as RideSessionSummary?,
+                  ),
                 ),
                 GoRoute(
                   path: 'account',
@@ -137,9 +145,10 @@ class _AppShellState extends State<_AppShell> {
     }
 
     final title = switch (widget.location) {
-      '/reaction' => 'Tes Reaksi',
+      '/strategy' => 'Strategi Rute',
       '/assistant' => 'Chat AI',
       '/feedback' => 'Saran & kesan',
+      '/leaderboard' => 'Papan Peringkat',
       '/account' => 'Akun online',
       '/routes/navigation' => 'Panduan Rute',
       _ => _destinations[widget.navigationShell.currentIndex].label,

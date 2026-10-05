@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../../core/units/unit_settings_cubit.dart';
+import '../../../core/units/unit_system.dart';
 import '../domain/saved_route.dart';
 import 'route_guidance_cubit.dart';
 import 'routes_screen.dart';
@@ -61,6 +63,7 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
     },
     child: BlocBuilder<RouteGuidanceCubit, RouteGuidanceState>(
       builder: (context, state) {
+        final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
         final current = state.currentPosition;
         final positionPoint = current == null
             ? null
@@ -112,7 +115,10 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
                       label: 'Jarak tersisa',
                       value: state.distanceRemainingMeters == null
                           ? 'Menunggu GPS'
-                          : _formatDistance(state.distanceRemainingMeters!),
+                          : _formatDistance(
+                              state.distanceRemainingMeters!,
+                              unitSystem,
+                            ),
                     ),
                   ),
                   Expanded(
@@ -162,9 +168,16 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
     return 'Ikuti jalur GPX';
   }
 
-  String _formatDistance(double meters) => meters >= 1000
-      ? '${(meters / 1000).toStringAsFixed(1)} km'
-      : '${NumberFormat('0').format(meters)} m';
+  String _formatDistance(double meters, UnitSystem unitSystem) {
+    if (unitSystem == UnitSystem.metric) {
+      return meters >= 1000
+          ? '${(meters / 1000).toStringAsFixed(1)} km'
+          : '${NumberFormat('0').format(meters)} m';
+    }
+    return meters >= 1609.344
+        ? '${(meters / 1609.344).toStringAsFixed(1)} mi'
+        : '${NumberFormat('0').format(meters * 3.28084)} ft';
+  }
 }
 
 class _GuidanceMetric extends StatelessWidget {

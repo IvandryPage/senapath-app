@@ -187,13 +187,13 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 | Biometrik       | `local_auth`                                                         | Tetapkan fallback aman; jangan perlakukan sebagai server authentication.                                   |
 | Background      | `flutter_background_service` atau mekanisme platform sesuai use case | Uji Android/iOS; tetapkan batas layanan dan perilaku setelah process kill.                                 |
 | Peta            | `flutter_map` + OpenStreetMap tiles                                  | Basemap online GPX dan atribusi sudah digunakan; evaluasi provider skala produksi dan kebijakan tile/offline sebelum rilis publik. |
-| Wearable        | Provider API/SDK terpilih                                            | Pastikan akses dan izin provider; tentukan import historis versus live.                                    |
+| Wearable        | Garmin Health API langsung                                           | Adapter dan consent dibuat setelah approval partner serta credentials resmi tersedia; jangan menganggap feed real-time. |
 | AI              | Backend REST ke provider LLM                                         | Jangan panggil provider ber-secret langsung dari aplikasi.                                                 |
-| Blockchain      | Backend/relayer atau wallet pengguna; RPC client                     | Putuskan custody key, biaya, jaringan, canonical hash, consent, dan retry.                                 |
+| Blockchain      | EVM Polygon Amoy untuk staging; relayer server-side                   | Deploy/verifikasi kontrak dan transaksi testnet; produksi/mainnet dan batas biaya belum diputuskan. Key relayer hanya di secret manager. |
 | Cloud database  | Supabase dipilih                                                     | Konfigurasikan URL/key, schema/migrasi SQL, RLS, backup, dan strategi Drift outbox sebelum sync client.    |
 | Supabase Auth   | Google OAuth + email/password gateway                                | OAuth deep link `senapath://login-callback/` terdaftar untuk Android/iOS; aktifkan Google provider, credential OAuth, dan redirect allow-list di Supabase sebelum uji live. Token/session tetap terpisah dari local device unlock. |
 | Cloud storage   | Belum diputuskan                                                     | Tentukan apakah foto/media perlu Supabase Storage, bucket private, policy, dan signed URL.                 |
-| Edge Functions  | Belum diputuskan                                                     | Evaluasi untuk operasi SOS/provider yang memerlukan secret; jangan simpan service-role key di client.      |
+| Edge Functions  | Supabase Edge Functions                                              | Gunakan untuk integrasi yang memerlukan provider/secret; leaderboard memakai fungsi PostgreSQL `SECURITY DEFINER` dengan tabel privat, bukan akses tabel langsung dari client. |
 | Push/notifikasi | Lokal dan provider push terpilih                                     | Tentukan platform, consent, payload minimal, dan status delivery.                                          |
 | Pengujian/CI    | Flutter test, analyzer, pipeline CI                                  | Tentukan provider CI, build signing, device matrix, dan quality gates.                                     |
 
@@ -203,7 +203,7 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 2. **Core offline:** implementasikan autentikasi lokal, izin/kesiapan, sesi, penyimpanan telemetri, pemulihan setelah restart, ringkasan, dan formatter unit.
 3. **Keandalan:** tambahkan outbox/idempotensi, sinkronisasi, status dan retry; uji offline, storage, background, dan konflik.
 4. **Integrasi perangkat dan peta:** pilih satu provider wearable; validasi basemap OpenStreetMap MVP, evaluasi provider tile skala produksi, serta lisensi, izin, dan kebutuhan offline.
-5. **Layanan tambahan:** kurs, cuaca, AI, SOS remote, feedback, blockchain, dan leaderboard setelah provider, risiko privasi, biaya, serta alur consent disetujui.
+5. **Layanan tambahan:** kurs, cuaca, AI, SOS remote, feedback, blockchain, serta leaderboard setelah provider, risiko privasi, biaya, dan alur consent disetujui. Leaderboard menggunakan fungsi PostgreSQL terbatas pada pengguna terautentikasi dan ringkasan sesi yang disinkronkan.
 6. **Release hardening:** uji perangkat nyata, aksesibilitas, baterai, keamanan, pemulihan data, dan skenario jaringan/izin yang gagal.
 
 Setiap tahap tetap dikerjakan sebagai Increment Scrum; urutan ini bukan fase waterfall dan dapat disesuaikan melalui Product Backlog.
@@ -265,3 +265,12 @@ Shell Sprint 1 tidak melakukan request jaringan dan tidak mengumpulkan data peng
 | Cloud data policy  | Target setiap baris milik akun melalui `user_id` dan RLS.                                                                                                                                                                                       | Jangan mengaktifkan akses client sebelum policy diuji dengan lebih dari satu identitas. `service_role` hanya server-side.                                                                                                                                                        |
 
 **Batas sinkronisasi saat ini:** hanya ringkasan sesi selesai yang diunggah setelah persetujuan eksplisit untuk pengiriman tersebut. Koordinat dan telemetri mentah tidak dikirim. Upsert menggunakan `(user_id, session_id)`; status lokal menjadi `synced` hanya setelah respons berhasil, atau `failed` bila upload gagal. Terapkan migrasi dan uji RLS dengan akun berbeda pada project staging sebelum menyatakan cloud sync siap. Drift tetap menyimpan data lokal; retry manual tersedia dari UI. Sync otomatis/outbox umum, konflik, backup, dan penghapusan/pemulihan akun tetap perlu dirancang serta diverifikasi. URL Supabase dan publishable key masuk konfigurasi lokal/CI; service-role key tidak pernah dimasukkan ke aplikasi.
+
+## 18. Keputusan Provider dan Batas Integrasi
+
+| Area | Keputusan | Prasyarat dan batas implementasi |
+| --- | --- | --- |
+| SOS remote | Tidak dipilih; pertahankan handoff manual melalui telepon/draft WhatsApp. | UI hanya boleh menyatakan handoff dibuka atau gagal dibuka; bukan terkirim/diterima. Sensor incident detection belum boleh aktif otomatis sebelum validasi keselamatan. |
+| Proof ledger | Polygon Amoy untuk staging, melalui relayer server-side. | Hash ringkasan saja; kontrak, RPC, retry, dan verifikasi testnet harus dibuat. Produksi/mainnet belum diputuskan. |
+| Leaderboard | Supabase/Postgres + Edge Function, opt-in, alias publik, skor permainan saja. | RLS dan validasi server-side wajib; jangan publikasikan identitas akun, lokasi, atau telemetri. |
+| Garmin | Garmin Health API langsung. | Menunggu approval partner dan credentials. Sampai itu ada, tampilkan provider belum tersedia dan jangan meniru autentikasi. |

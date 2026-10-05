@@ -147,11 +147,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> checkReadiness({bool requestLocationPermission = false}) async {
+  Future<void> checkReadiness({
+    bool requestLocationPermission = false,
+    bool requestNotificationPermission = false,
+  }) async {
     emit(state.copyWith(isCheckingReadiness: true, clearMessage: true));
     try {
       final readiness = await readinessChecker.check(
         requestLocationPermission: requestLocationPermission,
+        requestNotificationPermission: requestNotificationPermission,
       );
       emit(
         state.copyWith(
@@ -175,6 +179,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       await readinessChecker.openLocationSettings();
     } catch (_) {
       _setMessage('Pengaturan izin perangkat tidak dapat dibuka.');
+    }
+  }
+
+  Future<void> openNotificationSettings() async {
+    try {
+      await readinessChecker.openNotificationSettings();
+    } catch (_) {
+      _setMessage('Pengaturan notifikasi perangkat tidak dapat dibuka.');
     }
   }
 
@@ -282,10 +294,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> syncSummary(
-    String sessionId, {
-    required bool consented,
-  }) async {
+  Future<void> syncSummary(String sessionId, {required bool consented}) async {
     final coordinator = syncCoordinator;
     if (coordinator == null) {
       _setMessage('Sinkronisasi Supabase belum dikonfigurasi.');
@@ -294,14 +303,13 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     if (state.syncingSessionId != null) return;
 
     final generation = ++_syncGeneration;
-    emit(
-      state.copyWith(
-        syncingSessionId: sessionId,
-        clearMessage: true,
-      ),
-    );
+    emit(state.copyWith(syncingSessionId: sessionId, clearMessage: true));
     try {
-      await coordinator.syncSummary(sessionId, consented: consented);
+      await coordinator.syncSummary(
+        sessionId,
+        consented: consented,
+        shouldContinue: () => !isClosed && generation == _syncGeneration,
+      );
       if (isClosed || generation != _syncGeneration) return;
       final history = await repository.loadCompletedSessions();
       if (isClosed || generation != _syncGeneration) return;
@@ -326,8 +334,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           completedSessions: history,
           summary: summary,
           clearSyncingSession: true,
-          message:
-              'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal; coba lagi saat online.',
+          message: 'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal; coba lagi saat online.',
         ),
       );
     }

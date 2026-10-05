@@ -17,6 +17,7 @@ class RouteRecord {
     required this.source,
     required this.updatedAt,
     required this.availability,
+    this.description = '',
     this.distanceMeters,
     this.elevationGainMeters,
     this.poiSummary = '',
@@ -28,6 +29,7 @@ class RouteRecord {
   final String source;
   final DateTime updatedAt;
   final String availability;
+  final String description;
   final double? distanceMeters;
   final double? elevationGainMeters;
   final String poiSummary;

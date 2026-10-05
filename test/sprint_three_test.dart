@@ -215,6 +215,33 @@ void main() {
       expect(row.syncStatus, 'failed');
     },
   );
+
+  test('does not mark a cancelled upload as synced', () async {
+    final startedAt = DateTime.utc(2026, 9, 30, 15);
+    final session = await repository.start(startedAt);
+    await repository.finish(
+      session.id,
+      startedAt.add(const Duration(minutes: 2)),
+    );
+    var requestIsCurrent = true;
+    final gateway = _FakeSessionSyncGateway()
+      ..afterUpload = () => requestIsCurrent = false;
+    final coordinator = SessionSyncCoordinator(
+      repository: repository,
+      gateway: gateway,
+    );
+
+    await coordinator.syncSummary(
+      session.id,
+      consented: true,
+      shouldContinue: () => requestIsCurrent,
+    );
+
+    final row = await (database.select(
+      database.rideSessions,
+    )..where((item) => item.id.equals(session.id))).getSingle();
+    expect(row.syncStatus, 'pending');
+  });
 }
 
 class _MemorySecureVault implements SecureVault {
@@ -239,6 +266,7 @@ class _FakeSessionSyncGateway implements SessionSyncGateway {
   bool shouldFail = false;
   int uploadCalls = 0;
   RideSessionSummary? uploadedSummary;
+  void Function()? afterUpload;
 
   @override
   bool get isConfigured => true;
@@ -251,5 +279,6 @@ class _FakeSessionSyncGateway implements SessionSyncGateway {
     uploadCalls++;
     if (shouldFail) throw StateError('Simulated network failure.');
     uploadedSummary = summary;
+    afterUpload?.call();
   }
 }

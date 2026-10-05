@@ -1,9 +1,13 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
+import 'package:senapath/core/units/unit_settings_cubit.dart';
+import 'package:senapath/core/units/unit_settings_repository.dart';
+import 'package:senapath/core/units/unit_system.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
@@ -33,13 +37,19 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     await cubit.load();
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    await unitCubit.load();
     addTearDown(cubit.close);
+    addTearDown(unitCubit.close);
     addTearDown(database.close);
 
     await tester.pumpWidget(
       BlocProvider.value(
         value: cubit,
-        child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+        child: BlocProvider.value(
+          value: unitCubit,
+          child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -53,8 +63,50 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('OpenStreetMap contributors'), findsOneWidget);
+    expect(find.byType(RichAttributionWidget), findsOneWidget);
     expect(find.text('Ikuti rute'), findsOneWidget);
+  });
+
+  testWidgets('route distance and elevation respect imperial units', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
+    await repository.saveImportedRoute(
+      name: 'Imperial route',
+      points: const [
+        (latitude: -6.2, longitude: 106.8, elevation: 10),
+        (latitude: -6.22, longitude: 106.82, elevation: 24),
+      ],
+    );
+    final routeCubit = RoutesCubit(
+      repository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    await routeCubit.load();
+    await unitCubit.load();
+    await unitCubit.select(UnitSystem.imperial);
+    addTearDown(routeCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: routeCubit,
+        child: BlocProvider.value(
+          value: unitCubit,
+          child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('mi'), findsOneWidget);
+    expect(find.textContaining('ft'), findsOneWidget);
   });
 }
 

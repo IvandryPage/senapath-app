@@ -30,13 +30,15 @@ import 'features/session/data/supabase_session_sync_gateway.dart';
 import 'features/session/presentation/session_cubit.dart';
 import 'features/logistics/data/logistics_repository.dart';
 import 'features/logistics/presentation/logistics_cubit.dart';
-import 'features/reaction/data/reaction_test_repository.dart';
-import 'features/reaction/presentation/reaction_test_cubit.dart';
+import 'features/strategy_game/data/strategy_game_repository.dart';
+import 'features/strategy_game/presentation/strategy_game_cubit.dart';
 import 'features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'features/assistant/presentation/ai_chat_cubit.dart';
 import 'features/feedback/data/feedback_repository.dart';
 import 'features/feedback/data/supabase_feedback_gateway.dart';
 import 'features/feedback/presentation/feedback_cubit.dart';
+import 'features/leaderboard/data/supabase_leaderboard_gateway.dart';
+import 'features/leaderboard/presentation/leaderboard_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,11 +94,16 @@ Future<void> main() async {
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
-      reactionTestCubit: ReactionTestCubit(ReactionTestRepository(database)),
+      strategyGameCubit: StrategyGameCubit(
+        StrategyGameRepository(database),
+      ),
       aiChatCubit: AiChatCubit(SupabaseAiChatGateway(supabaseClient)),
       feedbackCubit: FeedbackCubit(
         FeedbackRepository(secureVault),
         SupabaseFeedbackGateway(supabaseClient),
+      ),
+      leaderboardCubit: LeaderboardCubit(
+        SupabaseLeaderboardGateway(supabaseClient),
       ),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,

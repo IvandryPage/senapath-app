@@ -88,10 +88,18 @@ class OverviewScreen extends StatelessWidget {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(Icons.flash_on_outlined, color: colorScheme.primary),
-          title: const Text('Tes reaksi'),
-          subtitle: const Text('Latihan respons visual dua menit'),
+          title: const Text('Strategi rute'),
+          subtitle: const Text('Tantangan strategi berbasis skenario'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/reaction'),
+          onTap: () => context.push('/strategy'),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.leaderboard_outlined, color: colorScheme.primary),
+          title: const Text('Papan peringkat'),
+          subtitle: const Text('Peringkat mingguan bersepeda · opsional'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/leaderboard'),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,

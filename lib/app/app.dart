@@ -10,8 +10,9 @@ import '../features/authentication/presentation/device_auth_cubit.dart';
 import '../features/profile/presentation/profile_cubit.dart';
 import '../features/routes/presentation/routes_cubit.dart';
 import '../features/logistics/presentation/logistics_cubit.dart';
-import '../features/reaction/presentation/reaction_test_cubit.dart';
+import '../features/strategy_game/presentation/strategy_game_cubit.dart';
 import '../features/feedback/presentation/feedback_cubit.dart';
+import '../features/leaderboard/presentation/leaderboard_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_settings_cubit.dart';
@@ -27,9 +28,10 @@ class SenapathApp extends StatelessWidget {
     required this.unitSettingsCubit,
     required this.sessionCubit,
     required this.logisticsCubit,
-    required this.reactionTestCubit,
+    required this.strategyGameCubit,
     required this.aiChatCubit,
     required this.feedbackCubit,
+    required this.leaderboardCubit,
     super.key,
   });
 
@@ -42,9 +44,10 @@ class SenapathApp extends StatelessWidget {
   final UnitSettingsCubit unitSettingsCubit;
   final RideSessionCubit sessionCubit;
   final LogisticsCubit logisticsCubit;
-  final ReactionTestCubit reactionTestCubit;
+  final StrategyGameCubit strategyGameCubit;
   final AiChatCubit aiChatCubit;
   final FeedbackCubit feedbackCubit;
+  final LeaderboardCubit leaderboardCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +62,10 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: unitSettingsCubit),
         BlocProvider.value(value: sessionCubit),
         BlocProvider.value(value: logisticsCubit),
-        BlocProvider.value(value: reactionTestCubit),
+        BlocProvider.value(value: strategyGameCubit),
         BlocProvider.value(value: aiChatCubit),
         BlocProvider.value(value: feedbackCubit),
+        BlocProvider.value(value: leaderboardCubit),
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) =>
@@ -69,6 +73,7 @@ class SenapathApp extends StatelessWidget {
         listener: (context, state) {
           aiChatCubit.clearConversation();
           sessionCubit.cancelPendingSync();
+          leaderboardCubit.clearForAccountChange();
         },
         child: BlocBuilder<ThemeSettingsCubit, ThemeSettingsState>(
           builder: (context, state) => MaterialApp.router(

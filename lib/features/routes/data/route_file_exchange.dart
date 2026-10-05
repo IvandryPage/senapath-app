@@ -3,21 +3,23 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 
 import '../../session/data/session_file_service.dart';
-import '../../session/domain/ride_session.dart';
-
 class RouteFileExchange {
   const RouteFileExchange(this.fileService);
 
   final SessionFileService fileService;
 
-  Future<List<TelemetryLocation>?> importGpx() async {
+  Future<GpxImport?> importGpx() async {
     final file = await openFile(
       acceptedTypeGroups: const [
         XTypeGroup(label: 'GPX route', extensions: ['gpx']),
       ],
     );
     if (file == null) return null;
-    return fileService.parseGpx(await file.readAsString());
+    final size = await file.length();
+    if (size > SessionFileService.maximumGpxBytes) {
+      throw const FormatException('Ukuran GPX melebihi batas 10 MB.');
+    }
+    return fileService.parseGpxDocument(await file.readAsString());
   }
 
   Future<bool> exportText({

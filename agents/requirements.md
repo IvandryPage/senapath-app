@@ -61,19 +61,21 @@ Cadence/RPM dan lean angle hanya boleh ditampilkan sebagai pengukuran/estimasi a
 Sistem harus dapat memberikan peringatan audio lokal dan, bila diizinkan perangkat, notifikasi untuk kondisi yang relevan dengan sesi, seperti hidrasi atau perubahan rute/cuaca. Pengguna harus dapat mengatur jenis dan volume/frekuensi peringatan. Peringatan lokal yang sudah dijadwalkan harus tetap berfungsi tanpa jaringan; informasi terbaru dari layanan online harus menampilkan keterbatasan saat offline.
 
 **FR-10 — Deteksi insiden dan SOS**  
-Sistem harus mendeteksi pola gerakan yang berpotensi menunjukkan insiden berdasarkan sensor yang tersedia, lalu menampilkan alarm dan hitung mundur 15 detik. Pengguna harus dapat membatalkan hitung mundur. Jika tidak dibatalkan, sistem harus mencoba mengirim SOS beserta lokasi terakhir yang tersedia kepada kontak darurat dan menampilkan status pengiriman. Pengguna juga harus dapat memicu SOS secara manual.
+Sistem dapat mendeteksi pola gerakan yang berpotensi menunjukkan insiden berdasarkan sensor yang tersedia, lalu menampilkan alarm dan hitung mundur 15 detik. Pengguna harus dapat membatalkannya dan dapat memicu SOS secara manual. Keputusan produk saat ini adalah mempertahankan handoff manual melalui telepon atau draft WhatsApp; aplikasi tidak mengirimkan pesan otomatis dan tidak mengklaim pesan terkirim/diterima. Otomatisasi deteksi tetap nonaktif sampai algoritme divalidasi dan kontak/izin yang diperlukan tersedia.
 
-**Kriteria penerimaan:** pembatalan menghentikan pengiriman SOS; kegagalan jaringan ditampilkan dengan jelas; deteksi sensor tidak boleh dinyatakan sebagai kepastian bahwa kecelakaan benar-benar terjadi.
+**Kriteria penerimaan:** pembatalan menghentikan handoff; UI membedakan handoff berhasil dibuka dari pesan yang benar-benar dikirim; kegagalan membuka aplikasi/channel ditampilkan; deteksi sensor tidak boleh dinyatakan sebagai kepastian kecelakaan.
 
 ### C. Istirahat dan Evaluasi Refleks
 
-**FR-11 — Mini game reaksi pengereman**  
-Sistem harus menyediakan mini game reaksi dengan durasi sesi dua menit, indikator visual yang meminta respons, dan pencatatan skor seperti waktu reaksi serta jumlah respons benar/salah. Setiap hasil harus otomatis disimpan di database lokal bersama stempel waktu agar tetap tersedia offline dan dapat digunakan untuk evaluasi tren di FR-12. Skor dapat dibandingkan dengan sesi pengguna sebelumnya.
+**FR-11 — Tantangan strategi rute/balap**
 
-**Kriteria penerimaan:** hasil dan waktu pencatatannya tetap tersedia setelah aplikasi ditutup dan dibuka kembali; hasil yang belum tersinkron tidak hilang saat offline.
+Mini-game reaksi visual diganti dengan tantangan strategi rute/balap berbasis skenario. Pengguna memilih tindakan dari beberapa opsi, menerima penjelasan trade-off, dan mendapat skor latihan yang disimpan lokal bersama waktu bermain. Game hanya dapat dimainkan saat tidak ada sesi yang sedang merekam atau dijeda; game tidak menggunakan input real-time saat bersepeda dan bukan saran keselamatan, medis, atau performa yang tervalidasi.
 
-**FR-12 — Evaluasi AI atas skor game**  
-Jika layanan AI tersedia, sistem dapat merangkum tren skor dan memberi pengingat untuk beristirahat. Skor mini game tidak boleh digunakan sendirian untuk menyatakan pengguna layak atau tidak layak melanjutkan balapan.
+**Kriteria penerimaan:** skenario dapat dimainkan offline; jawaban, skor, dan waktu tersimpan setelah aplikasi ditutup/dibuka; permainan diblokir saat sesi aktif/jeda; UI menjelaskan bahwa jawaban adalah simulasi edukatif dan bukan instruksi balapan.
+
+**FR-12 — Evaluasi AI atas hasil tantangan strategi**
+
+Jika layanan AI non-generatif tersedia dan pengguna menyetujui, sistem dapat mengevaluasi tren kategori jawaban tantangan strategi serta merangkum pola belajar. AI tidak boleh menyimpulkan kelayakan/kemampuan fisik untuk balapan; hasil simulasi tidak dianggap sebagai catatan performa nyata.
 
 ### D. Finis dan Pasca-Balapan
 
@@ -81,12 +83,12 @@ Jika layanan AI tersedia, sistem dapat merangkum tren skor dan memberi pengingat
 Setelah sesi diakhiri, sistem harus menyajikan ringkasan metrik yang tersedia, termasuk jarak, durasi, akumulasi elevasi, dan grafik kecepatan bila data mencukupi. Data yang hilang atau diestimasi harus ditandai.
 
 **FR-14 — Proof of Completion berbasis blockchain**  
-Dengan persetujuan pengguna, sistem harus dapat mengirim hash kriptografis dari berkas/ringkasan sesi ke ledger yang dipilih dan menyimpan referensi transaksi serta statusnya. Data pribadi dan rute rinci tidak boleh ditulis ke ledger publik. Jika layanan gagal, pengiriman harus berstatus tertunda dan dapat dicoba kembali.
+Target staging yang dipilih adalah jaringan EVM Polygon Amoy. Dengan persetujuan pengguna, sistem harus dapat mengirim hash kriptografis dari berkas/ringkasan sesi melalui relayer server-side dan menyimpan referensi transaksi serta statusnya. Data pribadi dan rute rinci tidak boleh ditulis ke ledger publik. Produksi/mainnet belum diputuskan; deploy kontrak, RPC, key relayer, batas biaya, dan verifikasi testnet masih prasyarat implementasi.
 
 Proof of Completion membuktikan integritas berkas yang didaftarkan, bukan dengan sendirinya membuktikan bahwa data sensor atau kejadian balapan benar secara fisik.
 
 **FR-15 — Papan peringkat**  
-Sistem harus menampilkan papan peringkat berdasarkan hasil yang memenuhi aturan yang ditetapkan dan menyediakan cara memeriksa referensi proof bila tersedia. Sistem harus menjelaskan hasil yang belum tersinkron atau belum terverifikasi dan tidak boleh menampilkan hasil tertunda seolah-olah sudah terverifikasi.
+Papan peringkat bersepeda mingguan (minggu Senin–Minggu dalam UTC) memiliki dua kategori: durasi aktif terlama dalam satu sesi selesai dan jarak terjauh dalam satu sesi selesai. Submission hanya menggunakan ringkasan sesi milik pengguna yang telah disinkronkan, melalui fungsi PostgreSQL `SECURITY DEFINER` yang memverifikasi autentikasi, consent, dan batas nilai. Keikutsertaan wajib opt-in; identitas yang tampil adalah alias publik pilihan pengguna. Hanya alias dan nilai kategori minggu berjalan yang dipublikasikan—bukan email, kontak, lokasi, atau telemetri mentah. Nilai tetap diberi label laporan pengguna dan tidak diverifikasi independen; pengguna dapat opt-out untuk menghapus semua skornya.
 
 **FR-16 — Profil dan foto**  
 Pengguna harus dapat melihat dan memperbarui informasi profil yang diizinkan serta mengganti foto profil dengan gambar dari perangkat.
@@ -127,7 +129,7 @@ Sistem harus menyediakan tampilan penggunaan penyimpanan lokal, termasuk ukuran 
 ### F. Integrasi Perangkat Wearable
 
 **FR-24 — Koneksi dan sinkronisasi data wearable**  
-Sistem harus memungkinkan pengguna menghubungkan dan memutuskan koneksi dengan perangkat wearable atau akun layanan yang secara eksplisit didukung, misalnya Garmin jika akses API dan persetujuan layanan tersedia. Dengan izin pengguna, sistem dapat mengimpor atau menyinkronkan aktivitas dan metrik yang tersedia dari provider tersebut, seperti detak jantung, cadence, power, kecepatan, jarak, waktu, atau lokasi. Metrik harus menyertakan sumber, waktu, dan status kualitas; data wearable tidak boleh dianggap tersedia secara real-time atau tervalidasi bila provider/perangkat tidak mendukungnya. Sistem harus menangani pencabutan izin, koneksi terputus, kegagalan sinkronisasi, serta mencegah aktivitas duplikat. Data lokal yang belum tersinkron harus tetap tersedia offline.
+Provider awal yang dipilih adalah Garmin Health API langsung, dengan implementasi bergantung pada approval partner dan credentials dari Garmin. Setelah akses tersedia dan pengguna memberi izin, sistem dapat mengimpor aktivitas/metrik yang memang disediakan API. Metrik harus menyertakan sumber, waktu, dan status kualitas; data tidak boleh dianggap real-time bila API tidak mendukungnya. Sistem harus menangani pencabutan izin, koneksi terputus, kegagalan sinkronisasi, serta mencegah aktivitas duplikat. Sebelum approval, integrasi harus ditampilkan sebagai belum tersedia dan tidak boleh meminta kredensial Garmin palsu.
 
 **Kriteria penerimaan:** pengguna hanya dapat menghubungkan provider/perangkat yang dinyatakan didukung; persetujuan dan izin data diminta sebelum sinkronisasi; metrik yang diimpor menampilkan sumber/waktu dan keterbatasannya; pengguna dapat memutuskan koneksi atau mencabut akses; kegagalan dan status offline terlihat jelas; sinkronisasi ulang tidak menggandakan aktivitas atau menghapus data lokal.
 
@@ -176,7 +178,7 @@ Panduan berkendara harus dapat dibaca sekilas, tidak memerlukan mengetik saat be
 - Penyedia kurs dan frekuensi pembaruan kurs.
 - Sumber cuaca, layanan AI/LLM, kebijakan retensi data, dan batas biaya.
 - Mekanisme autentikasi awal, backend akun, dan penyimpanan/sinkronisasi data.
-- Kanal pengiriman SOS, format pesan, daftar kontak, serta perilaku saat tidak ada jaringan.
-- Provider wearable (misalnya Garmin), akses API/SDK dan persetujuan integrasi, metrik yang diizinkan, metode autentikasi, pencabutan akses, serta batas sinkronisasi.
-- Jaringan blockchain, kontrak/format transaksi, biaya transaksi, dan aturan keikutsertaan papan peringkat.
+- Implementasi SOS otomatis tidak dipilih; kebijakan saat ini adalah handoff manual tanpa klaim delivery. Jika kebijakan berubah, pilih channel, persetujuan data lokasi, biaya, dan delivery tracking terlebih dahulu.
+- Approval Garmin Health API, credentials, metrik yang diizinkan, metode autentikasi, pencabutan akses, serta batas sinkronisasi masih diperlukan sebelum FR-24 dapat diimplementasikan.
+- Polygon Amoy dipilih untuk staging proof. Deploy kontrak/RPC/relayer dan biaya produksi/mainnet masih perlu diuji/diputuskan; leaderboard dipilih menggunakan Supabase dengan opt-in, alias, dan skor permainan saja.
 - Perangkat sasaran minimum dan metode validasi algoritme sensor, khususnya cadence, lean angle, dan deteksi insiden.

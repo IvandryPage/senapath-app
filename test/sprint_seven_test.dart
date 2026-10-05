@@ -50,6 +50,44 @@ void main() {
     expect(parsed.last.longitude, locations.last.longitude);
   });
 
+  test('GPX export/parser retains valid time, and missing metadata is optional', () {
+    final parsed = service.parseGpxDocument(service.toGpx(locations));
+
+    expect(parsed.name, 'Senapath session');
+    expect(parsed.description, isNull);
+    expect(parsed.locations, hasLength(2));
+  });
+
+  test('GPX import preserves track name and description', () {
+    const gpx = '''
+<gpx version="1.1">
+  <trk>
+    <name>Coastal loop</name>
+    <desc>Route with a coastal climb</desc>
+    <trkseg>
+      <trkpt lat="-6.2" lon="106.8"><time>2026-10-01T08:00:00Z</time></trkpt>
+      <trkpt lat="-6.201" lon="106.801"><time>2026-10-01T08:01:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
+''';
+
+    final imported = service.parseGpxDocument(gpx);
+
+    expect(imported.name, 'Coastal loop');
+    expect(imported.description, 'Route with a coastal climb');
+    expect(imported.locations, hasLength(2));
+  });
+
+  test('GPX import rejects content above the configured size limit', () {
+    final oversized = ' ' * (SessionFileService.maximumGpxBytes + 1);
+
+    expect(
+      () => service.parseGpx(oversized),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('invalid GPX is rejected with a clear format error', () {
     expect(
       () => service.parseGpx('<gpx><trk><trkseg /></trk></gpx>'),

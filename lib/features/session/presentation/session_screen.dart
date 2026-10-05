@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
@@ -295,6 +296,30 @@ class _SessionScreenState extends State<SessionScreen> {
           isReady: readiness.notificationsGranted,
           isWarning: true,
         ),
+        if (!readiness.notificationsGranted) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: state.isCheckingReadiness
+                ? null
+                : readiness.notificationsPermanentlyDenied
+                ? () => context
+                      .read<RideSessionCubit>()
+                      .openNotificationSettings()
+                : () => context
+                      .read<RideSessionCubit>()
+                      .checkReadiness(requestNotificationPermission: true),
+            icon: Icon(
+              readiness.notificationsPermanentlyDenied
+                  ? Icons.settings_outlined
+                  : Icons.notifications_active_outlined,
+            ),
+            label: Text(
+              readiness.notificationsPermanentlyDenied
+                  ? 'Buka pengaturan notifikasi'
+                  : 'Izinkan notifikasi',
+            ),
+          ),
+        ],
         if (!readiness.locationPermissionGranted) ...[
           const SizedBox(height: 10),
           Align(
@@ -631,6 +656,12 @@ class _SessionScreenState extends State<SessionScreen> {
           const Text('Belum cukup sampel untuk menampilkan grafik kecepatan.'),
         const SizedBox(height: 16),
         _buildSummarySync(context, summary),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () => context.push('/leaderboard', extra: summary),
+          icon: const Icon(Icons.leaderboard_outlined),
+          label: const Text('Papan peringkat'),
+        ),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,

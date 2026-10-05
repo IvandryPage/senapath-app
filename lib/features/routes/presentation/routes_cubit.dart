@@ -56,12 +56,13 @@ class RoutesCubit extends Cubit<RoutesState> {
 
   Future<void> importGpx() async {
     try {
-      final points = await fileExchange.importGpx();
-      if (points == null) return;
+      final imported = await fileExchange.importGpx();
+      if (imported == null) return;
       await repository.saveImportedRoute(
-        name: 'Rute GPX impor',
+        name: imported.name ?? 'Rute GPX impor',
+        description: imported.description ?? '',
         points: [
-          for (final point in points)
+          for (final point in imported.locations)
             (
               latitude: point.latitude,
               longitude: point.longitude,

@@ -122,15 +122,23 @@ Urutan berikut mengutamakan fondasi identitas/data dan risiko perjalanan sebelum
 | SP-13 | **Konversi waktu dunia** | Cari dan pilih lokasi/zona waktu dari daftar zona waktu dunia berbasis IANA; konversi waktu/tanggal antar zona menampilkan nama lokasi, offset, dan tanggal lokal dengan dukungan daylight-saving serta perubahan tanggal. Tes mencakup zona berbeda dan transisi DST; jangan hanya menggeser jam dengan offset statis. |
 | SP-14 | **Bottom navigation dan profil** | Lima tab Beranda/Jelajah/Rekam/Tools/Profil membuka alur utama dan mempertahankan state yang wajar. Profil menyediakan preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, dan **Logout**. Form saran/feedback memvalidasi input, menampilkan acknowledgment nyata, dan menyatakan jika pengiriman offline/pending/gagal. |
 | SP-15 | **Push notification berbasis mobile** | Pengguna memilih opt-in dan kategori; izin OS dapat ditolak/dicabut; token perangkat diikat ke akun secara aman dan dapat dihapus saat logout. Uji delivery, deep link, token kedaluwarsa, offline, duplikasi, dan pengaturan. Payload lock-screen tidak menyertakan koordinat atau data sensitif. |
-| SP-16 | **Mini-game latihan perjalanan** | Sedikitnya satu mini-game singkat terkait kesiapan/perhatian atau respons perjalanan; skor lokal dan aturan dijelaskan. Tidak memberikan klaim medis/kemampuan berkendara; menghentikan atau membatasi permainan saat sesi recording aktif dan mencegah ajakan interaksi saat bergerak. |
+| SP-16 | **Tantangan strategi rute/balap** | Ganti tes reaksi visual dengan skenario strategi rute/balap yang dimainkan saat berhenti; pilihan memberi trade-off/penjelasan dan skor disimpan lokal. Blokir game saat sesi merekam atau dijeda; tidak memberi instruksi real-time, klaim medis, atau saran keselamatan tervalidasi. |
 
 ### P2 — Nilai tambahan setelah fondasi lulus
 
 | ID | PBI | Hasil dan kriteria penerimaan |
 | --- | --- | --- |
-| SP-17 | **Proof perjalanan blockchain sederhana** | Dengan consent eksplisit, buat hash dari ringkasan terpilih (bukan lokasi mentah/identitas) dan simpan proof melalui mekanisme/ledger yang dipilih. Tampilkan pending/confirmed/failed dan referensi verifikasi; perubahan data membatalkan kecocokan hash. Biaya, jaringan, retensi, dan threat model disetujui. Tidak ada klaim decentralized/immutable sebelum diuji. |
+| SP-17 | **Proof perjalanan blockchain sederhana** | Target staging Polygon Amoy melalui relayer server-side. Dengan consent eksplisit, buat hash ringkasan terpilih (bukan lokasi mentah/identitas); simpan pending/confirmed/failed dan transaction reference. Uji kontrak, retry idempoten, dan verifikasi hash di Amoy. Produksi/mainnet menunggu uji biaya serta keputusan terpisah; tidak ada klaim immutable sebelum verifikasi. |
 | SP-18 | **Notifikasi dan rekomendasi kontekstual** | Setelah opt-in, pengguna bisa memilih pengingat perjalanan atau pembaruan rencana. Frekuensi, timezone, duplikasi, quiet hours, kondisi jaringan, dan disable diuji; rekomendasi AI tidak otomatis memulai perjalanan atau tindakan eksternal. |
 | SP-19 | **Peningkatan peta dan layanan perjalanan** | Tambahkan POI/rute/fitur provider (misalnya geocoding, elevasi, atau reroute) hanya jika lisensi, biaya, kuota, atribusi, kualitas, dan cache/offline policy disetujui dan diuji. Evaluasi provider tile khusus sebelum trafik produksi; layanan tile publik tidak dianggap komitmen produksi. GPX offline tetap tersedia bila provider gagal. |
+| SP-20 | **Leaderboard sesi mingguan opt-in** | Supabase/Postgres menyajikan dua peringkat Senin–Minggu UTC: durasi aktif terlama dan jarak terjauh dari sesi yang selesai. Fungsi PostgreSQL `SECURITY DEFINER` memvalidasi auth, consent, dan mengambil nilai hanya dari ringkasan milik pengguna yang telah tersinkron. Pengguna memilih opt-in dan alias publik. Hanya alias dan nilai kategori minggu berjalan yang dipublikasikan—tanpa email, lokasi, kontak, atau telemetri mentah. Tandai data sebagai laporan pengguna yang belum diverifikasi; uji RLS, opt-out/penghapusan, dan submission duplikat. |
+
+### Keputusan provider yang disepakati
+
+- **SOS:** pertahankan telepon/WhatsApp manual; aplikasi tidak mengklaim pesan terkirim. Deteksi insiden otomatis tetap nonaktif sampai model sensor divalidasi.
+- **Proof blockchain:** Polygon Amoy untuk staging melalui relayer server-side; jaringan produksi dan batas biaya belum diputuskan.
+- **Leaderboard:** Supabase/Postgres, fungsi RPC server-side, opt-in, alias publik, dan metrik sesi bersepeda mingguan (durasi serta jarak; minggu UTC).
+- **Wearable:** adapter langsung Garmin Health API, tetapi tidak diaktifkan sebelum approval partner dan credentials resmi tersedia.
 
 ## 6. Rencana Sprint Usulan
 

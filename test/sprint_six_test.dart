@@ -53,6 +53,7 @@ void main() {
   test('imported route is persisted with offline metadata', () async {
     final route = await repository.saveImportedRoute(
       name: 'Rute Latihan',
+      description: 'Rute menanjak di sisi utara.',
       points: const [
         (latitude: -6.2, longitude: 106.8, elevation: 10),
         (latitude: -6.201, longitude: 106.801, elevation: 18),
@@ -63,11 +64,13 @@ void main() {
     expect(route.source, 'GPX lokal');
     expect(route.distanceMeters, greaterThan(0));
     expect(route.elevationGainMeters, 8);
+    expect(route.description, 'Rute menanjak di sisi utara.');
     final restored = (await repository.search('Latihan')).single;
     expect(restored.id, route.id);
     expect(restored.points, hasLength(2));
     expect(restored.points.first.latitude, -6.2);
     expect(restored.points.last.longitude, 106.801);
+    expect(restored.description, 'Rute menanjak di sisi utara.');
   });
 }
 

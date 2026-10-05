@@ -4,8 +4,22 @@ import 'package:xml/xml.dart';
 
 import '../domain/ride_session.dart';
 
+class GpxImport {
+  const GpxImport({
+    required this.name,
+    required this.description,
+    required this.locations,
+  });
+
+  final String? name;
+  final String? description;
+  final List<TelemetryLocation> locations;
+}
+
 class SessionFileService {
   const SessionFileService();
+
+  static const maximumGpxBytes = 10 * 1024 * 1024;
 
   String toJson({
     required RideSessionSnapshot session,
@@ -74,13 +88,22 @@ class SessionFileService {
   }
 
   List<TelemetryLocation> parseGpx(String content) {
+    return parseGpxDocument(content).locations;
+  }
+
+  GpxImport parseGpxDocument(String content) {
+    if (utf8.encode(content).length > maximumGpxBytes) {
+      throw const FormatException(
+        'Ukuran GPX melebihi batas 10 MB.',
+      );
+    }
     final document = XmlDocument.parse(content);
     final points = document.findAllElements('trkpt').toList(growable: false);
     if (points.isEmpty) {
       throw const FormatException('GPX tidak memiliki track point.');
     }
 
-    return points
+    final locations = points
         .map((point) {
           final latitude = double.tryParse(point.getAttribute('lat') ?? '');
           final longitude = double.tryParse(point.getAttribute('lon') ?? '');
@@ -113,6 +136,31 @@ class SessionFileService {
           );
         })
         .toList(growable: false);
+    final track = document.findAllElements('trk').firstOrNull;
+    final name = _firstText([
+      track?.getElement('name'),
+      document.findAllElements('metadata').firstOrNull?.getElement('name'),
+      document.findAllElements('name').firstOrNull,
+    ]);
+    final description = _firstText([
+      track?.getElement('desc'),
+      document.findAllElements('metadata').firstOrNull?.getElement('desc'),
+      document.findAllElements('desc').firstOrNull,
+    ]);
+
+    return GpxImport(
+      name: name,
+      description: description,
+      locations: locations,
+    );
+  }
+
+  String? _firstText(Iterable<XmlElement?> elements) {
+    for (final element in elements) {
+      final text = element?.innerText.trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    return null;
   }
 
   Map<String, Object?> _locationJson(TelemetryLocation location) => {

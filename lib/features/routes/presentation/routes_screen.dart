@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/units/unit_settings_cubit.dart';
+import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
 import '../domain/saved_route.dart';
 import 'routes_cubit.dart';
@@ -49,6 +51,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
       },
       child: BlocBuilder<RoutesCubit, RoutesState>(
         builder: (context, state) {
+          final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
           return Column(
             children: [
               Padding(
@@ -87,7 +90,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                   ],
                 ),
               ),
-              Expanded(child: _buildResults(state)),
+              Expanded(child: _buildResults(state, unitSystem)),
             ],
           );
         },
@@ -95,7 +98,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
-  Widget _buildResults(RoutesState state) {
+  Widget _buildResults(RoutesState state, UnitSystem unitSystem) {
     if (state.isLoading) return const FeatureStateView.loading();
     if (state.routes.isEmpty) {
       return FeatureStateView.empty(
@@ -113,34 +116,43 @@ class _RoutesScreenState extends State<RoutesScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       itemCount: state.routes.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _RouteTile(route: state.routes[index]),
+      itemBuilder: (context, index) => _RouteTile(
+        route: state.routes[index],
+        unitSystem: unitSystem,
+      ),
     );
   }
 }
 
 class _RouteTile extends StatelessWidget {
-  const _RouteTile({required this.route});
+  const _RouteTile({required this.route, required this.unitSystem});
 
   final RouteRecord route;
+  final UnitSystem unitSystem;
 
   @override
   Widget build(BuildContext context) {
     final distance = route.distanceMeters == null
         ? 'Jarak tidak tersedia'
-        : '${(route.distanceMeters! / 1000).toStringAsFixed(1)} km';
+        : _formatDistance(route.distanceMeters!, unitSystem);
     final elevation = route.elevationGainMeters == null
         ? 'Elevasi tidak tersedia'
-        : '+${route.elevationGainMeters!.toStringAsFixed(0)} m';
+        : '+${_formatElevation(route.elevationGainMeters!, unitSystem)}';
     final poi = route.poiSummary.isEmpty
         ? 'POI belum tersedia'
         : route.poiSummary;
+    final description = route.description;
 
     return Card(
       child: ListTile(
         onTap: () => _showRoutePreview(context),
         leading: const Icon(Icons.route_outlined),
         title: Text(route.name),
-        subtitle: Text('$distance · $elevation\n$poi\nSumber: ${route.source}'),
+        subtitle: Text(
+          '$distance · $elevation\n'
+          '${description.isEmpty ? '' : '$description\n'}'
+          '$poi\nSumber: ${route.source}',
+        ),
         isThreeLine: true,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -162,10 +174,16 @@ class _RouteTile extends StatelessWidget {
   void _showRoutePreview(BuildContext context) {
     final distance = route.distanceMeters == null
         ? 'Jarak tidak tersedia'
-        : '${(route.distanceMeters! / 1000).toStringAsFixed(1)} km';
+        : _formatDistance(
+            route.distanceMeters!,
+            context.read<UnitSettingsCubit>().state.unitSystem,
+          );
     final elevation = route.elevationGainMeters == null
         ? 'Elevasi tidak tersedia'
-        : '+${route.elevationGainMeters!.toStringAsFixed(0)} m';
+        : '+${_formatElevation(
+            route.elevationGainMeters!,
+            context.read<UnitSettingsCubit>().state.unitSystem,
+          )}';
     final poi = route.poiSummary.isEmpty
         ? 'POI belum tersedia'
         : route.poiSummary;
@@ -198,6 +216,10 @@ class _RouteTile extends StatelessWidget {
                 ),
               const SizedBox(height: 12),
               Text('$distance · $elevation · $poi'),
+              if (route.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(route.description),
+              ],
               if (route.points.length >= 2) ...[
                 const SizedBox(height: 16),
                 SizedBox(
@@ -219,6 +241,22 @@ class _RouteTile extends StatelessWidget {
       ),
     );
   }
+
+  String _formatDistance(double meters, UnitSystem unitSystem) {
+    if (unitSystem == UnitSystem.metric) {
+      return meters >= 1000
+          ? '${(meters / 1000).toStringAsFixed(1)} km'
+          : '${meters.toStringAsFixed(0)} m';
+    }
+    return meters >= 1609.344
+        ? '${(meters / 1609.344).toStringAsFixed(1)} mi'
+        : '${(meters * 3.28084).toStringAsFixed(0)} ft';
+  }
+
+  String _formatElevation(double meters, UnitSystem unitSystem) =>
+      unitSystem == UnitSystem.metric
+      ? '${meters.toStringAsFixed(0)} m'
+      : '${(meters * 3.28084).toStringAsFixed(0)} ft';
 }
 
 class RouteMapPreview extends StatefulWidget {

@@ -29,6 +29,7 @@ class SavedRouteRepository {
 
   Future<RouteRecord> saveImportedRoute({
     required String name,
+    String description = '',
     required List<({double latitude, double longitude, double elevation})>
     points,
   }) async {
@@ -81,6 +82,7 @@ class SavedRouteRepository {
             id: routeId,
             name: name.trim().isEmpty ? 'Rute GPX impor' : name.trim(),
             source: 'GPX lokal',
+            description: Value(description.trim()),
             updatedAt: DateTime.now().toUtc(),
             distanceMeters: Value(distanceMeters),
             elevationGainMeters: Value(elevationGainMeters),
@@ -100,6 +102,7 @@ class SavedRouteRepository {
     source: row.source,
     updatedAt: row.updatedAt,
     availability: row.availability,
+    description: row.description,
     distanceMeters: row.distanceMeters,
     elevationGainMeters: row.elevationGainMeters,
     poiSummary: row.poiSummary,

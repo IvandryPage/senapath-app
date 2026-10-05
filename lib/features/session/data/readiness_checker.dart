@@ -11,6 +11,7 @@ class ReadinessReport {
     required this.accelerometerAvailable,
     required this.gyroscopeAvailable,
     required this.notificationsGranted,
+    required this.notificationsPermanentlyDenied,
     this.gpsAccuracyMeters,
   });
 
@@ -21,6 +22,7 @@ class ReadinessReport {
   final bool accelerometerAvailable;
   final bool gyroscopeAvailable;
   final bool notificationsGranted;
+  final bool notificationsPermanentlyDenied;
   final double? gpsAccuracyMeters;
 
   bool get canStartRecording => locationPermissionGranted;
@@ -33,8 +35,12 @@ class ReadinessReport {
 }
 
 abstract interface class ReadinessChecker {
-  Future<ReadinessReport> check({bool requestLocationPermission = false});
+  Future<ReadinessReport> check({
+    bool requestLocationPermission = false,
+    bool requestNotificationPermission = false,
+  });
   Future<bool> openLocationSettings();
+  Future<bool> openNotificationSettings();
 }
 
 class DeviceReadinessChecker implements ReadinessChecker {
@@ -43,6 +49,7 @@ class DeviceReadinessChecker implements ReadinessChecker {
   @override
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
+    bool requestNotificationPermission = false,
   }) async {
     var permission = await Geolocator.checkPermission();
     if (requestLocationPermission &&
@@ -75,7 +82,10 @@ class DeviceReadinessChecker implements ReadinessChecker {
       _hasSensorEvent(accelerometerEventStream()),
       _hasSensorEvent(gyroscopeEventStream()),
     ]);
-    final notificationStatus = await Permission.notification.status;
+    var notificationStatus = await Permission.notification.status;
+    if (requestNotificationPermission && !notificationStatus.isGranted) {
+      notificationStatus = await Permission.notification.request();
+    }
 
     return ReadinessReport(
       locationPermissionGranted: locationPermissionGranted,
@@ -85,12 +95,16 @@ class DeviceReadinessChecker implements ReadinessChecker {
       accelerometerAvailable: sensorAvailability[0],
       gyroscopeAvailable: sensorAvailability[1],
       notificationsGranted: notificationStatus.isGranted,
+      notificationsPermanentlyDenied: notificationStatus.isPermanentlyDenied,
       gpsAccuracyMeters: position?.accuracy,
     );
   }
 
   @override
   Future<bool> openLocationSettings() => Geolocator.openAppSettings();
+
+  @override
+  Future<bool> openNotificationSettings() => openAppSettings();
 
   Future<bool> _hasSensorEvent<T>(Stream<T> stream) async {
     try {

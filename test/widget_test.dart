@@ -23,13 +23,15 @@ import 'package:senapath/features/feedback/data/supabase_feedback_gateway.dart';
 import 'package:senapath/features/feedback/presentation/feedback_cubit.dart';
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
+import 'package:senapath/features/leaderboard/data/supabase_leaderboard_gateway.dart';
+import 'package:senapath/features/leaderboard/presentation/leaderboard_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/logistics/data/logistics_repository.dart';
 import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
-import 'package:senapath/features/reaction/data/reaction_test_repository.dart';
-import 'package:senapath/features/reaction/presentation/reaction_test_cubit.dart';
+import 'package:senapath/features/strategy_game/data/strategy_game_repository.dart';
+import 'package:senapath/features/strategy_game/presentation/strategy_game_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
@@ -55,8 +57,8 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
-    final reactionTestCubit = ReactionTestCubit(
-      ReactionTestRepository(database),
+    final strategyGameCubit = StrategyGameCubit(
+      StrategyGameRepository(database),
     );
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final routesCubit = RoutesCubit(
@@ -90,17 +92,28 @@ void main() {
         unitSettingsCubit: settingsCubit,
         sessionCubit: sessionCubit,
         logisticsCubit: logisticsCubit,
-        reactionTestCubit: reactionTestCubit,
+        strategyGameCubit: strategyGameCubit,
         aiChatCubit: AiChatCubit(const SupabaseAiChatGateway(null)),
         feedbackCubit: FeedbackCubit(
           FeedbackRepository(_FakeSecureVault()),
           const SupabaseFeedbackGateway(null),
+        ),
+        leaderboardCubit: LeaderboardCubit(
+          const SupabaseLeaderboardGateway(null),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Belum ada sesi'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Papan peringkat'), 400);
+    await tester.tap(find.text('Papan peringkat'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Peringkat mingguan bersepeda'), findsOneWidget);
+    expect(find.text('Partisipasi dan privasi'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(find.text('Chat AI'), 400);
     await tester.tap(find.text('Chat AI'));
@@ -118,21 +131,46 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('Tes reaksi'), 400);
-    await tester.tap(find.text('Tes reaksi'));
+    await tester.scrollUntilVisible(find.text('Strategi rute'), 400);
+    await tester.tap(find.text('Strategi rute'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Latihan respons visual selama dua menit.'),
-      findsOneWidget,
+    expect(find.textContaining('Latihan strategi rute'), findsOneWidget);
+    expect(find.text('Mulai tantangan'), findsOneWidget);
+    await tester.tap(find.text('Mulai tantangan'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.textContaining('Menjaga tempo terukur'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Menjaga tempo terukur'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Lanjut'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lanjut'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.textContaining('Membandingkan situasi dengan rencana'),
     );
-    expect(find.text('02:00'), findsOneWidget);
-    expect(find.text('Mulai tes'), findsOneWidget);
-    await tester.tap(find.text('Mulai tes'));
-    await tester.pump();
-    expect(find.text('Batalkan tes'), findsOneWidget);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.textContaining('Membandingkan situasi dengan rencana'),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Lanjut'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lanjut'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.textContaining('Membandingkan profil, jarak'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Membandingkan profil, jarak'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Lihat hasil'), 250);
+    await tester.tap(find.text('Lihat hasil'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pilihan strategis: 3/3'), findsOneWidget);
+    expect(strategyGameCubit.state.results, hasLength(1));
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(reactionTestCubit.state.phase, ReactionTestPhase.idle);
 
     await tester.tap(find.text('Rute').last);
     await tester.pumpAndSettle();
@@ -141,6 +179,10 @@ void main() {
     await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
     expect(find.text('Pemeriksaan pra-balapan'), findsOneWidget);
+    expect(find.text('Izinkan notifikasi'), findsOneWidget);
+    await tester.tap(find.text('Izinkan notifikasi'));
+    await tester.pumpAndSettle();
+    expect(sessionCubit.state.readiness?.notificationsGranted, isTrue);
 
     await tester.tap(find.text('Logistik').last);
     await tester.pumpAndSettle();
@@ -183,18 +225,21 @@ void main() {
     expect(find.text('Hotel'), findsNothing);
 
     await tester.tap(find.text('Profil').last);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.scrollUntilVisible(find.text('Tema tampilan'), 300);
     expect(find.text('Tema tampilan'), findsOneWidget);
     await tester.tap(find.text('Gelap'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     expect(themeSettingsCubit.state.themeMode, ThemeMode.dark);
     expect(
       tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
       ThemeMode.dark,
     );
     await tester.tap(find.text('Terang'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     expect(themeSettingsCubit.state.themeMode, ThemeMode.light);
     expect(
       tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
@@ -202,11 +247,13 @@ void main() {
     );
     await tester.scrollUntilVisible(find.text('Akun online'), -300);
     await tester.tap(find.text('Akun online'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Lupa password?'), findsOneWidget);
     expect(find.textContaining('Supabase belum dikonfigurasi'), findsOneWidget);
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Kontak darurat'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Tambah kontak darurat'));
@@ -246,7 +293,7 @@ void main() {
     await themeSettingsCubit.close();
     await sessionCubit.close();
     await logisticsCubit.close();
-    await reactionTestCubit.close();
+    await strategyGameCubit.close();
   });
 
   testWidgets('loading state is announced with progress', (tester) async {
@@ -322,16 +369,21 @@ class _FakeReadinessChecker implements ReadinessChecker {
   Future<bool> openLocationSettings() async => true;
 
   @override
+  Future<bool> openNotificationSettings() async => true;
+
+  @override
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
-  }) async => const ReadinessReport(
+    bool requestNotificationPermission = false,
+  }) async => ReadinessReport(
     locationPermissionGranted: true,
     locationPermanentlyDenied: false,
     locationServicesEnabled: true,
     gpsFixAvailable: true,
     accelerometerAvailable: true,
     gyroscopeAvailable: true,
-    notificationsGranted: true,
+    notificationsGranted: requestNotificationPermission,
+    notificationsPermanentlyDenied: false,
     gpsAccuracyMeters: 8,
   );
 }

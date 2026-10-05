@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
+import '../../../core/storage/offline_storage_manager.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../app/theme/theme_settings_cubit.dart';
@@ -28,7 +29,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _imagePicker = ImagePicker();
+  static const _storageManager = OfflineStorageManager();
   bool _startedLoading = false;
+  bool _isLoadingStorage = true;
+  bool _isClearingMapCache = false;
+  OfflineStorageUsage? _storageUsage;
+  String? _storageError;
 
   @override
   void didChangeDependencies() {
@@ -37,6 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _startedLoading = true;
     unawaited(context.read<ProfileCubit>().load());
     unawaited(context.read<UnitSettingsCubit>().load());
+    unawaited(_loadStorageUsage());
   }
 
   @override
@@ -68,6 +75,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildUnitSection(context),
               const SizedBox(height: 28),
               _buildThemeSection(context),
+              const SizedBox(height: 28),
+              _buildStorageSection(context),
               const SizedBox(height: 20),
               const Text(
                 'Profil dan kontak disimpan aman di perangkat. '
@@ -319,9 +328,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               selected: {state.themeMode},
               onSelectionChanged: state.isSaving
                   ? null
-                  : (selection) => context
-                        .read<ThemeSettingsCubit>()
-                        .select(selection.first),
+                  : (selection) => context.read<ThemeSettingsCubit>().select(
+                      selection.first,
+                    ),
             ),
             if (state.isSaving)
               const Padding(
@@ -345,6 +354,136 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  Widget _buildStorageSection(BuildContext context) {
+    final usage = _storageUsage;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Penyimpanan offline',
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.storage_outlined),
+                title: const Text('Database lokal'),
+                subtitle: Text(
+                  usage == null
+                      ? _isLoadingStorage
+                            ? 'Menghitung…'
+                            : 'Belum tersedia'
+                      : _formatBytes(usage.databaseBytes),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.map_outlined),
+                title: const Text('Cache peta'),
+                subtitle: Text(
+                  usage == null
+                      ? _isLoadingStorage
+                            ? 'Menghitung…'
+                            : 'Belum tersedia'
+                      : _formatBytes(usage.mapCacheBytes),
+                ),
+                trailing: IconButton(
+                  tooltip: 'Hapus cache peta',
+                  onPressed:
+                      usage == null ||
+                          usage.mapCacheBytes == 0 ||
+                          _isClearingMapCache
+                      ? null
+                      : _confirmClearMapCache,
+                  icon: _isClearingMapCache
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                ),
+              ),
+              if (_storageError != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Text(
+                    _storageError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _loadStorageUsage() async {
+    setState(() {
+      _isLoadingStorage = true;
+      _storageError = null;
+    });
+    try {
+      final usage = await _storageManager.usage();
+      if (!mounted) return;
+      setState(() {
+        _storageUsage = usage;
+        _isLoadingStorage = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingStorage = false;
+        _storageError = 'Penggunaan penyimpanan tidak dapat dibaca.';
+      });
+    }
+  }
+
+  Future<void> _confirmClearMapCache() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus cache peta?'),
+        content: const Text(
+          'Tindakan ini hanya menghapus file cache peta, bukan database, '
+          'rute GPX, atau sesi latihan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus cache'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isClearingMapCache = true);
+    try {
+      await _storageManager.clearMapCache();
+      await _loadStorageUsage();
+      if (mounted) _showMessage('Cache peta berhasil dihapus.');
+    } catch (_) {
+      if (mounted) _showMessage('Cache peta tidak dapat dihapus.');
+    } finally {
+      if (mounted) setState(() => _isClearingMapCache = false);
+    }
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Future<void> _chooseAvatar() async {

@@ -1219,6 +1219,18 @@ class $SavedRoutesTable extends SavedRoutes
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -1293,6 +1305,7 @@ class $SavedRoutesTable extends SavedRoutes
     id,
     name,
     source,
+    description,
     updatedAt,
     distanceMeters,
     elevationGainMeters,
@@ -1332,6 +1345,15 @@ class $SavedRoutesTable extends SavedRoutes
       );
     } else if (isInserting) {
       context.missing(_sourceMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
     }
     if (data.containsKey('updated_at')) {
       context.handle(
@@ -1404,6 +1426,10 @@ class $SavedRoutesTable extends SavedRoutes
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -1441,6 +1467,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
   final String id;
   final String name;
   final String source;
+  final String description;
   final DateTime updatedAt;
   final double? distanceMeters;
   final double? elevationGainMeters;
@@ -1451,6 +1478,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
     required this.id,
     required this.name,
     required this.source,
+    required this.description,
     required this.updatedAt,
     this.distanceMeters,
     this.elevationGainMeters,
@@ -1464,6 +1492,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['source'] = Variable<String>(source);
+    map['description'] = Variable<String>(description);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || distanceMeters != null) {
       map['distance_meters'] = Variable<double>(distanceMeters);
@@ -1484,6 +1513,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
       id: Value(id),
       name: Value(name),
       source: Value(source),
+      description: Value(description),
       updatedAt: Value(updatedAt),
       distanceMeters: distanceMeters == null && nullToAbsent
           ? const Value.absent()
@@ -1508,6 +1538,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       source: serializer.fromJson<String>(json['source']),
+      description: serializer.fromJson<String>(json['description']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       distanceMeters: serializer.fromJson<double?>(json['distanceMeters']),
       elevationGainMeters: serializer.fromJson<double?>(
@@ -1527,6 +1558,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'source': serializer.toJson<String>(source),
+      'description': serializer.toJson<String>(description),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'distanceMeters': serializer.toJson<double?>(distanceMeters),
       'elevationGainMeters': serializer.toJson<double?>(elevationGainMeters),
@@ -1540,6 +1572,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
     String? id,
     String? name,
     String? source,
+    String? description,
     DateTime? updatedAt,
     Value<double?> distanceMeters = const Value.absent(),
     Value<double?> elevationGainMeters = const Value.absent(),
@@ -1550,6 +1583,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
     id: id ?? this.id,
     name: name ?? this.name,
     source: source ?? this.source,
+    description: description ?? this.description,
     updatedAt: updatedAt ?? this.updatedAt,
     distanceMeters: distanceMeters.present
         ? distanceMeters.value
@@ -1568,6 +1602,9 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       source: data.source.present ? data.source.value : this.source,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       distanceMeters: data.distanceMeters.present
           ? data.distanceMeters.value
@@ -1593,6 +1630,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('source: $source, ')
+          ..write('description: $description, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('distanceMeters: $distanceMeters, ')
           ..write('elevationGainMeters: $elevationGainMeters, ')
@@ -1608,6 +1646,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
     id,
     name,
     source,
+    description,
     updatedAt,
     distanceMeters,
     elevationGainMeters,
@@ -1622,6 +1661,7 @@ class SavedRoute extends DataClass implements Insertable<SavedRoute> {
           other.id == this.id &&
           other.name == this.name &&
           other.source == this.source &&
+          other.description == this.description &&
           other.updatedAt == this.updatedAt &&
           other.distanceMeters == this.distanceMeters &&
           other.elevationGainMeters == this.elevationGainMeters &&
@@ -1637,6 +1677,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> source;
+  final Value<String> description;
   final Value<DateTime> updatedAt;
   final Value<double?> distanceMeters;
   final Value<double?> elevationGainMeters;
@@ -1648,6 +1689,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.source = const Value.absent(),
+    this.description = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.distanceMeters = const Value.absent(),
     this.elevationGainMeters = const Value.absent(),
@@ -1660,6 +1702,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
     required String id,
     required String name,
     required String source,
+    this.description = const Value.absent(),
     required DateTime updatedAt,
     this.distanceMeters = const Value.absent(),
     this.elevationGainMeters = const Value.absent(),
@@ -1675,6 +1718,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? source,
+    Expression<String>? description,
     Expression<DateTime>? updatedAt,
     Expression<double>? distanceMeters,
     Expression<double>? elevationGainMeters,
@@ -1687,6 +1731,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (source != null) 'source': source,
+      if (description != null) 'description': description,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (distanceMeters != null) 'distance_meters': distanceMeters,
       if (elevationGainMeters != null)
@@ -1702,6 +1747,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? source,
+    Value<String>? description,
     Value<DateTime>? updatedAt,
     Value<double?>? distanceMeters,
     Value<double?>? elevationGainMeters,
@@ -1714,6 +1760,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
       id: id ?? this.id,
       name: name ?? this.name,
       source: source ?? this.source,
+      description: description ?? this.description,
       updatedAt: updatedAt ?? this.updatedAt,
       distanceMeters: distanceMeters ?? this.distanceMeters,
       elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
@@ -1735,6 +1782,9 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
     }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
@@ -1768,6 +1818,7 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('source: $source, ')
+          ..write('description: $description, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('distanceMeters: $distanceMeters, ')
           ..write('elevationGainMeters: $elevationGainMeters, ')
@@ -2103,6 +2154,273 @@ class ReactionTestResultsCompanion extends UpdateCompanion<ReactionTestResult> {
   }
 }
 
+class $StrategyGameResultsTable extends StrategyGameResults
+    with TableInfo<$StrategyGameResultsTable, StrategyGameResult> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StrategyGameResultsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _playedAtMeta = const VerificationMeta(
+    'playedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> playedAt = GeneratedColumn<DateTime>(
+    'played_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultJsonMeta = const VerificationMeta(
+    'resultJson',
+  );
+  @override
+  late final GeneratedColumn<String> resultJson = GeneratedColumn<String>(
+    'result_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, playedAt, resultJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'strategy_game_results';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StrategyGameResult> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('played_at')) {
+      context.handle(
+        _playedAtMeta,
+        playedAt.isAcceptableOrUnknown(data['played_at']!, _playedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_playedAtMeta);
+    }
+    if (data.containsKey('result_json')) {
+      context.handle(
+        _resultJsonMeta,
+        resultJson.isAcceptableOrUnknown(data['result_json']!, _resultJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_resultJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StrategyGameResult map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StrategyGameResult(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      playedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}played_at'],
+      )!,
+      resultJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result_json'],
+      )!,
+    );
+  }
+
+  @override
+  $StrategyGameResultsTable createAlias(String alias) {
+    return $StrategyGameResultsTable(attachedDatabase, alias);
+  }
+}
+
+class StrategyGameResult extends DataClass
+    implements Insertable<StrategyGameResult> {
+  final String id;
+  final DateTime playedAt;
+  final String resultJson;
+  const StrategyGameResult({
+    required this.id,
+    required this.playedAt,
+    required this.resultJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['played_at'] = Variable<DateTime>(playedAt);
+    map['result_json'] = Variable<String>(resultJson);
+    return map;
+  }
+
+  StrategyGameResultsCompanion toCompanion(bool nullToAbsent) {
+    return StrategyGameResultsCompanion(
+      id: Value(id),
+      playedAt: Value(playedAt),
+      resultJson: Value(resultJson),
+    );
+  }
+
+  factory StrategyGameResult.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StrategyGameResult(
+      id: serializer.fromJson<String>(json['id']),
+      playedAt: serializer.fromJson<DateTime>(json['playedAt']),
+      resultJson: serializer.fromJson<String>(json['resultJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'playedAt': serializer.toJson<DateTime>(playedAt),
+      'resultJson': serializer.toJson<String>(resultJson),
+    };
+  }
+
+  StrategyGameResult copyWith({
+    String? id,
+    DateTime? playedAt,
+    String? resultJson,
+  }) => StrategyGameResult(
+    id: id ?? this.id,
+    playedAt: playedAt ?? this.playedAt,
+    resultJson: resultJson ?? this.resultJson,
+  );
+  StrategyGameResult copyWithCompanion(StrategyGameResultsCompanion data) {
+    return StrategyGameResult(
+      id: data.id.present ? data.id.value : this.id,
+      playedAt: data.playedAt.present ? data.playedAt.value : this.playedAt,
+      resultJson: data.resultJson.present
+          ? data.resultJson.value
+          : this.resultJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StrategyGameResult(')
+          ..write('id: $id, ')
+          ..write('playedAt: $playedAt, ')
+          ..write('resultJson: $resultJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, playedAt, resultJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StrategyGameResult &&
+          other.id == this.id &&
+          other.playedAt == this.playedAt &&
+          other.resultJson == this.resultJson);
+}
+
+class StrategyGameResultsCompanion extends UpdateCompanion<StrategyGameResult> {
+  final Value<String> id;
+  final Value<DateTime> playedAt;
+  final Value<String> resultJson;
+  final Value<int> rowid;
+  const StrategyGameResultsCompanion({
+    this.id = const Value.absent(),
+    this.playedAt = const Value.absent(),
+    this.resultJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StrategyGameResultsCompanion.insert({
+    required String id,
+    required DateTime playedAt,
+    required String resultJson,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       playedAt = Value(playedAt),
+       resultJson = Value(resultJson);
+  static Insertable<StrategyGameResult> custom({
+    Expression<String>? id,
+    Expression<DateTime>? playedAt,
+    Expression<String>? resultJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (playedAt != null) 'played_at': playedAt,
+      if (resultJson != null) 'result_json': resultJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StrategyGameResultsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? playedAt,
+    Value<String>? resultJson,
+    Value<int>? rowid,
+  }) {
+    return StrategyGameResultsCompanion(
+      id: id ?? this.id,
+      playedAt: playedAt ?? this.playedAt,
+      resultJson: resultJson ?? this.resultJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (playedAt.present) {
+      map['played_at'] = Variable<DateTime>(playedAt.value);
+    }
+    if (resultJson.present) {
+      map['result_json'] = Variable<String>(resultJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StrategyGameResultsCompanion(')
+          ..write('id: $id, ')
+          ..write('playedAt: $playedAt, ')
+          ..write('resultJson: $resultJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2114,6 +2432,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SavedRoutesTable savedRoutes = $SavedRoutesTable(this);
   late final $ReactionTestResultsTable reactionTestResults =
       $ReactionTestResultsTable(this);
+  late final $StrategyGameResultsTable strategyGameResults =
+      $StrategyGameResultsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2124,6 +2444,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     telemetryPoints,
     savedRoutes,
     reactionTestResults,
+    strategyGameResults,
   ];
 }
 
@@ -2994,6 +3315,7 @@ typedef $$SavedRoutesTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String source,
+      Value<String> description,
       required DateTime updatedAt,
       Value<double?> distanceMeters,
       Value<double?> elevationGainMeters,
@@ -3007,6 +3329,7 @@ typedef $$SavedRoutesTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> source,
+      Value<String> description,
       Value<DateTime> updatedAt,
       Value<double?> distanceMeters,
       Value<double?> elevationGainMeters,
@@ -3037,6 +3360,11 @@ class $$SavedRoutesTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3095,6 +3423,11 @@ class $$SavedRoutesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -3143,6 +3476,11 @@ class $$SavedRoutesTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -3207,6 +3545,7 @@ class $$SavedRoutesTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String> description = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<double?> distanceMeters = const Value.absent(),
                 Value<double?> elevationGainMeters = const Value.absent(),
@@ -3218,6 +3557,7 @@ class $$SavedRoutesTableTableManager
                 id: id,
                 name: name,
                 source: source,
+                description: description,
                 updatedAt: updatedAt,
                 distanceMeters: distanceMeters,
                 elevationGainMeters: elevationGainMeters,
@@ -3231,6 +3571,7 @@ class $$SavedRoutesTableTableManager
                 required String id,
                 required String name,
                 required String source,
+                Value<String> description = const Value.absent(),
                 required DateTime updatedAt,
                 Value<double?> distanceMeters = const Value.absent(),
                 Value<double?> elevationGainMeters = const Value.absent(),
@@ -3242,6 +3583,7 @@ class $$SavedRoutesTableTableManager
                 id: id,
                 name: name,
                 source: source,
+                description: description,
                 updatedAt: updatedAt,
                 distanceMeters: distanceMeters,
                 elevationGainMeters: elevationGainMeters,
@@ -3498,6 +3840,197 @@ typedef $$ReactionTestResultsTableProcessedTableManager =
       ReactionTestResult,
       PrefetchHooks Function()
     >;
+typedef $$StrategyGameResultsTableCreateCompanionBuilder =
+    StrategyGameResultsCompanion Function({
+      required String id,
+      required DateTime playedAt,
+      required String resultJson,
+      Value<int> rowid,
+    });
+typedef $$StrategyGameResultsTableUpdateCompanionBuilder =
+    StrategyGameResultsCompanion Function({
+      Value<String> id,
+      Value<DateTime> playedAt,
+      Value<String> resultJson,
+      Value<int> rowid,
+    });
+
+class $$StrategyGameResultsTableFilterComposer
+    extends Composer<_$AppDatabase, $StrategyGameResultsTable> {
+  $$StrategyGameResultsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get playedAt => $composableBuilder(
+    column: $table.playedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StrategyGameResultsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StrategyGameResultsTable> {
+  $$StrategyGameResultsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get playedAt => $composableBuilder(
+    column: $table.playedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StrategyGameResultsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StrategyGameResultsTable> {
+  $$StrategyGameResultsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get playedAt =>
+      $composableBuilder(column: $table.playedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get resultJson => $composableBuilder(
+    column: $table.resultJson,
+    builder: (column) => column,
+  );
+}
+
+class $$StrategyGameResultsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StrategyGameResultsTable,
+          StrategyGameResult,
+          $$StrategyGameResultsTableFilterComposer,
+          $$StrategyGameResultsTableOrderingComposer,
+          $$StrategyGameResultsTableAnnotationComposer,
+          $$StrategyGameResultsTableCreateCompanionBuilder,
+          $$StrategyGameResultsTableUpdateCompanionBuilder,
+          (
+            StrategyGameResult,
+            BaseReferences<
+              _$AppDatabase,
+              $StrategyGameResultsTable,
+              StrategyGameResult
+            >,
+          ),
+          StrategyGameResult,
+          PrefetchHooks Function()
+        > {
+  $$StrategyGameResultsTableTableManager(
+    _$AppDatabase db,
+    $StrategyGameResultsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StrategyGameResultsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StrategyGameResultsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$StrategyGameResultsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> playedAt = const Value.absent(),
+                Value<String> resultJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StrategyGameResultsCompanion(
+                id: id,
+                playedAt: playedAt,
+                resultJson: resultJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime playedAt,
+                required String resultJson,
+                Value<int> rowid = const Value.absent(),
+              }) => StrategyGameResultsCompanion.insert(
+                id: id,
+                playedAt: playedAt,
+                resultJson: resultJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$StrategyGameResultsTable, StrategyGameResult>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $StrategyGameResultsTable,
+                    StrategyGameResult
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StrategyGameResultsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StrategyGameResultsTable,
+      StrategyGameResult,
+      $$StrategyGameResultsTableFilterComposer,
+      $$StrategyGameResultsTableOrderingComposer,
+      $$StrategyGameResultsTableAnnotationComposer,
+      $$StrategyGameResultsTableCreateCompanionBuilder,
+      $$StrategyGameResultsTableUpdateCompanionBuilder,
+      (
+        StrategyGameResult,
+        BaseReferences<
+          _$AppDatabase,
+          $StrategyGameResultsTable,
+          StrategyGameResult
+        >,
+      ),
+      StrategyGameResult,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3512,4 +4045,6 @@ class $AppDatabaseManager {
       $$SavedRoutesTableTableManager(_db, _db.savedRoutes);
   $$ReactionTestResultsTableTableManager get reactionTestResults =>
       $$ReactionTestResultsTableTableManager(_db, _db.reactionTestResults);
+  $$StrategyGameResultsTableTableManager get strategyGameResults =>
+      $$StrategyGameResultsTableTableManager(_db, _db.strategyGameResults);
 }
