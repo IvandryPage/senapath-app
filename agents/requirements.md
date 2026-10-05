@@ -2,16 +2,27 @@
 
 ## 1. Tujuan dan Ruang Lingkup
 
-Senapath adalah aplikasi pendamping latihan dan balapan sepeda. Aplikasi membantu pembalap menyiapkan rute, merekam sesi, memantau kondisi perjalanan, menangani keadaan darurat, dan meninjau hasil. Manajer tim dapat memakai fitur konversi untuk membantu persiapan logistik.
+Senapath adalah companion untuk cyclist yang berlatih dan balapan. Nilai inti produk adalah satu siklus yang andal: **siapkan rute dan sesi → rekam aktivitas tanpa kehilangan data → tinjau hasil dan progres**. Peta/LBS, lokasi dan sensor mendukung siklus ini; keselamatan, kontrol pengguna, keterbacaan saat bergerak, dan penggunaan offline menjadi syarat lintas fitur.
+
+Konversi mata uang/waktu, AI dan LLM, tantangan strategi, notifikasi, leaderboard, blockchain, serta integrasi wearable tetap menjadi requirement produk, tetapi merupakan fitur pendukung atau tahap lanjutan—bukan pengganti atau blocker bagi pencatatan sesi inti. Manajer tim merupakan persona sekunder untuk persiapan logistik.
 
 Dokumen ini mendefinisikan kebutuhan produk, bukan keputusan implementasi. Fitur yang bergantung pada peta, kurs, cuaca, AI, notifikasi jarak jauh, atau blockchain memerlukan pemilihan penyedia layanan dan koneksi jaringan.
 
 ## 2. Aktor
 
-- **Pembalap**: mengelola profil, menyiapkan rute, merekam sesi, menerima peringatan, dan melihat hasil.
-- **Manajer tim**: menggunakan alat konversi untuk mendukung perencanaan logistik.
-- **Kontak darurat**: menerima pemberitahuan SOS jika pembalap tidak membatalkan hitung mundur.
+- **Cyclist latihan/balap**: menyiapkan rute dan jenis sesi, merekam perjalanan, lalu meninjau aktivitas dan perubahan progres dari data yang tersedia.
+- **Manajer tim (sekunder)**: menggunakan alat mata uang/waktu untuk perencanaan logistik.
+- **Kontak darurat**: dapat dihubungi melalui tindakan telepon/WhatsApp yang dimulai pengguna; aplikasi tidak menyatakan pesan telah dikirim atau diterima.
 - **Layanan eksternal**: penyedia peta, kurs, cuaca, AI, push notification, dan ledger blockchain sesuai integrasi yang dipilih.
+
+### Urutan nilai produk
+
+1. **Ride capture:** mulai/jeda/lanjutkan/akhiri, posisi dan kualitas data yang jelas, penyimpanan lokal, pemulihan setelah gangguan, dan perekaman saat layar mati sesuai dukungan platform.
+2. **Ride review:** detail sesi, riwayat aktivitas, statistik agregat dan tren yang hanya dihitung dari data yang tersedia.
+3. **Ride preparation:** peta yang selalu dapat dibuka, impor/pemilihan rute, detail dan kesiapan perjalanan.
+4. **Companion extensions:** unit/logistik, sensor, pengingat, AI/LLM terpisah, tantangan strategi, leaderboard, proof blockchain, dan wearable sesuai consent serta bukti kesiapan.
+
+Fitur ekstensi tidak boleh menghalangi rekaman lokal, mengarang kualitas data, atau menampilkan estimasi sebagai pengukuran terverifikasi.
 
 ## 3. Functional Requirements
 
@@ -37,20 +48,24 @@ Sistem harus menampilkan geometri rute yang dipilih, bukan hanya metadata. Pengg
 
 **Kriteria penerimaan:** membuka rute dengan geometri menampilkan basemap online, jalur, atribusi, dan titik awal/akhir; kegagalan tile menampilkan jalur GPX serta status yang jelas; rute lama tanpa geometri menampilkan keterbatasan yang jelas; pencarian/provider yang tidak tersedia tidak menampilkan data palsu; rute lokal dapat dibuka dalam mode pesawat tanpa basemap.
 
-**FR-05 — Saran strategi AI**  
-Sistem harus dapat meminta saran yang mempertimbangkan data rute dan konteks yang tersedia, seperti elevasi, cuaca, dan preferensi pembalap. Sistem harus menyebutkan bila data tidak lengkap atau layanan tidak tersedia. Saran bersifat informatif, bukan diagnosis atau jaminan keselamatan.
+**FR-05 — Insight AI non-generatif untuk sesi dan rute**
+Sistem dapat memberi insight non-generatif atas sesi dan rute berdasarkan data yang tersedia, seperti konsistensi volume, distribusi durasi, elevasi, dan konteks cuaca dari provider bila tersedia. Insight harus dapat ditelusuri ke periode dan sumber data, menyatakan data yang hilang, dan tidak menyimpulkan kesiapan medis, diagnosis, atau jaminan keselamatan. Evaluasi tren tantangan strategi di FR-12 adalah use case AI non-generatif terpisah dengan input dan evaluasinya sendiri. Asisten generatif/LLM diatur pada FR-32.
 
 **Kriteria penerimaan:** saran hanya menggunakan data yang tersedia dan dapat menampilkan kegagalan layanan; pengguna tidak diberi kesan bahwa saran menggantikan keputusan atau nasihat medis profesional.
 
 ### B. Perekaman dan Pemantauan Balapan
 
 **FR-06 — Mulai, jeda, dan akhiri sesi**  
-Sistem harus menyediakan kontrol untuk memulai, menjeda, melanjutkan, dan mengakhiri sesi. Sesi aktif harus menampilkan status perekaman dan metrik yang tersedia.
+Sistem harus menyediakan kontrol besar dan mudah dikenali untuk memulai, menjeda, melanjutkan, dan mengakhiri sesi. Cyclist dapat memberi nama dan memilih jenis aktivitas yang didukung, misalnya latihan luar ruang, balapan, atau indoor. Sesi aktif menampilkan status perekaman dan metrik yang tersedia; kontrol tidak memerlukan mengetik saat bergerak.
+
+**Kriteria penerimaan:** transisi status valid dan dapat dipulihkan; jeda tidak menambah durasi/jarak; sesi yang pulih setelah app/process berhenti ditampilkan sebagai dijeda untuk konfirmasi, tidak diam-diam melanjutkan; label/judul aktivitas opsional tidak mengubah data ukur.
 
 **FR-07 — Telemetri, outbox, dan sinkronisasi**  
 Selama sesi, sistem merekam data yang diizinkan dan didukung perangkat ke penyimpanan lokal secara berkala. Outbox lokal bertahan melewati restart/offline. Sinkronisasi hanya boleh dimulai bila backend, akun, dan koneksi tersedia; item tetap lokal sampai server mengonfirmasi penerimaan. Setiap item memiliki ID stabil dan operasi retry idempotent.
 
 **Kriteria penerimaan:** status `lokal`, `menunggu`, `mengirim`, `tersinkron`, dan `gagal` dapat dibedakan; tanpa konfigurasi backend UI menyatakan sinkronisasi belum tersedia; data lokal tidak hilang pada timeout/logout/restart; retry tidak membuat duplikat; hanya respons server terverifikasi yang menandai data tersinkron.
+
+Perekaman lokal tidak mensyaratkan login atau jaringan. Sinkronisasi ringkasan atau telemetri hanya mengirim jenis data yang telah disetujui; sesi tetap dapat ditinjau lokal bila service, akun, atau server tidak tersedia.
 
 **FR-08 — Pemanfaatan sensor**  
 Sistem harus menggunakan GPS sebagai sumber utama posisi/pergerakan bila tersedia, barometer untuk estimasi perubahan tekanan/elevasi bila perangkat memilikinya, serta accelerometer dan gyroscope untuk gerakan/orientasi. Metrik turunan harus diberi label sumber dan status kualitas bila sensor tidak tersedia atau estimasinya tidak andal.
@@ -61,7 +76,7 @@ Cadence/RPM dan lean angle hanya boleh ditampilkan sebagai pengukuran/estimasi a
 Sistem harus dapat memberikan peringatan audio lokal dan, bila diizinkan perangkat, notifikasi untuk kondisi yang relevan dengan sesi, seperti hidrasi atau perubahan rute/cuaca. Pengguna harus dapat mengatur jenis dan volume/frekuensi peringatan. Peringatan lokal yang sudah dijadwalkan harus tetap berfungsi tanpa jaringan; informasi terbaru dari layanan online harus menampilkan keterbatasan saat offline.
 
 **FR-10 — Deteksi insiden dan SOS**  
-Sistem dapat mendeteksi pola gerakan yang berpotensi menunjukkan insiden berdasarkan sensor yang tersedia, lalu menampilkan alarm dan hitung mundur 15 detik. Pengguna harus dapat membatalkannya dan dapat memicu SOS secara manual. Keputusan produk saat ini adalah mempertahankan handoff manual melalui telepon atau draft WhatsApp; aplikasi tidak mengirimkan pesan otomatis dan tidak mengklaim pesan terkirim/diterima. Otomatisasi deteksi tetap nonaktif sampai algoritme divalidasi dan kontak/izin yang diperlukan tersedia.
+Tindakan SOS manual melalui telepon atau draft WhatsApp tersedia sesuai dukungan perangkat. Keputusan produk saat ini: aplikasi tidak mengirim pesan otomatis dan tidak mengklaim pesan terkirim/diterima. Deteksi otomatis tetap nonaktif sampai algoritme, false-positive/false-negative, lifecycle background, dan alur pembatalannya divalidasi pada perangkat serta kondisi bersepeda representatif.
 
 **Kriteria penerimaan:** pembatalan menghentikan handoff; UI membedakan handoff berhasil dibuka dari pesan yang benar-benar dikirim; kegagalan membuka aplikasi/channel ditampilkan; deteksi sensor tidak boleh dinyatakan sebagai kepastian kecelakaan.
 
@@ -80,7 +95,7 @@ Jika layanan AI non-generatif tersedia dan pengguna menyetujui, sistem dapat men
 ### D. Finis dan Pasca-Balapan
 
 **FR-13 — Ringkasan sesi**  
-Setelah sesi diakhiri, sistem harus menyajikan ringkasan metrik yang tersedia, termasuk jarak, durasi, akumulasi elevasi, dan grafik kecepatan bila data mencukupi. Data yang hilang atau diestimasi harus ditandai.
+Setelah sesi diakhiri, sistem harus menyajikan detail/summary aktivitas yang tersedia: waktu, jenis sesi, jarak, durasi aktif, elevasi, grafik kecepatan, kualitas GPS, sumber sensor, dan status sync. Metrik yang tidak cukup datanya disembunyikan atau diberi label tidak tersedia; metrik turunan/estimasi diberi sumber dan kualitas. Dari summary pengguna dapat membuka sesi pada peta, ekspor data, atau memulai aksi lanjutan dengan consent.
 
 **FR-14 — Proof of Completion berbasis blockchain**  
 Target staging yang dipilih adalah jaringan EVM Polygon Amoy. Dengan persetujuan pengguna, sistem harus dapat mengirim hash kriptografis dari berkas/ringkasan sesi melalui relayer server-side dan menyimpan referensi transaksi serta statusnya. Data pribadi dan rute rinci tidak boleh ditulis ke ledger publik. Produksi/mainnet belum diputuskan; deploy kontrak, RPC, key relayer, batas biaya, dan verifikasi testnet masih prasyarat implementasi.
@@ -97,7 +112,7 @@ Pengguna harus dapat melihat dan memperbarui informasi profil yang diizinkan ser
 Pengguna harus menyetujui pengiriman, mengetahui tujuan dan retensi pesan, melihat status lokal/pending/berhasil/gagal, serta dapat mencoba ulang tanpa duplikasi. Kegagalan jaringan tidak boleh dilaporkan sebagai sukses. Isi pesan tidak boleh masuk log diagnostik.
 
 **FR-18 — Navigasi, local lock, dan sign-out**  
-Navigasi harus memberi akses jelas ke fitur inti dan kondisi penggunaannya. Local lock, sign-out akun cloud, dan penghapusan data adalah aksi berbeda. Sign-out membersihkan token dan state sensitif dari memori, membatalkan respons async yang terlambat, tetapi tidak menghapus data lokal kecuali diminta.
+Navigasi harus memberi akses jelas ke Beranda, Jelajah, Sesi, Logistik/Tools, dan Profil sesuai pola platform. Beranda memprioritaskan aktivitas terbaru, ringkasan progres, status rekaman/sinkronisasi, peta, dan aksi utama; bukan sekadar daftar menu. Local lock, sign-out akun cloud, dan penghapusan data adalah aksi berbeda. Sign-out membersihkan token dan state sensitif dari memori, membatalkan respons async yang terlambat, tetapi tidak menghapus sesi lokal kecuali diminta.
 
 ### E. Pengaturan dan Pengelolaan Data
 
@@ -143,6 +158,36 @@ Pembalap dapat memulai dan mengakhiri panduan dari rute tersimpan. Selama pandua
 
 **Kriteria penerimaan:** izin lokasi/GPS ditolak menghasilkan status dan opsi keluar yang jelas; kualitas GPS buruk tidak menghasilkan peringatan off-route palsu; posisi dan progres mengikuti geometri tersimpan; pengguna dapat mengakhiri panduan dan menghentikan stream/wakelock; panduan GPX tetap bisa dibuka offline; instruksi belokan hanya muncul dari provider/rute yang memang menyediakannya.
 
+**FR-27 — Riwayat dan detail aktivitas bersepeda**
+Cyclist dapat menemukan sesi selesai dari riwayat, membuka detail/summary, dan membedakan aktivitas hasil rekaman aplikasi dari aktivitas yang diimpor. Daftar dapat diurutkan menurut waktu serta difilter menurut jenis/asal aktivitas bila filter tersebut tersedia. Aktivitas memiliki ID stabil untuk mencegah duplikasi saat import/sync; perubahan judul/catatan tidak boleh mengubah nilai sensor atau lokasi.
+
+**Kriteria penerimaan:** sesi tetap dapat dibuka setelah restart/offline; detail memperlihatkan tanggal lokal dan timestamp kanonis UTC bila diperlukan untuk sinkronisasi; sumber serta status lokal/cloud jelas; data yang tidak lengkap tetap ditandai; import/sync ulang tidak menggandakan sesi.
+
+**FR-28 — Dashboard progres latihan**
+Sistem menyajikan progres historis dari sesi selesai, sekurangnya jumlah aktivitas, jarak, durasi aktif, dan elevasi bila tersedia, untuk rentang waktu yang bisa dipilih (misalnya 7/30 hari dan rentang khusus). Cyclist dapat membandingkan periode yang sepadan dan melihat daftar aktivitas pembentuk agregat. Perhitungan menghormati unit pilihan dan tidak mencampur sesi ganda/impor yang sama. Insight hanya menyatakan pola faktual dari dataset yang tersedia; tidak mengklaim peningkatan fitness atau kesiapan balap tanpa metode tervalidasi.
+
+**Kriteria penerimaan:** agregat cocok dengan sesi yang tercantum; perubahan rentang/unit memperbarui angka dan grafik konsisten; sesi dengan GPS/elevasi tidak memadai tidak diperlakukan sebagai nilai nol yang valid; state kosong, rentang parsial, data impor, offline, dan kegagalan load dibedakan; pengguna dapat membuka sumber data dari insight.
+
+**FR-29 — Target aktivitas personal (opsional)**
+Cyclist dapat membuat dan mengubah target sederhana berbasis pilihan sendiri (jumlah sesi, jarak, atau durasi per minggu/periode). Aplikasi menampilkan progres dan periode target dengan definisi waktu yang jelas. Target bukan resep latihan atau rekomendasi medis; target dapat dimatikan/dihapus dan tidak mengubah rekaman.
+
+**Kriteria penerimaan:** agregat progres target memakai sesi selesai yang unik dan sama dengan dashboard; zona waktu/periode ditampilkan; tidak ada target default yang menyiratkan rekomendasi profesional; perubahan atau penghapusan target tidak menghapus riwayat aktivitas.
+
+**FR-30 — Workout interval buatan cyclist**
+Cyclist dapat menyusun rangkaian interval waktu atau jarak beserta pemulihan, menyimpannya lokal, lalu memilihnya sebelum sesi. Saat aktif, sistem memberi cue audio/haptic/visual yang dapat diatur dan tetap minim interaksi; jeda/akhiri sesi menyelaraskan timer workout dan tidak melanjutkan diam-diam setelah recovery aplikasi. Sistem menyediakan alat pencatat, bukan resep intensitas, target daya, atau nasihat medis.
+
+**Kriteria penerimaan:** interval tervalidasi, urutan dan sisa waktu/jarak benar, pause/resume/finish dan layar mati diuji; cue dapat dimatikan; kehilangan GPS tidak membuat jarak workout palsu; workout tersedia offline; sesi rekaman tetap berjalan walau cue gagal.
+
+**FR-31 — Sensor sepeda eksternal (kapabilitas lanjutan)**
+Setelah protokol/perangkat sasaran disepakati, pengguna dapat memasangkan sensor bersepeda yang didukung (misalnya heart rate, cadence, speed, atau power melalui profil Bluetooth standar yang relevan). Setiap sampel mencatat sumber, waktu, unit, status koneksi/kualitas, dan tidak disamakan dengan sensor ponsel. Pairing/consent dapat dicabut; sensor yang terputus tidak menghentikan rekaman GPS/lokal.
+
+**Kriteria penerimaan:** uji pairing, izin Bluetooth, disconnect/reconnect, sensor absen, data stale, unit/range dan duplikasi; nilai tidak dibuat-buat saat sensor tidak mengirim; data mentah hanya disinkronkan sesuai consent dan kebijakan retensi.
+
+**FR-32 — Asisten LLM terpisah dari AI analitik**
+Pengguna dapat bertanya kepada asisten generatif tentang rute atau aktivitas menggunakan konteks yang dipilih secara eksplisit. Sebelum data dikirim ke provider, aplikasi menjelaskan data yang dibagikan dan meminta consent. LLM tidak boleh menyamar sebagai hasil AI analitik FR-05/FR-12, mengarang data cuaca/rute/provider, atau memberi diagnosis dan instruksi keselamatan. Riwayat percakapan dapat dihapus; batas kuota, timeout, offline, dan kegagalan provider ditampilkan dengan jujur.
+
+**Kriteria penerimaan:** permintaan tanpa consent tidak mengirim konteks personal; jawaban memisahkan fakta dari generasi dan menyatakan sumber/keterbatasan; kegagalan tidak menghasilkan jawaban sukses palsu; pengguna dapat menghapus percakapan sesuai kebijakan retensi yang dijelaskan.
+
 ## 4. Kebutuhan Nonfungsional
 
 **NFR-01 — Keamanan:** data lokal sensitif dan kredensial sesi harus dilindungi dengan mekanisme aman platform dan enkripsi saat tersimpan. Rahasia/API key layanan eksternal tidak boleh ditanam di aplikasi klien.
@@ -162,6 +207,14 @@ Panduan berkendara harus dapat dibaca sekilas, tidak memerlukan mengetik saat be
 **NFR-07 — Transparansi data:** waktu/sumber kurs, sumber dan keterbatasan metrik sensor/wearable, status sinkronisasi, status pengiriman SOS, dan status transaksi ledger harus dapat diketahui pengguna.
 
 **NFR-08 — Kesiapan produksi:** klaim production-ready hanya berlaku pada platform/provider yang benar-benar dikonfigurasi dan lolos build rilis, migrasi, pengujian integrasi, audit secrets/RLS/izin, uji offline dan pemulihan, serta smoke test pada perangkat sasaran. Integrasi yang belum dideploy harus dinyatakan belum tersedia. Harus ada prosedur rollback, pemantauan kegagalan tanpa data sensitif, kebijakan retensi, dan kontak dukungan.
+
+**NFR-09 — Keandalan rekaman dan konsumsi daya:** rekaman foreground/background harus mengikuti mekanisme resmi tiap OS, menjelaskan indikator/notifikasi permanen bila diwajibkan, dan pulih menjadi status aman setelah app/process dihentikan. Sampling, akurasi, interval persistensi, penggunaan baterai, panas, dan kehilangan data diuji pada perangkat sasaran dengan batas penerimaan yang ditetapkan melalui spike lapangan; tidak menjanjikan perekaman saat OS mencabut izin atau menghentikan service.
+
+**NFR-10 — Kualitas insight dan keterlacakan:** setiap agregat/insight dapat ditelusuri ke sesi, rentang waktu, unit, sumber, dan jumlah data yang dipakai. Ketiadaan data tidak diubah menjadi nol; statistik deskriptif dipisahkan dari rekomendasi; AI tidak boleh memperkuat kesimpulan melebihi bukti inputnya.
+
+**NFR-11 — UX saat bersepeda:** tindakan rekam utama memiliki target sentuh yang besar, label status yang terbaca sekilas, dan tidak mensyaratkan input teks saat bergerak. Pengaturan detail, chat, import, analisis, dan konfirmasi sensitif diarahkan dilakukan saat cyclist berhenti di tempat aman.
+
+**NFR-12 — Kelayakan insight latihan:** Senapath bukan pengganti pelatih atau tenaga kesehatan. Target, interval, dan statistik adalah alat yang dipilih cyclist; AI/LLM tidak boleh menyimpulkan kemampuan medis, memberi diagnosis, atau menyatakan kesiapan lomba tanpa dasar tervalidasi dan scope yang disetujui.
 
 ## 5. Aturan Bisnis dan Batasan
 
