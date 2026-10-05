@@ -70,16 +70,14 @@ Deno.serve(async (request) => {
           );
         }
       }
-      if (action === "google") {
-        const clientIp = request.headers.get("cf-connecting-ip") ??
-          request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-          "unknown";
-        if (!await consumeRateLimit(`google-ip:${clientIp}`, 20)) {
-          return jsonResponse(
-            { error: "Too many attempts. Wait before trying again." },
-            429,
-          );
-        }
+    }
+    if (action === "google") {
+      const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
+      if (!await consumeRateLimit(`google-ip:${clientIp}`, 20)) {
+        return jsonResponse(
+          { error: "Too many attempts. Wait before trying again." },
+          429,
+        );
       }
     }
     switch (action) {
