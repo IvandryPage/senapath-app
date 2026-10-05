@@ -14,6 +14,8 @@ import '../../features/strategy_game/presentation/strategy_game_screen.dart';
 import '../../features/authentication/presentation/device_auth_cubit.dart';
 import '../../features/authentication/presentation/device_unlock_screen.dart';
 import '../../features/authentication/presentation/cloud_account_screen.dart';
+import '../../features/authentication/presentation/password_reset_screen.dart';
+import '../../features/authentication/presentation/email_verification_screen.dart';
 import '../../features/authentication/presentation/cloud_account_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/assistant/presentation/ai_chat_cubit.dart';
@@ -40,6 +42,17 @@ const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) =>
+          PasswordResetScreen(token: state.uri.queryParameters['token'] ?? ''),
+    ),
+    GoRoute(
+      path: '/verify-email',
+      builder: (context, state) => EmailVerificationScreen(
+        token: state.uri.queryParameters['token'] ?? '',
+      ),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           _AppShell(navigationShell: navigationShell, location: state.uri.path),

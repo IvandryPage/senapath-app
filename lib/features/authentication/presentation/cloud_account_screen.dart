@@ -112,6 +112,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                 TextFormField(
                   controller: _passwordController,
                   enabled: state.isConfigured && !state.isLoading,
+                  maxLength: 128,
                   obscureText: !_showPassword,
                   autofillHints: [
                     _isRegistering
@@ -148,6 +149,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                   TextFormField(
                     controller: _confirmationController,
                     enabled: state.isConfigured && !state.isLoading,
+                    maxLength: 128,
                     obscureText: true,
                     autofillHints: const [AutofillHints.newPassword],
                     textInputAction: TextInputAction.done,
@@ -196,7 +198,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (_isRegistering) ...[
             const SizedBox(height: 16),
             Text(
-              'Password dikirim melalui koneksi aman ke Supabase Auth dan tidak disimpan oleh aplikasi. Verifikasi email dapat diwajibkan oleh pengaturan proyek.',
+              'Verifikasi email diperlukan sebelum masuk. Password dikirim melalui HTTPS ke layanan autentikasi Senapath dan disimpan di server hanya sebagai hash PBKDF2; aplikasi tidak menyimpan password.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

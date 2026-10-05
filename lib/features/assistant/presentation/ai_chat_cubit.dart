@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 
 import '../data/ai_chat_gateway.dart';
 import '../domain/ai_chat_message.dart';
@@ -96,12 +97,21 @@ class AiChatCubit extends Cubit<AiChatState> {
           clearError: true,
         ),
       );
-    } catch (_) {
+    } catch (error) {
       if (isClosed || requestGeneration != _requestGeneration) return;
+      final message = switch (error) {
+        StateError(:final message) => message.toString(),
+        FormatException(:final message) => message,
+        TimeoutException() =>
+          'Permintaan ke layanan AI melewati batas waktu. Coba lagi.',
+        _ => error.toString(),
+      };
       emit(
         state.copyWith(
           isSending: false,
-          error: 'AI tidak dapat menjawab. Periksa koneksi, akun online, dan konfigurasi Edge Function.',
+          error: message.isEmpty
+              ? 'AI tidak dapat menjawab. Periksa koneksi dan konfigurasi layanan.'
+              : message,
         ),
       );
     }

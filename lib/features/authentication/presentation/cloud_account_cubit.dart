@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/cloud_account_gateway.dart';
+import '../data/custom_auth_session_manager.dart';
 
 class CloudAccountState {
   const CloudAccountState({
@@ -94,7 +95,9 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       );
       emit(
         state.copyWith(
-          email: result.hasSession ? normalizedEmail : null,
+          email: result.hasSession
+              ? (_gateway.currentEmail ?? normalizedEmail)
+              : null,
           clearEmail: !result.hasSession,
           isLoading: false,
           status: result.hasSession
@@ -102,11 +105,14 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
               : 'Akun dibuat. Periksa email untuk verifikasi sebelum masuk.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Pendaftaran gagal. Periksa email, koneksi, dan pengaturan Auth Supabase.',
+          error: _messageFor(
+            error,
+            'Pendaftaran gagal. Periksa email dan koneksi internet.',
+          ),
         ),
       );
     }
@@ -140,11 +146,14 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           status: 'Berhasil masuk ke akun online.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Tidak dapat masuk. Periksa email, password, dan verifikasi email.',
+          error: _messageFor(
+            error,
+            'Tidak dapat masuk. Periksa email, password, dan koneksi internet.',
+          ),
         ),
       );
     }
@@ -165,25 +174,30 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
 
     emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
     try {
-      final browserOpened = await _gateway.signInWithGoogle();
+      final signedIn = await _gateway.signInWithGoogle();
       emit(
         state.copyWith(
+          email: signedIn ? _gateway.currentEmail : null,
+          clearEmail: !signedIn,
           isLoading: false,
-          status: browserOpened
-              ? 'Selesaikan login Google di browser. Aplikasi akan tersambung setelah autentikasi dikonfirmasi.'
+          status: signedIn
+              ? 'Login Google berhasil dan akun online sudah terhubung.'
               : null,
-          error: browserOpened
+          error: signedIn
               ? null
-              : 'Browser login Google tidak dapat dibuka. Coba lagi.',
-          clearStatus: !browserOpened,
-          clearError: browserOpened,
+              : 'Login Google tidak selesai. Coba lagi.',
+          clearStatus: !signedIn,
+          clearError: signedIn,
         ),
       );
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Login Google gagal dimulai. Periksa konfigurasi provider Google dan redirect URL Supabase.',
+          error: _messageFor(
+            error,
+            'Login Google gagal. Periksa konfigurasi Google dan coba lagi.',
+          ),
         ),
       );
     }
@@ -213,11 +227,91 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           status: 'Jika email terdaftar, tautan pemulihan akan dikirim.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Tautan pemulihan tidak dapat dikirim. Periksa koneksi dan Auth Supabase.',
+          error: _messageFor(
+            error,
+            'Tautan pemulihan tidak dapat dikirim. Periksa koneksi dan konfigurasi email.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> completePasswordReset({
+    required String token,
+    required String password,
+  }) async {
+    if (token.isEmpty || password.length < 8 || password.length > 128) {
+      emit(
+        state.copyWith(
+          error:
+              'Tautan reset tidak valid atau password tidak memenuhi batas 8-128 karakter.',
+          clearStatus: true,
+        ),
+      );
+      return;
+    }
+    if (!_gateway.isConfigured) {
+      emit(
+        state.copyWith(
+          error: 'Pemulihan akun belum tersedia karena Supabase belum dikonfigurasi.',
+          clearStatus: true,
+        ),
+      );
+      return;
+    }
+    emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
+    try {
+      await _gateway.completePasswordReset(token: token, password: password);
+      emit(
+        state.copyWith(
+          isLoading: false,
+          status: 'Password berhasil diperbarui. Silakan masuk kembali.',
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          error: _messageFor(
+            error,
+            'Password tidak dapat diperbarui. Minta tautan reset yang baru.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> verifyEmail(String token) async {
+    if (token.isEmpty) {
+      emit(state.copyWith(error: 'Tautan verifikasi tidak valid.'));
+      return;
+    }
+    if (!_gateway.isConfigured) {
+      emit(
+        state.copyWith(
+          error: 'Verifikasi email belum tersedia karena Supabase belum dikonfigurasi.',
+        ),
+      );
+      return;
+    }
+    emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
+    try {
+      await _gateway.verifyEmail(token);
+      emit(
+        state.copyWith(
+          isLoading: false,
+          status: 'Email berhasil diverifikasi. Silakan masuk.',
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          error: _messageFor(error, 'Tautan verifikasi tidak dapat digunakan.'),
         ),
       );
     }
@@ -236,11 +330,14 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
               'Berhasil keluar dari akun online. Data lokal tetap tersimpan.',
         ),
       );
-    } catch (_) {
+    } catch (error) {
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Keluar dari akun online gagal. Coba lagi saat jaringan tersedia.',
+          error: _messageFor(
+            error,
+            'Keluar dari akun online gagal. Coba lagi saat jaringan tersedia.',
+          ),
         ),
       );
     }
@@ -249,11 +346,18 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
   String? _validate(String email, String password) {
     if (!_isValidEmail(email)) return 'Masukkan alamat email yang valid.';
     if (password.length < 8) return 'Password harus berisi minimal 8 karakter.';
+    if (password.length > 128) return 'Password maksimal 128 karakter.';
     return null;
   }
 
   bool _isValidEmail(String email) =>
       RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
+
+  String _messageFor(Object error, String fallback) => switch (error) {
+    CustomAuthException(:final message) => message,
+    StateError(:final message) => message.toString(),
+    _ => fallback,
+  };
 
   @override
   Future<void> close() async {

@@ -17,7 +17,7 @@ Target platform, perangkat sepeda yang didukung, provider kurs/cuaca, biaya, ser
 1. Cyclist menyiapkan sesi dan rute; peta tetap dapat dibuka sebelum ada GPX dan lokasi hanya diminta saat dibutuhkan.
 2. Cyclist memulai rekaman dengan kontrol ringkas. Sampel lokasi/sensor yang tersedia ditandai sumber dan kualitasnya, disimpan lokal, dan tetap direkam saat layar mati sesuai kapabilitas platform/izin.
 3. Setelah sesi, cyclist melihat ringkasan, membuka jejak pada peta, menelusuri riwayat, dan memahami agregat progres melalui sesi pembentuknya.
-4. Login Google/Supabase dan biometrik menjaga akun/perangkat; akun cloud tidak menjadi prasyarat perekaman offline.
+4. Custom login email/Google dan biometrik menjaga akun/perangkat; akun cloud tidak menjadi prasyarat perekaman offline.
 5. Logistik (kurs dan waktu dunia), AI analitik non-generatif, LLM percakapan, sensor, notifikasi, dan integrasi wearable mendukung perjalanan/latihan dengan data dan status yang transparan.
 6. Tantangan strategi, leaderboard opt-in, serta proof blockchain adalah ekstensi opsional; kegagalannya tidak boleh mengganggu rekaman atau ringkasan lokal.
 
@@ -53,7 +53,7 @@ Repository saat ini mencakup Flutter app, perekaman sesi lokal, impor/ekspor GPX
 
 Status yang perlu diverifikasi lagi sebelum planning:
 
-- Gateway dan callback Google OAuth melalui Supabase tersedia di aplikasi; provider credentials/redirect allow-list pada dashboard dan pengujian live di project/perangkat nyata masih harus diverifikasi sebelum dinyatakan siap.
+- Custom auth gateway, Google ID-token verification, secure session restore, dan refresh-token rotation tersedia di aplikasi; signing key Supabase, Google client IDs, provider setup, dan pengujian live pada project/perangkat nyata tetap harus diverifikasi sebelum dinyatakan siap.
 - Login biometrik yang sudah ada merupakan local unlock; bukan Google login atau autentikasi backend.
 - Sinkronisasi ringkasan sesi ke Supabase meminta consent dan memakai upsert idempoten; migrasi/RLS live belum diverifikasi dan raw GPS/telemetry belum tersinkron.
 - Basemap OpenStreetMap online ditampilkan di Beranda/Jelajah dan pada preview/panduan GPX; pusat awal peta saat ini Yogyakarta. Tile perlu internet; geocoding, pencarian rute online, turn-by-turn, dan provider tile produksi belum tersedia/diputuskan.
@@ -109,7 +109,7 @@ Urutan berikut menempatkan pencatatan dan peninjauan latihan cyclist sebelum eks
 | SP-23 | **Progress dashboard yang dapat dijelaskan** | Hitung frekuensi sesi, jarak, durasi aktif, dan elevasi bila cukup data untuk periode yang dipilih; bandingkan rentang sepadan dan tautkan setiap angka/grafik ke aktivitas sumber. Unit dan zona waktu konsisten; data parsial/ganda tidak disamarkan menjadi angka pasti atau klaim fitness. |
 | SP-24 | **Target aktivitas personal (opsional)** | Cyclist dapat membuat target sederhana pilihan sendiri (jumlah sesi, jarak, atau durasi dalam periode); progres memakai sesi selesai yang unik, target dapat diubah/dihapus, dan tidak dipresentasikan sebagai resep latihan profesional. |
 | SP-25 | **Workout interval buatan cyclist** | Cyclist membuat dan menyimpan rangkaian interval waktu/jarak serta pemulihan secara lokal, memilihnya sebelum ride, dan menerima cue audio/haptic/visual yang dapat dimatikan. Pause/finish/recovery menyelaraskan workout dengan sesi tanpa melanjutkan diam-diam; jarak tidak maju tanpa sumber valid; cue gagal tidak menghentikan rekaman. Tidak memberi resep intensitas atau klaim medis. |
-| SP-01 | **Autentikasi Google dan lifecycle session** | Login/registrasi Google lewat alur OAuth resmi yang sesuai untuk mobile (state/PKCE/validasi callback), HTTPS/TLS, dan validasi token di sisi server; token tidak ditulis ke log; session dapat dipulihkan sesuai aturan, diperbarui, dan dicabut saat logout; error provider, cancel, jaringan putus, dan akun tidak terkonfigurasi memiliki pesan/pemulihan. Tidak meminta password Google. |
+| SP-01 | **Autentikasi custom dan lifecycle session** | Email/password diverifikasi server-side dengan hash salted, email diverifikasi sebelum login, Google ID token diverifikasi terhadap JWKS/audience, access JWT memakai key dipercaya Supabase, refresh token disimpan hash-only server-side lalu dirotasi, dan logout mencabut refresh session. Reset email token sekali pakai; token/credential tidak ditulis ke log dan password Google tidak pernah diminta. |
 | SP-02 | **Biometric local unlock** | Setelah login cloud berhasil, pengguna dapat mengaktifkan biometrik di perangkat yang mendukungnya. Validasi biometrik membuka akses lokal, tidak membuat session cloud baru; penolakan, sensor tidak tersedia, lockout, dan fallback ditangani. Pengguna dapat menonaktifkannya. |
 | SP-03 | **Penyimpanan lokal dan Supabase** | Data inti punya model lokal dan remote yang konsisten; migrasi Drift dan schema Supabase terdokumentasi; RLS membatasi data per pengguna; keputusan enkripsi local at-rest diuji; uji restart/offline/reinstall/penghapusan membuktikan perilaku data. |
 | SP-04 | **Sinkronisasi offline-first** | Outbox memakai ID stabil, retry idempotent, acknowledgment server, kebijakan konflik dan status terlihat. Force-stop/restart atau logout tidak menghilangkan item pending; item tidak pernah ditandai tersinkron sebelum server mengonfirmasi. |
@@ -159,7 +159,7 @@ Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan t
 **Sprint Goal:** menyepakati pengalaman Senapath, platform sasaran, batas privasi/keselamatan, provider/API, dan kontrak data sebelum memperluas implementasi.
 
 - Petakan layar/alur yang sudah ada dan bukti baseline; tandai implementasi lokal vs integrasi terdeploy.
-- Putuskan OAuth Google/Supabase, auth callback, session lifecycle, model data, RLS, local encryption decision, serta skenario logout/penghapusan.
+- Putuskan custom auth Google/email, callback, session lifecycle, model user/RLS, local encryption decision, serta skenario logout/penghapusan.
 - Evaluasi provider tile skala produksi dan search, kurs, LLM, push, dan blockchain: lisensi, biaya, kuota, wilayah, data yang keluar, fallback. Basemap GPX MVP menggunakan tile OpenStreetMap online.
 - Definisikan persona cyclist latihan/balap, data minimal tiap ride, statistik progres yang dipercaya, matrix perangkat/OS, lifecycle background, sampling/baterai, evaluasi AI, dan data yang boleh menjadi konteks LLM.
 - Hasil Review: keputusan/risiko tercatat, acceptance criteria disetujui, backlog dipecah, dan item blocked diberi pemilik.
@@ -195,7 +195,7 @@ Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan t
 
 **Sprint Goal:** akun/cloud memperluas akses tanpa mengorbankan data lokal dan status server yang jujur.
 
-- Kerjakan SP-01/SP-02 dengan OAuth Google dan local unlock sebagai alur yang berbeda; uji cancel, callback, revoke, logout dan offline.
+- Kerjakan SP-01/SP-02 dengan custom auth Google/email dan local unlock sebagai alur yang berbeda; uji verifikasi/reset email, cancel, callback, refresh/revoke, logout dan offline.
 - Implementasikan kontrak API, Supabase migrations/RLS, status service, dan outbox/retry idempotent (SP-03/SP-04/SP-05/SP-08).
 - Putuskan secara eksplisit apakah sync ringkasan atau raw telemetry; dokumentasikan data, consent, batas ukuran, konflik, retensi, dan penghapusan.
 - Hasil Review: tes multi-account/RLS pada staging; sesi lokal tetap tersedia saat logout, backend gagal atau jaringan mati.
@@ -230,7 +230,7 @@ Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan t
 Jangan menyebut produk siap produksi sampai semua gate yang masuk scope rilis memiliki bukti:
 
 - **Build/perangkat:** build distribusi bertanda tangan; instalasi baru dan upgrade; uji OS/perangkat minimum serta lifecycle sensor/lokasi.
-- **Identitas/data:** Google OAuth dan session diuji dengan project nyata; RLS diuji lintas akun; logout, revocation, ekspor, penghapusan lokal/cloud, backup dan restore diverifikasi.
+- **Identitas/data:** Google ID-token verification, custom JWT/RLS dan session diuji dengan project nyata; RLS diuji lintas akun; logout, refresh rotation, revocation, ekspor, penghapusan lokal/cloud, backup dan restore diverifikasi.
 - **Keamanan/privasi:** TLS, penyimpanan token, local at-rest encryption bila diklaim, secrets, izin, consent, retensi, logs tanpa data sensitif, serta dependency advisories ditinjau.
 - **API/provider:** endpoint nyata, validasi/authorization, rate/kuota, timeout, migrasi, deployment, monitoring, dan fallback diuji; key server tidak ada di app bundle.
 - **Offline:** data lokal bertahan restart/force-stop; retry idempotent; status local/pending/confirmed akurat; cache tidak merusak sesi.

@@ -91,6 +91,15 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
+  Future<void> completePasswordReset({
+    required String token,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> verifyEmail(String token) async {}
+
+  @override
   Future<void> signOut() async {
     email = null;
     _authChanges.add(null);

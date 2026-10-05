@@ -1,6 +1,9 @@
+import { verifyAppAccessToken } from "../_shared/app_auth.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Headers":
+    "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
 };
@@ -17,24 +20,16 @@ Deno.serve(async (request: Request) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
+  if (!supabaseUrl || !serviceRoleKey) {
     return jsonResponse(503, { error: "Feedback service is not configured." });
   }
 
   try {
-    const authorization = request.headers.get("authorization");
-    if (!authorization) {
+    const user = await verifyAppAccessToken(request);
+    if (!user) {
       return jsonResponse(401, { error: "Authentication is required." });
     }
-    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: supabaseAnonKey, authorization },
-    });
-    if (!userResponse.ok) {
-      return jsonResponse(401, { error: "Authentication is required." });
-    }
-    const user = await userResponse.json();
 
     const body = await request.json();
     const submissionId = body?.submissionId;
@@ -60,7 +55,7 @@ Deno.serve(async (request: Request) => {
       },
       body: JSON.stringify({
         idempotency_key: submissionId,
-        user_id: user.id,
+        user_id: user.sub,
         message: message.trim(),
         consented_at: new Date().toISOString(),
       }),

@@ -1,12 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../authentication/data/custom_auth_session_manager.dart';
 import '../domain/feedback_submission.dart';
 import 'feedback_gateway.dart';
 
 class SupabaseFeedbackGateway implements FeedbackGateway {
-  const SupabaseFeedbackGateway(this._client);
+  const SupabaseFeedbackGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
+  final CustomAuthSessionManager _sessionManager;
 
   @override
   bool get isConfigured => _client != null;
@@ -15,11 +17,11 @@ class SupabaseFeedbackGateway implements FeedbackGateway {
   Future<void> submit(FeedbackSubmission submission) async {
     final client = _client;
     if (client == null) throw StateError('Supabase belum dikonfigurasi.');
-    if (client.auth.currentUser == null) {
+    if (_sessionManager.currentUserId == null) {
       throw StateError('Masuk ke akun online sebelum mengirim feedback.');
     }
 
-    final response = await client.functions.invoke(
+    final response = await _sessionManager.invokeAuthenticatedFunction(
       'submit-feedback',
       body: {
         'consent': true,

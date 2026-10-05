@@ -14,6 +14,7 @@ import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/widgets/feature_state_view.dart';
 import 'package:senapath/features/authentication/data/device_authenticator.dart';
 import 'package:senapath/features/authentication/data/supabase_cloud_account_gateway.dart';
+import 'package:senapath/features/authentication/data/custom_auth_session_manager.dart';
 import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 import 'package:senapath/features/assistant/data/supabase_ai_chat_gateway.dart';
@@ -85,7 +86,14 @@ void main() {
       SenapathApp(
         authCubit: authCubit,
         cloudAccountCubit: CloudAccountCubit(
-          const SupabaseCloudAccountGateway(null),
+          SupabaseCloudAccountGateway(
+            sessionManager: CustomAuthSessionManager(
+              client: null,
+              secureVault: _FakeSecureVault(),
+            ),
+            googleServerClientId: '',
+            googleIosClientId: '',
+          ),
         ),
         themeSettingsCubit: themeSettingsCubit,
         emergencyCubit: emergencyCubit,
@@ -95,23 +103,47 @@ void main() {
         sessionCubit: sessionCubit,
         logisticsCubit: logisticsCubit,
         strategyGameCubit: strategyGameCubit,
-        aiChatCubit: AiChatCubit(const SupabaseAiChatGateway(null)),
+        aiChatCubit: AiChatCubit(
+          SupabaseAiChatGateway(
+            null,
+            CustomAuthSessionManager(
+              client: null,
+              secureVault: _FakeSecureVault(),
+            ),
+          ),
+        ),
         feedbackCubit: FeedbackCubit(
           FeedbackRepository(_FakeSecureVault()),
-          const SupabaseFeedbackGateway(null),
+          SupabaseFeedbackGateway(
+            null,
+            CustomAuthSessionManager(
+              client: null,
+              secureVault: _FakeSecureVault(),
+            ),
+          ),
         ),
         leaderboardCubit: LeaderboardCubit(
-          const SupabaseLeaderboardGateway(null),
+          SupabaseLeaderboardGateway(
+            null,
+            CustomAuthSessionManager(
+              client: null,
+              secureVault: _FakeSecureVault(),
+            ),
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    print('SESSION CUBIT STATE: isInitialized=${sessionCubit.state.isInitialized}, isLoading=${sessionCubit.state.isLoading}, error=${sessionCubit.state.message}, sessions=${sessionCubit.state.completedSessions.length}');
+    print(
+      'SESSION CUBIT STATE: isInitialized=${sessionCubit.state.isInitialized}, isLoading=${sessionCubit.state.isLoading}, error=${sessionCubit.state.message}, sessions=${sessionCubit.state.completedSessions.length}',
+    );
     await tester.drag(find.text('Hai, siap gowes?'), const Offset(0, -600));
     await tester.pumpAndSettle();
     for (final element in find.byType(Text).evaluate()) {
-      print('FOUND TEXT AFTER DRAG: ${(element.widget as Text).data ?? (element.widget as Text).textSpan?.toPlainText()}');
+      print(
+        'FOUND TEXT AFTER DRAG: ${(element.widget as Text).data ?? (element.widget as Text).textSpan?.toPlainText()}',
+      );
     }
     expect(find.text('Belum ada sesi'), findsOneWidget);
 

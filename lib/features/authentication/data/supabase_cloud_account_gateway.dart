@@ -1,59 +1,102 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
+import 'custom_auth_session_manager.dart';
 import 'cloud_account_gateway.dart';
 
 class SupabaseCloudAccountGateway implements CloudAccountGateway {
-  const SupabaseCloudAccountGateway(this._client);
+  static Future<void>? _googleInitialization;
 
-  final SupabaseClient? _client;
+  const SupabaseCloudAccountGateway({
+    required CustomAuthSessionManager sessionManager,
+    required String googleServerClientId,
+    required String googleIosClientId,
+  }) : _sessionManager = sessionManager,
+       _googleServerClientId = googleServerClientId,
+       _googleIosClientId = googleIosClientId;
+
+  final CustomAuthSessionManager _sessionManager;
+  final String _googleServerClientId;
+  final String _googleIosClientId;
 
   @override
-  bool get isConfigured => _client != null;
+  bool get isConfigured => _sessionManager.isConfigured;
 
   @override
-  String? get currentEmail => _client?.auth.currentUser?.email;
+  String? get currentEmail => _sessionManager.currentEmail;
 
   @override
-  Stream<String?> get authChanges =>
-      _client?.auth.onAuthStateChange.map(
-        (event) => event.session?.user.email,
-      ) ??
-      const Stream.empty();
+  Stream<String?> get authChanges => _sessionManager.authChanges;
 
   @override
   Future<CloudAccountRegistrationResult> register({
     required String email,
     required String password,
   }) async {
-    final response = await _requiredClient.auth.signUp(
-      email: email,
-      password: password,
+    final response = await _sessionManager.authenticate('register', values: {
+      'email': email,
+      'password': password,
+    });
+    return CloudAccountRegistrationResult(
+      hasSession: response['emailVerificationRequired'] != true,
     );
-    return CloudAccountRegistrationResult(hasSession: response.session != null);
   }
 
   @override
   Future<void> signIn({required String email, required String password}) async {
-    await _requiredClient.auth.signInWithPassword(
-      email: email,
-      password: password,
+    await _sessionManager.authenticate('sign-in', values: {
+      'email': email,
+      'password': password,
+    });
+  }
+
+  @override
+  Future<bool> signInWithGoogle() async {
+    if (_googleServerClientId.isEmpty) {
+      throw StateError('Google sign-in belum dikonfigurasi di aplikasi.');
+    }
+    final google = GoogleSignIn.instance;
+    try {
+      await (_googleInitialization ??= google.initialize(
+        serverClientId: _googleServerClientId,
+        clientId: _googleIosClientId.isEmpty ? null : _googleIosClientId,
+      ));
+    } catch (_) {
+      _googleInitialization = null;
+      rethrow;
+    }
+    final account = await google.authenticate();
+    final idToken = account.authentication.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw StateError('Google tidak memberikan ID token yang dapat diverifikasi.');
+    }
+    await _sessionManager.authenticate('google', values: {'idToken': idToken});
+    return true;
+  }
+
+  @override
+  Future<void> sendPasswordReset(String email) async {
+    await _sessionManager.authenticate(
+      'password-reset-request',
+      values: {'email': email},
     );
   }
 
   @override
-  Future<bool> signInWithGoogle() => _requiredClient.auth.signInWithOAuth(
-    OAuthProvider.google,
-    redirectTo: googleOAuthRedirectUri,
-  );
-
-  @override
-  Future<void> sendPasswordReset(String email) async {
-    await _requiredClient.auth.resetPasswordForEmail(email);
+  Future<void> verifyEmail(String token) async {
+    await _sessionManager.authenticate('verify-email', values: {'token': token});
   }
 
   @override
-  Future<void> signOut() => _requiredClient.auth.signOut();
+  Future<void> completePasswordReset({
+    required String token,
+    required String password,
+  }) async {
+    await _sessionManager.authenticate(
+      'password-reset-complete',
+      values: {'token': token, 'password': password},
+    );
+  }
 
-  SupabaseClient get _requiredClient =>
-      _client ?? (throw StateError('Supabase belum dikonfigurasi.'));
+  @override
+  Future<void> signOut() => _sessionManager.signOut();
 }

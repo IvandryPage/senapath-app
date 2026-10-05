@@ -10,6 +10,7 @@ import 'core/storage/secure_vault.dart';
 import 'core/units/unit_settings_cubit.dart';
 import 'core/units/unit_settings_repository.dart';
 import 'features/authentication/data/device_authenticator.dart';
+import 'features/authentication/data/custom_auth_session_manager.dart';
 import 'features/authentication/data/supabase_cloud_account_gateway.dart';
 import 'features/authentication/presentation/device_auth_cubit.dart';
 import 'features/authentication/presentation/cloud_account_cubit.dart';
@@ -44,10 +45,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var supabaseUrl = '';
   var supabasePublishableKey = '';
+  var googleServerClientId = '';
+  var googleIosClientId = '';
   try {
     await dotenv.load(fileName: 'assets/config/client.env');
     supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
     supabasePublishableKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? '';
+    googleServerClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '';
+    googleIosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
   } catch (_) {
     // Local-only features remain available when client config is absent.
   }
@@ -62,6 +67,11 @@ Future<void> main() async {
   }
 
   final secureVault = FlutterSecureVault();
+  final authSessionManager = CustomAuthSessionManager(
+    client: supabaseClient,
+    secureVault: secureVault,
+  );
+  await authSessionManager.restore();
   final database = AppDatabase();
   final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
@@ -77,7 +87,11 @@ Future<void> main() async {
     SenapathApp(
       authCubit: DeviceAuthCubit(LocalDeviceAuthenticator()),
       cloudAccountCubit: CloudAccountCubit(
-        SupabaseCloudAccountGateway(supabaseClient),
+        SupabaseCloudAccountGateway(
+          sessionManager: authSessionManager,
+          googleServerClientId: googleServerClientId,
+          googleIosClientId: googleIosClientId,
+        ),
       ),
       themeSettingsCubit: themeSettingsCubit,
       emergencyCubit: EmergencyCubit(
@@ -98,13 +112,15 @@ Future<void> main() async {
       strategyGameCubit: StrategyGameCubit(
         StrategyGameRepository(database),
       ),
-      aiChatCubit: AiChatCubit(SupabaseAiChatGateway(supabaseClient)),
+      aiChatCubit: AiChatCubit(
+        SupabaseAiChatGateway(supabaseClient, authSessionManager),
+      ),
       feedbackCubit: FeedbackCubit(
         FeedbackRepository(secureVault),
-        SupabaseFeedbackGateway(supabaseClient),
+        SupabaseFeedbackGateway(supabaseClient, authSessionManager),
       ),
       leaderboardCubit: LeaderboardCubit(
-        SupabaseLeaderboardGateway(supabaseClient),
+        SupabaseLeaderboardGateway(supabaseClient, authSessionManager),
       ),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
@@ -114,7 +130,10 @@ Future<void> main() async {
         motionSensorSource: const SensorsPlusMotionSensorSource(),
         syncCoordinator: SessionSyncCoordinator(
           repository: sessionRepository,
-          gateway: SupabaseSessionSyncGateway(supabaseClient),
+          gateway: SupabaseSessionSyncGateway(
+            supabaseClient,
+            authSessionManager,
+          ),
         ),
       ),
     ),

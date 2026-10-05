@@ -22,8 +22,10 @@ flowchart LR
     U[Pengguna / Pembalap] --> APP[Aplikasi Flutter]
     W[Wearable / Provider] --> APP
     APP --> LOCAL[(Penyimpanan lokal terenkripsi)]
-    APP --> SB[Supabase Auth / Data API]
-    SB --> DB[(Supabase PostgreSQL + RLS)]
+    APP --> AUTH[Custom Auth Edge Function]
+    AUTH --> DB[(Supabase PostgreSQL + RLS)]
+    APP --> SB[Supabase Data API + RLS]
+    SB --> DB
     SB --> STORAGE[Supabase Storage, bila dipilih]
     SB --> FN[Edge Functions]
     FN --> EXT[Provider peta, kurs, cuaca, AI, SOS]
@@ -114,7 +116,7 @@ Pisahkan **perekaman sensor** dari **pengiriman jaringan**. Jangan menjalankan r
 
 ## 7. Backend dan Kontrak API
 
-Supabase dipilih sebagai platform cloud Senapath: PostgreSQL menjadi penyimpanan cloud dan Supabase Data API menyediakan akses terautentikasi. Aplikasi tetap membaca/menulis data inti ke Drift terlebih dahulu; outbox lokal menyimpan perubahan yang belum tersinkron sampai koneksi dan konfigurasi tersedia. Supabase Auth, Storage, dan Edge Functions adalah kapabilitas yang akan dievaluasi/dikonfigurasi sesuai kebutuhan; pemilihan database cloud tidak otomatis berarti semua fitur tersebut sudah aktif.
+Supabase dipilih sebagai platform cloud Senapath: PostgreSQL menjadi penyimpanan cloud dan Supabase Data API menyediakan akses terautentikasi. Aplikasi memakai custom auth Edge Function dengan user/session tabel aplikasi; password hash dan refresh-token rotation dikelola server. Custom JWT memakai key yang dipercaya Supabase agar Data API dapat menerapkan RLS melalui `auth.uid()`. Aplikasi tetap membaca/menulis data inti ke Drift terlebih dahulu; outbox lokal menyimpan perubahan yang belum tersinkron sampai koneksi dan konfigurasi tersedia.
 
 API/backend minimal perlu mendefinisikan:
 
@@ -191,7 +193,7 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 | AI              | Backend REST ke provider LLM                                         | Jangan panggil provider ber-secret langsung dari aplikasi.                                                 |
 | Blockchain      | EVM Polygon Amoy untuk staging; relayer server-side                   | Deploy/verifikasi kontrak dan transaksi testnet; produksi/mainnet dan batas biaya belum diputuskan. Key relayer hanya di secret manager. |
 | Cloud database  | Supabase dipilih                                                     | Konfigurasikan URL/key, schema/migrasi SQL, RLS, backup, dan strategi Drift outbox sebelum sync client.    |
-| Supabase Auth   | Google OAuth + email/password gateway                                | OAuth deep link `senapath://login-callback/` terdaftar untuk Android/iOS; aktifkan Google provider, credential OAuth, dan redirect allow-list di Supabase sebelum uji live. Token/session tetap terpisah dari local device unlock. |
+| Custom app auth | Email/password hash, Google ID-token verification, custom JWT, refresh-token rotation | Kredensial/session dikelola Edge Function dan `public.app_users`; custom JWT harus memakai signing key yang dipercaya Supabase agar RLS `auth.uid()` bekerja. Refresh token disimpan di secure storage perangkat. |
 | Cloud storage   | Belum diputuskan                                                     | Tentukan apakah foto/media perlu Supabase Storage, bucket private, policy, dan signed URL.                 |
 | Edge Functions  | Supabase Edge Functions                                              | Gunakan untuk integrasi yang memerlukan provider/secret; leaderboard memakai fungsi PostgreSQL `SECURITY DEFINER` dengan tabel privat, bukan akses tabel langsung dari client. |
 | Push/notifikasi | Lokal dan provider push terpilih                                     | Tentukan platform, consent, payload minimal, dan status delivery.                                          |
@@ -213,7 +215,7 @@ Setiap tahap tetap dikerjakan sebagai Increment Scrum; urutan ini bukan fase wat
 Simpan keputusan besar sebagai ADR singkat dengan konteks, opsi, keputusan, konsekuensi, pemilik, dan tanggal. ADR awal yang disarankan:
 
 - implementasi Drift untuk telemetri: schema, migrasi, enkripsi, strategi backup/pemulihan, dan kebutuhan cache terpisah;
-- Supabase Auth atau model autentikasi lain, kontrak data, sinkronisasi, dan konflik;
+- Custom auth, signing key yang dipercaya Supabase, kontrak data, sinkronisasi, dan konflik;
 - provider peta, kurs, cuaca, wearable, AI, SOS, dan push;
 - target platform/perangkat serta kebijakan perekaman background;
 - pengelolaan kunci lokal, retensi data, consent, serta penghapusan akun;

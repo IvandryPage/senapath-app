@@ -3,25 +3,21 @@ import 'package:senapath/features/authentication/data/cloud_account_gateway.dart
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 
 void main() {
-  test(
-    'register uses Supabase and reports email verification requirement',
-    () async {
-      final gateway = _FakeCloudAccountGateway()
-        ..registrationHasSession = false;
-      final cubit = CloudAccountCubit(gateway);
-      addTearDown(cubit.close);
+  test('registration waits for server-side email verification', () async {
+    final gateway = _FakeCloudAccountGateway()..registrationHasSession = false;
+    final cubit = CloudAccountCubit(gateway);
+    addTearDown(cubit.close);
 
-      await cubit.register(
-        email: '  rider@example.com ',
-        password: 'strong-pass-1',
-      );
+    await cubit.register(
+      email: '  rider@example.com ',
+      password: 'strong-pass-1',
+    );
 
-      expect(gateway.registeredEmail, 'rider@example.com');
-      expect(gateway.registeredPassword, 'strong-pass-1');
-      expect(cubit.state.isSignedIn, isFalse);
-      expect(cubit.state.status, contains('Periksa email'));
-    },
-  );
+    expect(gateway.registeredEmail, 'rider@example.com');
+    expect(gateway.registeredPassword, 'strong-pass-1');
+    expect(cubit.state.isSignedIn, isFalse);
+    expect(cubit.state.status, contains('Periksa email'));
+  });
 
   test(
     'sign-in, password reset, and sign-out use cloud auth gateway',
@@ -44,21 +40,18 @@ void main() {
     },
   );
 
-  test(
-    'Google sign-in starts OAuth and waits for auth state confirmation',
-    () async {
-      final gateway = _FakeCloudAccountGateway();
-      final cubit = CloudAccountCubit(gateway);
-      addTearDown(cubit.close);
+  test('Google sign-in authenticates and updates the account state', () async {
+    final gateway = _FakeCloudAccountGateway();
+    final cubit = CloudAccountCubit(gateway);
+    addTearDown(cubit.close);
 
-      await cubit.signInWithGoogle();
+    await cubit.signInWithGoogle();
 
-      expect(gateway.googleSignInCalls, 1);
-      expect(cubit.state.isLoading, isFalse);
-      expect(cubit.state.isSignedIn, isFalse);
-      expect(cubit.state.status, contains('Selesaikan login Google'));
-    },
-  );
+    expect(gateway.googleSignInCalls, 1);
+    expect(cubit.state.isLoading, isFalse);
+    expect(cubit.state.isSignedIn, isTrue);
+    expect(cubit.state.status, contains('Login Google berhasil'));
+  });
 
   test('Google sign-in reports missing Supabase configuration', () async {
     final gateway = _FakeCloudAccountGateway(isConfigured: false);
@@ -71,7 +64,7 @@ void main() {
     expect(cubit.state.error, contains('belum dikonfigurasi'));
   });
 
-  test('Google sign-in reports browser launch failure', () async {
+  test('Google sign-in reports provider launch failure', () async {
     final gateway = _FakeCloudAccountGateway()
       ..googleSignInLaunchResult = false;
     final cubit = CloudAccountCubit(gateway);
@@ -79,7 +72,7 @@ void main() {
 
     await cubit.signInWithGoogle();
 
-    expect(cubit.state.error, contains('Browser login Google'));
+    expect(cubit.state.error, contains('Login Google tidak selesai'));
   });
 
   test('rejects invalid credentials before calling Supabase', () async {
@@ -145,6 +138,15 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
+  Future<void> completePasswordReset({
+    required String token,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> verifyEmail(String token) async {}
+
+  @override
   Future<void> signIn({required String email, required String password}) async {
     signInCalls++;
     currentEmail = email;
@@ -153,6 +155,7 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   @override
   Future<bool> signInWithGoogle() async {
     googleSignInCalls++;
+    if (googleSignInLaunchResult) currentEmail = 'rider@gmail.com';
     return googleSignInLaunchResult;
   }
 

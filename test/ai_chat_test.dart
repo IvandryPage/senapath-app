@@ -54,6 +54,19 @@ void main() {
       expect(cubit.state.error, contains('belum dikonfigurasi'));
     },
   );
+
+  test('shows the backend failure message so users can act on it', () async {
+    final cubit = AiChatCubit(_FailingAiChatGateway());
+    addTearDown(cubit.close);
+
+    await cubit.sendMessage(content: 'Halo', consent: true);
+
+    expect(
+      cubit.state.error,
+      'Gemini menolak API key. Periksa GEMINI_API_KEY di Supabase.',
+    );
+    expect(cubit.state.isSending, isFalse);
+  });
 }
 
 class _FakeAiChatGateway implements AiChatGateway {
@@ -72,5 +85,18 @@ class _FakeAiChatGateway implements AiChatGateway {
     sendCount++;
     lastContext = context;
     return 'Saran dari Gemini';
+  }
+}
+
+class _FailingAiChatGateway implements AiChatGateway {
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Future<String> send({
+    required List<AiChatMessage> messages,
+    required Map<String, Object?> context,
+  }) async {
+    throw StateError('Gemini menolak API key. Periksa GEMINI_API_KEY di Supabase.');
   }
 }

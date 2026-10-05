@@ -1,30 +1,35 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../authentication/data/custom_auth_session_manager.dart';
 import '../domain/leaderboard_models.dart';
 import 'leaderboard_gateway.dart';
 
 class SupabaseLeaderboardGateway implements LeaderboardGateway {
-  const SupabaseLeaderboardGateway(this._client);
+  const SupabaseLeaderboardGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
+  final CustomAuthSessionManager _sessionManager;
 
   @override
   bool get isConfigured => _client != null;
 
   @override
-  bool get isSignedIn => _client?.auth.currentUser != null;
+  bool get isSignedIn => _sessionManager.currentUserId != null;
 
-  SupabaseClient get _requiredClient {
+  Future<SupabaseClient> get _requiredClient async {
     final client = _client;
-    if (client == null || client.auth.currentUser == null) {
+    if (client == null || _sessionManager.currentUserId == null) {
       throw StateError('Masuk ke akun online untuk menggunakan leaderboard.');
     }
+    await _sessionManager.requireAccessToken();
     return client;
   }
 
   @override
   Future<LeaderboardSettings> loadSettings() async {
-    final response = await _requiredClient.rpc('get_leaderboard_settings');
+    final response = await (await _requiredClient).rpc(
+      'get_leaderboard_settings',
+    );
     final row = _singleRow(response);
     return LeaderboardSettings(
       isOptedIn: row['is_opted_in'] == true,
@@ -36,7 +41,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
   Future<List<LeaderboardEntry>> loadEntries(
     LeaderboardCategory category,
   ) async {
-    final response = await _requiredClient.rpc(
+    final response = await (await _requiredClient).rpc(
       'get_weekly_cycling_leaderboard',
       params: {'p_category': category.name},
     );
@@ -61,7 +66,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     required String alias,
     required bool isOptedIn,
   }) async {
-    await _requiredClient.rpc(
+    await (await _requiredClient).rpc(
       'set_leaderboard_consent',
       params: {'p_public_alias': alias, 'p_is_opted_in': isOptedIn},
     );
@@ -69,7 +74,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
 
   @override
   Future<void> submitSession(String sessionId) async {
-    await _requiredClient.rpc(
+    await (await _requiredClient).rpc(
       'submit_leaderboard_ride',
       params: {'p_session_id': sessionId},
     );

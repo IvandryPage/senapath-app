@@ -1,3 +1,6 @@
+[functions.app-auth]
+verify_jwt = false
+
 [functions.rider-assistant]
 verify_jwt = true
 
