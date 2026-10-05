@@ -36,6 +36,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(RouteMapPreview), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(RouteMapPreview)).height,
+        greaterThan(220),
+      );
       expect(find.textContaining('izin lokasi'), findsWidgets);
       expect(
         find.textContaining('tidak memuat instruksi belokan'),

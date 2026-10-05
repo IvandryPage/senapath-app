@@ -72,85 +72,41 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
                 longitude: current.longitude,
                 elevationMeters: 0,
               );
-        return Column(
+        return Stack(
+          fit: StackFit.expand,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _statusLabel(state),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  if (current != null)
-                    Text('±${current.accuracyMeters.toStringAsFixed(0)} m'),
-                ],
+            RouteMapPreview(
+              points: widget.route.points,
+              currentPosition: positionPoint,
+              height: null,
+            ),
+            Positioned(
+              top: 12,
+              left: 16,
+              right: 16,
+              child: _GuidanceStatus(
+                label: _statusLabel(state),
+                accuracyMeters: current?.accuracyMeters,
+                warning: _warningLabel(state),
               ),
             ),
-            if (state.isOffRoute)
-              _GuidanceWarning(
-                text:
-                    'Di luar jalur sekitar ${state.distanceToRouteMeters!.toStringAsFixed(0)} m. Berhenti di tempat aman untuk memeriksa rute.',
-              )
-            else if (current != null && !state.hasAccurateFix)
-              const _GuidanceWarning(
-                text: 'GPS kurang akurat; posisi dan peringatan rute terbatas.',
-              )
-            else if (state.error != null)
-              _GuidanceWarning(text: state.error!),
-            Expanded(
-              child: RouteMapPreview(
-                points: widget.route.points,
-                currentPosition: positionPoint,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _GuidanceMetric(
-                      label: 'Jarak tersisa',
-                      value: state.distanceRemainingMeters == null
-                          ? 'Menunggu GPS'
-                          : _formatDistance(
-                              state.distanceRemainingMeters!,
-                              unitSystem,
-                            ),
-                    ),
-                  ),
-                  Expanded(
-                    child: _GuidanceMetric(
-                      label: 'Posisi rute',
-                      value:
-                          '${state.nearestRouteIndex + 1}/${widget.route.points.length}',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Ikuti garis GPX. File ini tidak memuat instruksi belokan atau peta jalan.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      unawaited(context.read<RouteGuidanceCubit>().stop());
-                      context.pop();
-                    },
-                    icon: const Icon(Icons.stop_circle_outlined),
-                    label: const Text('Akhiri panduan'),
-                  ),
-                ],
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: _GuidanceControls(
+                distanceRemaining: state.distanceRemainingMeters == null
+                    ? 'Menunggu GPS'
+                    : _formatDistance(
+                        state.distanceRemainingMeters!,
+                        unitSystem,
+                      ),
+                routePosition:
+                    '${state.nearestRouteIndex + 1}/${widget.route.points.length}',
+                onStop: () {
+                  unawaited(context.read<RouteGuidanceCubit>().stop());
+                  context.pop();
+                },
               ),
             ),
           ],
@@ -168,6 +124,16 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
     return 'Ikuti jalur GPX';
   }
 
+  String? _warningLabel(RouteGuidanceState state) {
+    if (state.isOffRoute) {
+      return 'Di luar jalur sekitar ${state.distanceToRouteMeters!.toStringAsFixed(0)} m. Berhenti di tempat aman untuk memeriksa rute.';
+    }
+    if (state.currentPosition != null && !state.hasAccurateFix) {
+      return 'GPS kurang akurat; posisi dan peringatan rute terbatas.';
+    }
+    return state.error;
+  }
+
   String _formatDistance(double meters, UnitSystem unitSystem) {
     if (unitSystem == UnitSystem.metric) {
       return meters >= 1000
@@ -178,6 +144,118 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
         ? '${(meters / 1609.344).toStringAsFixed(1)} mi'
         : '${NumberFormat('0').format(meters * 3.28084)} ft';
   }
+}
+
+class _GuidanceStatus extends StatelessWidget {
+  const _GuidanceStatus({
+    required this.label,
+    required this.accuracyMeters,
+    required this.warning,
+  });
+
+  final String label;
+  final double? accuracyMeters;
+  final String? warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.navigation_outlined, color: colors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (accuracyMeters != null)
+                  Text('±${accuracyMeters!.toStringAsFixed(0)} m'),
+              ],
+            ),
+            if (warning != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.errorContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  warning!,
+                  style: TextStyle(color: colors.onErrorContainer),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidanceControls extends StatelessWidget {
+  const _GuidanceControls({
+    required this.distanceRemaining,
+    required this.routePosition,
+    required this.onStop,
+  });
+
+  final String distanceRemaining;
+  final String routePosition;
+  final VoidCallback onStop;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _GuidanceMetric(
+                  label: 'Jarak tersisa',
+                  value: distanceRemaining,
+                ),
+              ),
+              Expanded(
+                child: _GuidanceMetric(
+                  label: 'Posisi rute',
+                  value: routePosition,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ikuti garis GPX. File ini tidak memuat instruksi belokan atau peta jalan.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onStop,
+            icon: const Icon(Icons.stop_circle_outlined),
+            label: const Text('Akhiri panduan'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _GuidanceMetric extends StatelessWidget {
@@ -191,21 +269,12 @@ class _GuidanceMetric extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(label, style: Theme.of(context).textTheme.bodySmall),
-      Text(value, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 2),
+      Text(
+        value,
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(fontWeight: FontWeight.w700),
+      ),
     ],
-  );
-}
-
-class _GuidanceWarning extends StatelessWidget {
-  const _GuidanceWarning({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    color: Theme.of(context).colorScheme.errorContainer,
-    child: Text(text),
   );
 }

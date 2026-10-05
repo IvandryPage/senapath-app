@@ -102,7 +102,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ),
               ],
             ),
-            ExploreMap(height: 215, showLocationButton: true),
+            ExploreMap(height: 320, showLocationButton: true),
             const SizedBox(height: 20),
             Row(
               children: [

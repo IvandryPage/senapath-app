@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/overview/presentation/overview_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/profile_settings_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
 import '../../features/routes/presentation/route_guidance_screen.dart';
 import '../../features/routes/domain/saved_route.dart';
@@ -111,6 +112,12 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/profile',
               builder: (context, state) => const ProfileScreen(),
+              routes: [
+                GoRoute(
+                  path: 'settings',
+                  builder: (context, state) => const ProfileSettingsScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -150,6 +157,7 @@ class _AppShellState extends State<_AppShell> {
       '/feedback' => 'Saran & kesan',
       '/leaderboard' => 'Papan Peringkat',
       '/account' => 'Akun online',
+      '/profile/settings' => 'Pengaturan',
       '/routes/navigation' => 'Panduan Rute',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
@@ -158,7 +166,7 @@ class _AppShellState extends State<_AppShell> {
       appBar: AppBar(
         title: Text(title),
         actions: [
-          if (widget.navigationShell.currentIndex == 4)
+          if (widget.location == '/profile')
             IconButton(
               tooltip: 'Kunci aplikasi',
               onPressed: () {
@@ -170,25 +178,23 @@ class _AppShellState extends State<_AppShell> {
         ],
       ),
       body: SafeArea(top: false, child: widget.navigationShell),
-      bottomNavigationBar: widget.location == '/routes/navigation'
-          ? null
-          : NavigationBar(
-              selectedIndex: widget.navigationShell.currentIndex,
-              onDestinationSelected: (index) {
-                widget.navigationShell.goBranch(
-                  index,
-                  initialLocation: index == widget.navigationShell.currentIndex,
-                );
-              },
-              destinations: [
-                for (final item in _destinations)
-                  NavigationDestination(
-                    icon: Icon(item.icon),
-                    selectedIcon: Icon(item.selectedIcon),
-                    label: item.label,
-                  ),
-              ],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: widget.navigationShell.currentIndex,
+        onDestinationSelected: (index) {
+          widget.navigationShell.goBranch(
+            index,
+            initialLocation: index == widget.navigationShell.currentIndex,
+          );
+        },
+        destinations: [
+          for (final item in _destinations)
+            NavigationDestination(
+              icon: Icon(item.icon),
+              selectedIcon: Icon(item.selectedIcon),
+              label: item.label,
             ),
+        ],
+      ),
     );
   }
 }

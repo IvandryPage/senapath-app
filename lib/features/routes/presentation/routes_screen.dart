@@ -92,7 +92,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: ExploreMap(
                   routes: state.routes,
-                  height: constraints.maxHeight < 570 ? 170 : 280,
+                  height: (constraints.maxHeight * 0.38)
+                      .clamp(260.0, 380.0)
+                      .toDouble(),
                 ),
               ),
               Padding(
@@ -341,11 +343,13 @@ class RouteMapPreview extends StatefulWidget {
   const RouteMapPreview({
     required this.points,
     this.currentPosition,
+    this.height = 220,
     super.key,
   });
 
   final List<RoutePoint> points;
   final RoutePoint? currentPosition;
+  final double? height;
 
   @override
   State<RouteMapPreview> createState() => _RouteMapPreviewState();
@@ -370,16 +374,16 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
           'Peta OpenStreetMap dengan jejak GPX lokal ${widget.points.length} titik'
           '${position == null ? '' : ' dan posisi GPS'}',
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(widget.height == null ? 0 : 20),
         child: SizedBox(
           width: double.infinity,
-          height: 220,
+          height: widget.height,
           child: Stack(
             children: [
               FlutterMap(
                 options: MapOptions(
                   initialCenter: routePoints.isEmpty
-                      ? const LatLng(-6.2, 106.8)
+                      ? const LatLng(-7.7956, 110.3695)
                       : routePoints.first,
                   initialCameraFit: routePoints.length < 2
                       ? null

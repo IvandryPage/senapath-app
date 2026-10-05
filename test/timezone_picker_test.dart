@@ -25,6 +25,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Waktu dunia'));
+    await tester.pumpAndSettle();
+
     final scrollable = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
       find.text('Zona waktu sumber'),

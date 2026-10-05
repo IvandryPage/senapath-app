@@ -7,10 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
-import '../../../core/storage/offline_storage_manager.dart';
-import '../../../core/units/unit_settings_cubit.dart';
-import '../../../core/units/unit_system.dart';
-import '../../../app/theme/theme_settings_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../domain/user_profile.dart';
@@ -29,12 +25,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _imagePicker = ImagePicker();
-  static const _storageManager = OfflineStorageManager();
   bool _startedLoading = false;
-  bool _isLoadingStorage = true;
-  bool _isClearingMapCache = false;
-  OfflineStorageUsage? _storageUsage;
-  String? _storageError;
 
   @override
   void didChangeDependencies() {
@@ -42,8 +33,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_startedLoading) return;
     _startedLoading = true;
     unawaited(context.read<ProfileCubit>().load());
-    unawaited(context.read<UnitSettingsCubit>().load());
-    unawaited(_loadStorageUsage());
   }
 
   @override
@@ -69,14 +58,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildCloudAccountEntry(context),
               const SizedBox(height: 20),
               _buildProfileSection(context, state),
+              const SizedBox(height: 12),
+              _buildProfileNavigation(context),
               const SizedBox(height: 28),
               _buildContactsSection(context, state),
-              const SizedBox(height: 28),
-              _buildUnitSection(context),
-              const SizedBox(height: 28),
-              _buildThemeSection(context),
-              const SizedBox(height: 28),
-              _buildStorageSection(context),
               const SizedBox(height: 20),
               const Text(
                 'Profil dan kontak disimpan aman di perangkat. '
@@ -108,6 +93,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () => context.push('/account'),
     );
   }
+
+  Widget _buildProfileNavigation(BuildContext context) => Card(
+    child: Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.settings_outlined),
+          title: const Text('Pengaturan'),
+          subtitle: const Text('Satuan, tema, dan penyimpanan'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/profile/settings'),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.feedback_outlined),
+          title: const Text('Saran dan kesan'),
+          subtitle: const Text('Mata Kuliah Pemrograman Aplikasi Mobile'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/feedback'),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.leaderboard_outlined),
+          title: const Text('Papan peringkat'),
+          subtitle: const Text('Peringkat mingguan · opsional'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/leaderboard'),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildProfileSection(BuildContext context, ProfileState state) {
     final profile = state.profile;
@@ -254,238 +269,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUnitSection(BuildContext context) {
-    return BlocBuilder<UnitSettingsCubit, UnitSettingsState>(
-      builder: (context, state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Sistem satuan',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            SegmentedButton<UnitSystem>(
-              segments: const [
-                ButtonSegment(
-                  value: UnitSystem.metric,
-                  label: Text('Metrik'),
-                  icon: Icon(Icons.straighten),
-                ),
-                ButtonSegment(
-                  value: UnitSystem.imperial,
-                  label: Text('Imperial'),
-                  icon: Icon(Icons.square_foot),
-                ),
-              ],
-              selected: {state.unitSystem},
-              onSelectionChanged: state.isSaving
-                  ? null
-                  : (selection) => _saveUnitSystem(selection.first),
-            ),
-            if (state.isSaving)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildThemeSection(BuildContext context) {
-    return BlocBuilder<ThemeSettingsCubit, ThemeSettingsState>(
-      builder: (context, state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tema tampilan',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            SegmentedButton<ThemeMode>(
-              segments: const [
-                ButtonSegment(
-                  value: ThemeMode.system,
-                  label: Text('Sistem'),
-                  icon: Icon(Icons.brightness_auto_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.light,
-                  label: Text('Terang'),
-                  icon: Icon(Icons.light_mode_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text('Gelap'),
-                  icon: Icon(Icons.dark_mode_outlined),
-                ),
-              ],
-              selected: {state.themeMode},
-              onSelectionChanged: state.isSaving
-                  ? null
-                  : (selection) => context.read<ThemeSettingsCubit>().select(
-                      selection.first,
-                    ),
-            ),
-            if (state.isSaving)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-            if (state.error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                state.error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              if (!state.isSaving)
-                TextButton.icon(
-                  onPressed: () => context.read<ThemeSettingsCubit>().load(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Coba lagi'),
-                ),
-            ],
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildStorageSection(BuildContext context) {
-    final usage = _storageUsage;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Penyimpanan offline',
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.storage_outlined),
-                title: const Text('Database lokal'),
-                subtitle: Text(
-                  usage == null
-                      ? _isLoadingStorage
-                            ? 'Menghitung…'
-                            : 'Belum tersedia'
-                      : _formatBytes(usage.databaseBytes),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.map_outlined),
-                title: const Text('Cache peta'),
-                subtitle: Text(
-                  usage == null
-                      ? _isLoadingStorage
-                            ? 'Menghitung…'
-                            : 'Belum tersedia'
-                      : _formatBytes(usage.mapCacheBytes),
-                ),
-                trailing: IconButton(
-                  tooltip: 'Hapus cache peta',
-                  onPressed:
-                      usage == null ||
-                          usage.mapCacheBytes == 0 ||
-                          _isClearingMapCache
-                      ? null
-                      : _confirmClearMapCache,
-                  icon: _isClearingMapCache
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_outline),
-                ),
-              ),
-              if (_storageError != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Text(
-                    _storageError!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _loadStorageUsage() async {
-    setState(() {
-      _isLoadingStorage = true;
-      _storageError = null;
-    });
-    try {
-      final usage = await _storageManager.usage();
-      if (!mounted) return;
-      setState(() {
-        _storageUsage = usage;
-        _isLoadingStorage = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingStorage = false;
-        _storageError = 'Penggunaan penyimpanan tidak dapat dibaca.';
-      });
-    }
-  }
-
-  Future<void> _confirmClearMapCache() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus cache peta?'),
-        content: const Text(
-          'Tindakan ini hanya menghapus file cache peta, bukan database, '
-          'rute GPX, atau sesi latihan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus cache'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _isClearingMapCache = true);
-    try {
-      await _storageManager.clearMapCache();
-      await _loadStorageUsage();
-      if (mounted) _showMessage('Cache peta berhasil dihapus.');
-    } catch (_) {
-      if (mounted) _showMessage('Cache peta tidak dapat dihapus.');
-    } finally {
-      if (mounted) setState(() => _isClearingMapCache = false);
-    }
-  }
-
-  String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
   Future<void> _chooseAvatar() async {
     try {
       final image = await _imagePicker.pickImage(
@@ -565,14 +348,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context.read<EmergencyCubit>().clearMessage();
     } catch (_) {
       if (mounted) _showMessage('WhatsApp tidak dapat dibuka.');
-    }
-  }
-
-  Future<void> _saveUnitSystem(UnitSystem unitSystem) async {
-    try {
-      await context.read<UnitSettingsCubit>().select(unitSystem);
-    } catch (_) {
-      if (mounted) _showMessage('Satuan tidak dapat disimpan.');
     }
   }
 

@@ -23,6 +23,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   List<EventTimeZone> _destinationZones = [...EventTimeZone.destinations];
   int? _selectedOccurrence;
   bool _requestedLoad = false;
+  bool _showWorldTime = false;
 
   @override
   void dispose() {
@@ -73,14 +74,115 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
-              _buildBudgetSection(context, state),
-              const SizedBox(height: 28),
-              const Divider(),
-              const SizedBox(height: 16),
-              _buildTimeSection(context),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Mata uang'),
+                    icon: Icon(Icons.currency_exchange),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Waktu dunia'),
+                    icon: Icon(Icons.public),
+                  ),
+                ],
+                selected: {_showWorldTime},
+                onSelectionChanged: (selection) =>
+                    setState(() => _showWorldTime = selection.first),
+              ),
+              const SizedBox(height: 20),
+              if (_showWorldTime)
+                _buildTimeSection(context)
+              else ...[
+                _buildCurrencySection(context, state),
+                const SizedBox(height: 18),
+                _buildBudgetSection(context, state),
+              ],
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCurrencySection(BuildContext context, LogisticsState state) {
+    final data = state.data;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Konversi mata uang',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Masukkan EUR untuk melihat nilai dalam IDR, USD, dan CHF.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'Kelola kurs',
+                  onSelected: (action) {
+                    if (action == 'refresh') {
+                      context.read<LogisticsCubit>().refreshRates();
+                    } else {
+                      _editRates(context, data);
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'refresh',
+                      child: ListTile(
+                        leading: Icon(Icons.sync),
+                        title: Text('Ambil kurs referensi'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'manual',
+                      child: ListTile(
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('Atur kurs manual'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              data.rateUpdatedAt == null
+                  ? 'Kurs belum tersedia. Ambil kurs referensi atau atur manual.'
+                  : data.rateSource == 'Frankfurter'
+                  ? 'Kurs referensi harian · Frankfurter · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}'
+                  : 'Kurs manual · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (state.isRefreshingRates) ...[
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(),
+            ],
+            const SizedBox(height: 12),
+            _buildEurConverter(context, data),
+            if (state.isSaving)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -93,58 +195,25 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       eurRates: data.eurRates,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Anggaran',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            IconButton(
-              tooltip: 'Ambil kurs referensi harian',
-              onPressed: state.isSaving || state.isRefreshingRates
-                  ? null
-                  : context.read<LogisticsCubit>().refreshRates,
-              icon: state.isRefreshingRates
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync),
-            ),
-            IconButton(
-              tooltip: 'Atur kurs',
-              onPressed: state.isSaving || state.isRefreshingRates
-                  ? null
-                  : () => _editRates(context, data),
-              icon: const Icon(Icons.currency_exchange),
-            ),
-            IconButton(
-              tooltip: 'Tambah item anggaran',
-              onPressed: state.isSaving ? null : () => _editItem(context),
-              icon: const Icon(Icons.add),
-            ),
-          ],
+    return Card(
+      child: ExpansionTile(
+        leading: const Icon(Icons.receipt_long_outlined),
+        title: const Text('Anggaran perjalanan'),
+        subtitle: Text(
+          total == null
+              ? 'Tambahkan biaya perjalanan dan pilih mata uang total.'
+              : 'Total saat ini ${_formatMoney(total, data.targetCurrency)}',
         ),
-        Text(
-          data.rateUpdatedAt == null
-              ? 'Kurs belum diatur. Ambil kurs referensi harian atau masukkan manual.'
-              : data.rateSource == 'Frankfurter'
-              ? 'Frankfurter · kurs referensi harian, bukan real-time · kutipan tertua ${_formatDateTime(data.rateUpdatedAt!.toLocal())}'
-              : 'Kurs manual · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())} · bukan real-time',
-          style: Theme.of(context).textTheme.bodySmall,
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: state.isSaving ? null : () => _editItem(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Tambah biaya'),
+          ),
         ),
-        if (state.isRefreshingRates) ...[
-          const SizedBox(height: 8),
-          const LinearProgressIndicator(),
-        ],
-        const SizedBox(height: 16),
-        _buildEurConverter(context, data),
-        const SizedBox(height: 12),
         DropdownButtonFormField<BudgetCurrency>(
           initialValue: data.targetCurrency,
           decoration: const InputDecoration(labelText: 'Total dalam'),
@@ -188,6 +257,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         ),
         if (state.isSaving) const LinearProgressIndicator(),
       ],
+      ),
     );
   }
 
@@ -196,31 +266,44 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Konversi EUR', style: Theme.of(context).textTheme.titleMedium),
+        Text('Dari', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 6),
         TextField(
           key: const Key('eur-converter-amount'),
           controller: _eurAmountController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
-            labelText: 'Nominal',
-            prefixText: 'EUR ',
+            labelText: 'Nominal dalam EUR',
+            prefixIcon: Padding(
+              padding: EdgeInsets.all(14),
+              child: Text('EUR'),
+            ),
+            border: OutlineInputBorder(),
           ),
           onChanged: (_) => setState(() {}),
         ),
+        const SizedBox(height: 16),
+        Text('Hasil konversi', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
         if (amount == null || amount < 0)
-          const Text('Masukkan nominal EUR yang valid.')
+          const Text('Masukkan nominal EUR yang valid untuk melihat hasil.')
         else
-          Wrap(
-            spacing: 20,
-            runSpacing: 8,
+          Row(
             children: [
               for (final currency in [
                 BudgetCurrency.idr,
                 BudgetCurrency.usd,
                 BudgetCurrency.chf,
               ])
-                Text(_formatEurConversion(amount, currency, data)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _ConversionResult(
+                      currency: currency,
+                      result: _formatEurConversion(amount, currency, data),
+                    ),
+                  ),
+                ),
             ],
           ),
       ],
@@ -521,6 +604,45 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     final minutes = (absoluteMinutes % 60).toString().padLeft(2, '0');
     return 'UTC$sign$hours:$minutes';
   }
+}
+
+class _ConversionResult extends StatelessWidget {
+  const _ConversionResult({required this.currency, required this.result});
+
+  final BudgetCurrency currency;
+  final String result;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 84),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          currency.code,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          result,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _TimeZonePickerDialog extends StatefulWidget {
