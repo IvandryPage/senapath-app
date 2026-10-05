@@ -10,11 +10,11 @@ Copy-Item .env.example .env
 ./scripts/flutter_with_env.ps1 run
 ```
 
-Jalankan `Copy-Item` hanya saat `.env` belum ada agar konfigurasi lokal tidak tertimpa. Isi `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_SERVER_CLIENT_ID`, dan `GOOGLE_IOS_CLIENT_ID` di `.env`. ID Google dan konfigurasi Supabase adalah konfigurasi klien yang dapat diekstrak dari aplikasi. `.env` diabaikan Git. Jangan masukkan password pengguna, signing secret JWT, service-role key, atau Gemini API key ke Flutter.
+Jalankan `Copy-Item` hanya saat `.env` belum ada agar konfigurasi lokal tidak tertimpa. Isi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` di `.env`. Keduanya konfigurasi klien yang dapat diekstrak dari aplikasi. `.env` diabaikan Git. Jangan masukkan password pengguna, signing secret JWT, service-role key, atau Gemini API key ke Flutter.
 
 ## Pemeriksaan kualitas
 
-Isi konfigurasi klien di `.env` lokal. Runner membuat asset `assets/config/client.env` yang hanya memuat URL, publishable key, dan OAuth client IDs publik; `.env` sumber tidak pernah dimasukkan ke APK. Signing secret JWT, Resend key, service-role key, dan Gemini key hanya dipakai Supabase Edge Functions.
+Isi konfigurasi klien di `.env` lokal. Runner membuat asset `assets/config/client.env` yang hanya memuat URL dan publishable key; `.env` sumber tidak pernah dimasukkan ke APK. Signing secret JWT, Resend key, service-role key, dan Gemini key hanya dipakai Supabase Edge Functions.
 dart format lib test
 flutter analyze
 flutter test
@@ -25,17 +25,30 @@ GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests
 
 ## Autentikasi custom Senapath
 
-Layar **Akun online** memakai endpoint `app-auth`, bukan Supabase Auth. Email/password diverifikasi server-side; password disimpan hanya sebagai PBKDF2-HMAC-SHA256 hash dengan salt acak, bukan plaintext atau ciphertext yang dapat didekripsi. Google Sign-In memperoleh ID token di perangkat dan Edge Function memverifikasinya dengan Google JWKS serta audience server client ID.
+Layar **Akun online** memakai endpoint custom `app-auth`, bukan Supabase Auth. Hanya pendaftaran/login email-password yang tersedia. Password diverifikasi server-side dan disimpan hanya sebagai PBKDF2-HMAC-SHA256 hash dengan salt acak, bukan plaintext atau ciphertext yang dapat didekripsi.
 
-1. Buat OAuth client IDs Android, iOS, dan Web di Google Cloud. Masukkan Web client ID sebagai `GOOGLE_SERVER_CLIENT_ID`; isi Android/iOS package/bundle identifiers dan SHA fingerprints sesuai project. `GOOGLE_IOS_CLIENT_ID` dipakai untuk inisialisasi native iOS; tambahkan reversed iOS client ID ke URL schemes di `ios/Runner/Info.plist`.
-2. Set Edge Function secrets `APP_AUTH_JWT_SECRET` dan `GOOGLE_SERVER_CLIENT_ID`. `APP_AUTH_JWT_SECRET` harus sama dengan signing secret JWT yang dipercaya Supabase Data API; secret minimal 32 karakter ini tidak boleh dimasukkan ke aplikasi. JWT memuat `role=authenticated`, `aud=authenticated`, dan `sub=<app_users.id>` sehingga policy yang memakai `auth.uid()` tetap berlaku. Jika project hanya menerima asymmetric signing keys, konfigurasi custom signer harus disesuaikan sebelum deploy.
-3. Untuk verifikasi email dan pemulihan akun set `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, `AUTH_EMAIL_VERIFICATION_URL=senapath://login-callback/verify-email`, dan `AUTH_PASSWORD_RESET_URL=senapath://login-callback/reset-password`; daftarkan domain pengirim di Resend. Token verifikasi berlaku 24 jam dan token reset sekali-pakai berlaku 20 menit.
-4. Jalankan `supabase db push`, lalu deploy `app-auth`, `rider-assistant`, dan `submit-feedback`. Pastikan seluruh fungsi memiliki secret yang diperlukan dan project Supabase memang mempercayai signing key yang dipakai.
-5. Isi client IDs publik di `.env`, jalankan ulang aplikasi, dan uji email, Google, refresh, reset, logout, serta RLS dengan project nyata.
+Pendaftaran langsung membuat sesi; verifikasi email dan Resend tidak diperlukan untuk daftar atau login. Alamat email tidak diverifikasi kepemilikannya, jadi salah ketik dapat membuat akun yang tidak bisa dipulihkan. Fitur lupa password hanya berfungsi bila provider email recovery dikonfigurasi.
 
-Migrasi mempertahankan UUID akun `auth.users` lama saat menyalin identitas ke `app_users`, tetapi password Supabase lama tidak dapat dipakai oleh autentikasi custom. Pengguna lama dapat menautkan akun melalui Google dengan email terverifikasi yang sama; bila tidak, operator perlu membantu migrasi akun atau pengguna harus mendaftar dengan alamat email lain. Migrasi tidak menyalin password dari Supabase Auth. Login Google tidak mengaktifkan biometric unlock; biometrik tetap merupakan kunci lokal terpisah.
+1. Pastikan project Supabase mengizinkan custom HS256 JWT dengan secret yang sama dengan `APP_AUTH_JWT_SECRET`. Token menggunakan `role=authenticated`, `aud=authenticated`, dan `sub=<app_users.id>` agar policy `auth.uid()` berlaku. Jangan gunakan sembarang secret yang tidak dipercaya API project. Project yang hanya menerima asymmetric signing keys perlu signer yang cocok.
+2. Atur secret Edge Function `APP_AUTH_JWT_SECRET`. Jangan pernah memasukkan nilai ini ke aplikasi atau Git:
 
-Di **Profil → Akun online**, pengguna dapat mendaftar/masuk dengan email dan password, masuk dengan Google, meminta reset password, serta keluar dari akun cloud. Password dikirim via HTTPS ke Edge Function; token sesi disimpan di secure storage dan refresh token selalu dirotasi. Reset password menampilkan konfirmasi generik agar keberadaan suatu email tidak diungkapkan. Keluar dari akun cloud mempertahankan data lokal.
+   ```sh
+   supabase secrets set APP_AUTH_JWT_SECRET="<signing secret yang sama dengan Supabase API>"
+   ```
+
+   `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` disediakan otomatis untuk Supabase Edge Functions. Untuk mengaktifkan lupa password saja, tambahkan `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, dan `AUTH_PASSWORD_RESET_URL`.
+3. Terapkan migrasi dan deploy function:
+
+   ```sh
+   supabase db push
+   supabase functions deploy app-auth
+   ```
+
+4. Pastikan `.env` aplikasi berisi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY`, lalu rebuild/restart aplikasi. Tes daftar email; jika secret backend belum lengkap, aplikasi sekarang menampilkan secret/konfigurasi yang perlu diatur.
+
+Migrasi mempertahankan UUID akun lama dari `auth.users`, tetapi password Supabase Auth tidak dapat dipakai oleh custom auth. Akun lama yang belum memiliki password custom tidak dapat diklaim melalui daftar tanpa verifikasi kepemilikan; hubungi operator untuk migrasi aman. Ini sengaja mencegah orang lain mengambil alih data lama hanya dengan mengetik alamat email yang sama.
+
+Di **Profil → Akun online**, pengguna dapat mendaftar/masuk dengan email dan password, meminta reset password, serta keluar dari akun cloud. Password dikirim via HTTPS ke Edge Function; token sesi disimpan di secure storage dan refresh token selalu dirotasi. Setelah pernah login, sesi tersimpan dapat dipulihkan dari layar akun memakai biometrik perangkat—password tidak disimpan, dan biometrik bukan gerbang unlock seluruh aplikasi. Login biometrik hanya tersedia jika sesi masih tersimpan; logout cloud mencabut sesi itu. Reset password menampilkan konfirmasi generik agar keberadaan suatu email tidak diungkapkan. Keluar dari akun cloud mempertahankan data lokal.
 
 ## Tema tampilan
 
@@ -85,7 +98,7 @@ Setelah sesi selesai, buka ringkasannya lalu pilih **Sinkronkan ringkasan** dan 
 
 Chat hanya mengirim pesan setelah pengguna menyetujui. Rute lokal dan preferensi latihan hanya disertakan bila dipilih. Percakapan tidak disimpan di riwayat lokal; permintaan diteruskan melalui Supabase ke Google Gemini. Jangan masukkan kontak darurat atau informasi sensitif.
 
-1. Buat proyek Supabase dan aktifkan provider **Email** di Authentication. Pilih kebijakan verifikasi email; untuk produksi, atur SMTP tepercaya dan redirect URL verifikasi/reset yang diizinkan.
+1. Buat proyek Supabase. Supabase Auth email provider tidak digunakan untuk daftar/login custom ini. Atur provider email hanya jika ingin mengaktifkan lupa password; redirect reset harus mengarah ke aplikasi.
 2. Login dan tautkan proyek lokal sebelum menerapkan migrasi:
 
 ```sh
@@ -121,4 +134,4 @@ Error sesi berarti login ulang diperlukan; error konfigurasi berarti periksa `GE
 .\scripts\flutter_with_env.ps1 build apk --release
 ```
 
-Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, Resend key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Feedback terkirim disimpan di tabel `user_feedback` untuk ditinjau tim; hapus data secara berkala sesuai kebijakan retensi proyek. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat dan feedback memerlukan sesi akun online. Verifikasi/reset email memerlukan provider email dan secrets Edge Function sesuai bagian autentikasi.
+Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, Resend key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Feedback terkirim disimpan di tabel `user_feedback` untuk ditinjau tim; hapus data secara berkala sesuai kebijakan retensi proyek. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat dan feedback memerlukan sesi akun online. Password reset email opsional memerlukan provider email dan secrets Edge Function sesuai bagian autentikasi.

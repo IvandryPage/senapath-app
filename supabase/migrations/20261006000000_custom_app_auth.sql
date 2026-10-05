@@ -2,7 +2,6 @@ create table if not exists public.app_users (
   id uuid primary key default gen_random_uuid(),
   email text not null,
   password_hash text,
-  google_subject text,
   email_verified boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -11,10 +10,6 @@ create table if not exists public.app_users (
 
 create unique index if not exists app_users_email_unique
   on public.app_users (email);
-create unique index if not exists app_users_google_subject_unique
-  on public.app_users (google_subject)
-  where google_subject is not null;
-
 insert into public.app_users (id, email, email_verified, created_at, updated_at)
 select distinct on (lower(btrim(users.email)))
   users.id,

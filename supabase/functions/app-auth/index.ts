@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { createRemoteJWKSet, jwtVerify, SignJWT } from "npm:jose@5.10.0";
+import { SignJWT } from "npm:jose@5.10.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,14 +9,9 @@ const corsHeaders = {
 const accessTokenLifetimeSeconds = 10 * 60;
 const refreshTokenLifetimeSeconds = 30 * 24 * 60 * 60;
 const passwordIterations = 210_000;
-const googleJwks = createRemoteJWKSet(
-  new URL("https://www.googleapis.com/oauth2/v3/certs"),
-);
-
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const jwtSecret = Deno.env.get("APP_AUTH_JWT_SECRET");
-const googleServerClientId = Deno.env.get("GOOGLE_SERVER_CLIENT_ID");
 const supabase = supabaseUrl && serviceRoleKey
   ? createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -26,12 +21,10 @@ const supabase = supabaseUrl && serviceRoleKey
 type AuthAction =
   | "register"
   | "sign-in"
-  | "google"
   | "refresh"
   | "sign-out"
   | "password-reset-request"
-  | "password-reset-complete"
-  | "verify-email";
+  | "password-reset-complete";
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -40,8 +33,17 @@ Deno.serve(async (request) => {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
   }
-  if (!supabase || !jwtSecret || jwtSecret.length < 32) {
-    return jsonResponse({ error: "Custom auth is not configured." }, 503);
+  if (!supabase) {
+    return jsonResponse({
+      error:
+        "Auth server needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY configured for this Edge Function.",
+    }, 503);
+  }
+  if (!jwtSecret || jwtSecret.length < 32) {
+    return jsonResponse({
+      error:
+        "Auth server is missing APP_AUTH_JWT_SECRET. Add a 32+ character signing secret to Supabase Edge Function secrets and ensure Supabase API trusts the same signing key.",
+    }, 503);
   }
 
   try {
@@ -50,6 +52,15 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "Invalid request." }, 400);
     }
     const action = input.action as AuthAction;
+    if (
+      action === "password-reset-request" &&
+      !passwordRecoveryConfigured()
+    ) {
+      return jsonResponse({
+        error:
+          "Password recovery needs RESEND_API_KEY, AUTH_EMAIL_FROM, and AUTH_PASSWORD_RESET_URL in Supabase Edge Function secrets.",
+      }, 503);
+    }
     if (["register", "sign-in", "password-reset-request"].includes(action)) {
       const email = normalizeEmail(input.email);
       if (email) {
@@ -71,22 +82,11 @@ Deno.serve(async (request) => {
         }
       }
     }
-    if (action === "google") {
-      const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
-      if (!await consumeRateLimit(`google-ip:${clientIp}`, 20)) {
-        return jsonResponse(
-          { error: "Too many attempts. Wait before trying again." },
-          429,
-        );
-      }
-    }
     switch (action) {
       case "register":
         return await register(input);
       case "sign-in":
         return await signIn(input);
-      case "google":
-        return await signInWithGoogle(input);
       case "refresh":
         return await refreshSession(input);
       case "sign-out":
@@ -95,8 +95,6 @@ Deno.serve(async (request) => {
         return await requestPasswordReset(input);
       case "password-reset-complete":
         return await completePasswordReset(input);
-      case "verify-email":
-        return await verifyEmail(input);
       default:
         return jsonResponse({ error: "Unsupported auth action." }, 400);
     }
@@ -121,26 +119,34 @@ async function register(input: Record<string, unknown>): Promise<Response> {
     );
   }
   const passwordHash = await hashPassword(password);
-  const { data, error } = await supabase!.from("app_users")
+  const { data: existing, error: lookupError } = await supabase!.from(
+    "app_users",
+  ).select("id, password_hash").eq("email", email).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) {
+    return jsonResponse({
+      error:
+        existing.password_hash === null
+          ? "This email belongs to an existing account without a custom password. It cannot be claimed without proving ownership."
+          : "An account with this email already exists. Sign in instead.",
+    }, 409);
+  }
+  const { data: user, error } = await supabase!.from("app_users")
     .insert({ email, password_hash: passwordHash })
     .select("id, email")
     .single();
   if (error) {
     if (error.code === "23505") {
-      return jsonResponse({ error: "Unable to create this account." }, 409);
+      return jsonResponse({
+        error: "An account with this email already exists. Sign in instead.",
+      }, 409);
     }
     throw error;
   }
-  try {
-    await sendVerificationEmail(data.id, data.email);
-  } catch (verificationError) {
-    const { error: deleteError } = await supabase!.from("app_users")
-      .delete()
-      .eq("id", data.id);
-    if (deleteError) throw deleteError;
-    throw verificationError;
+  if (!user) {
+    throw new Error("Account creation returned no user.");
   }
-  return jsonResponse({ emailVerificationRequired: true }, 201);
+  return jsonResponse(await createSession(user.id, user.email), 201);
 }
 
 async function signIn(input: Record<string, unknown>): Promise<Response> {
@@ -150,7 +156,7 @@ async function signIn(input: Record<string, unknown>): Promise<Response> {
     return jsonResponse({ error: "Invalid email or password." }, 400);
   }
   const { data: user, error } = await supabase!.from("app_users")
-    .select("id, email, password_hash, email_verified")
+    .select("id, email, password_hash")
     .eq("email", email)
     .maybeSingle();
   if (error) throw error;
@@ -160,99 +166,9 @@ async function signIn(input: Record<string, unknown>): Promise<Response> {
   } else {
     await hashPassword(password);
   }
-  if (!valid || !user?.email_verified) {
+  if (!user || !valid) {
     return jsonResponse({ error: "Invalid email or password." }, 401);
   }
-  return jsonResponse(await createSession(user.id, user.email));
-}
-
-async function signInWithGoogle(
-  input: Record<string, unknown>,
-): Promise<Response> {
-  if (!googleServerClientId) {
-    return jsonResponse({ error: "Google sign-in is not configured." }, 503);
-  }
-  if (typeof input.idToken !== "string" || input.idToken.length > 10_000) {
-    return jsonResponse({ error: "Google ID token is required." }, 400);
-  }
-  let payload;
-  try {
-    ({ payload } = await jwtVerify(input.idToken, googleJwks, {
-      algorithms: ["RS256"],
-      audience: googleServerClientId,
-      issuer: ["https://accounts.google.com", "accounts.google.com"],
-    }));
-  } catch {
-    return jsonResponse(
-      { error: "Google ID token could not be verified." },
-      401,
-    );
-  }
-  if (
-    typeof payload.sub !== "string" ||
-    typeof payload.email !== "string" ||
-    payload.email_verified !== true
-  ) {
-    return jsonResponse(
-      { error: "Google account could not be verified." },
-      401,
-    );
-  }
-  const email = normalizeEmail(payload.email);
-  if (!email) {
-    return jsonResponse({ error: "Google account email is invalid." }, 401);
-  }
-
-  const { data: existing, error: lookupError } = await supabase!.from(
-    "app_users",
-  )
-    .select("id, email, google_subject")
-    .eq("email", email)
-    .maybeSingle();
-  if (lookupError) throw lookupError;
-
-  let user: { id: string; email: string } | null = existing
-    ? { id: existing.id, email: existing.email }
-    : null;
-  if (
-    existing?.google_subject &&
-    existing.google_subject !== payload.sub
-  ) {
-    return jsonResponse({ error: "Google account could not be linked." }, 409);
-  }
-  if (existing && !existing.google_subject) {
-    const { data, error } = await supabase!.from("app_users")
-      .update({
-        google_subject: payload.sub,
-        email_verified: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id)
-      .select("id, email")
-      .single();
-    if (error) throw error;
-    user = { id: data.id, email: data.email };
-  } else if (!user) {
-    const { data, error } = await supabase!.from("app_users")
-      .insert({
-        email,
-        google_subject: payload.sub,
-        email_verified: true,
-      })
-      .select("id, email")
-      .single();
-    if (error) {
-      if (error.code === "23505") {
-        return jsonResponse(
-          { error: "Google account could not be linked." },
-          409,
-        );
-      }
-      throw error;
-    }
-    user = { id: data.id, email: data.email };
-  }
-  if (!user) throw new Error("Google user creation returned no user.");
   return jsonResponse(await createSession(user.id, user.email));
 }
 
@@ -305,52 +221,6 @@ async function signOut(input: Record<string, unknown>): Promise<Response> {
   return jsonResponse({ success: true });
 }
 
-async function sendVerificationEmail(userId: string, email: string) {
-  const sender = Deno.env.get("AUTH_EMAIL_FROM");
-  const apiKey = Deno.env.get("RESEND_API_KEY");
-  const verificationUrl = Deno.env.get("AUTH_EMAIL_VERIFICATION_URL");
-  if (!sender || !apiKey || !verificationUrl) {
-    throw new Error("Email verification is not configured.");
-  }
-  const token = randomToken();
-  const { error } = await supabase!.from("app_auth_email_verifications")
-    .insert({
-      user_id: userId,
-      token_hash: await sha256(token),
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    });
-  if (error) throw error;
-  const link = new URL(verificationUrl);
-  link.searchParams.set("token", token);
-  await sendEmail({
-    apiKey,
-    sender,
-    recipient: email,
-    subject: "Verifikasi email Senapath",
-    text:
-      `Verifikasi alamat email untuk akun Senapath dengan membuka tautan ini:\n${link.toString()}\n\nTautan berlaku 24 jam. Jika kamu tidak membuat akun, abaikan email ini.`,
-  });
-}
-
-async function verifyEmail(
-  input: Record<string, unknown>,
-): Promise<Response> {
-  if (typeof input.token !== "string" || input.token.length > 200) {
-    return jsonResponse({ error: "Email verification token is invalid." }, 400);
-  }
-  const { data, error } = await supabase!.rpc("verify_app_email", {
-    p_token_hash: await sha256(input.token),
-  });
-  if (error) throw error;
-  if (data !== true) {
-    return jsonResponse(
-      { error: "Verification link expired or already used." },
-      400,
-    );
-  }
-  return jsonResponse({ success: true });
-}
-
 async function requestPasswordReset(
   input: Record<string, unknown>,
 ): Promise<Response> {
@@ -368,7 +238,6 @@ async function requestPasswordReset(
   const { data: user, error: lookupError } = await supabase!.from("app_users")
     .select("id")
     .eq("email", email)
-    .eq("email_verified", true)
     .not("password_hash", "is", null)
     .maybeSingle();
   if (lookupError) throw lookupError;
@@ -450,6 +319,14 @@ async function sendEmail({
     console.error("Auth email delivery failed", { status: response.status });
     throw new Error("Auth email could not be sent.");
   }
+}
+
+function passwordRecoveryConfigured(): boolean {
+  return Boolean(
+    Deno.env.get("RESEND_API_KEY") &&
+      Deno.env.get("AUTH_EMAIL_FROM") &&
+      Deno.env.get("AUTH_PASSWORD_RESET_URL"),
+  );
 }
 
 async function createSession(

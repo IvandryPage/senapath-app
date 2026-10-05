@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/device_authenticator.dart';
 import '../data/cloud_account_gateway.dart';
 import '../data/custom_auth_session_manager.dart';
 
@@ -10,6 +11,7 @@ class CloudAccountState {
     this.email,
     this.isConfigured = false,
     this.isLoading = false,
+    this.canUseBiometrics = false,
     this.status,
     this.error,
   });
@@ -17,6 +19,7 @@ class CloudAccountState {
   final String? email;
   final bool isConfigured;
   final bool isLoading;
+  final bool canUseBiometrics;
   final String? status;
   final String? error;
 
@@ -26,6 +29,7 @@ class CloudAccountState {
     String? email,
     bool? isConfigured,
     bool? isLoading,
+    bool? canUseBiometrics,
     String? status,
     String? error,
     bool clearEmail = false,
@@ -35,13 +39,14 @@ class CloudAccountState {
     email: clearEmail ? null : email ?? this.email,
     isConfigured: isConfigured ?? this.isConfigured,
     isLoading: isLoading ?? this.isLoading,
+    canUseBiometrics: canUseBiometrics ?? this.canUseBiometrics,
     status: clearStatus ? null : status ?? this.status,
     error: clearError ? null : error ?? this.error,
   );
 }
 
 class CloudAccountCubit extends Cubit<CloudAccountState> {
-  CloudAccountCubit(this._gateway)
+  CloudAccountCubit(this._gateway, {this.authenticator})
     : super(
         CloudAccountState(
           isConfigured: _gateway.isConfigured,
@@ -50,6 +55,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       );
 
   final CloudAccountGateway _gateway;
+  final DeviceAuthenticator? authenticator;
   StreamSubscription<String?>? _authSubscription;
 
   void initialize() {
@@ -64,12 +70,37 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
         ),
       );
     });
+    _loadBiometricAvailability();
+  }
+
+  Future<void> _loadBiometricAvailability() async {
+    final authenticator = this.authenticator;
+    if (authenticator == null) return;
+    try {
+      final rememberedSession = await _gateway.hasRememberedSession;
+      final biometricsAvailable = await authenticator.hasEnrolledBiometrics;
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          canUseBiometrics: rememberedSession && biometricsAvailable,
+        ),
+      );
+    } catch (_) {
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          canUseBiometrics: false,
+          status: 'Login biometrik tidak tersedia saat ini.',
+        ),
+      );
+    }
   }
 
   Future<void> register({
     required String email,
     required String password,
   }) async {
+    if (state.isLoading) return;
     final normalizedEmail = email.trim();
     final validationError = _validate(normalizedEmail, password);
     if (validationError != null) {
@@ -101,8 +132,8 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           clearEmail: !result.hasSession,
           isLoading: false,
           status: result.hasSession
-              ? 'Akun dibuat dan berhasil masuk.'
-              : 'Akun dibuat. Periksa email untuk verifikasi sebelum masuk.',
+              ? 'Akun berhasil dibuat. Kamu sudah masuk.'
+              : 'Akun berhasil dibuat.',
         ),
       );
     } catch (error) {
@@ -119,6 +150,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
   }
 
   Future<void> signIn({required String email, required String password}) async {
+    if (state.isLoading) return;
     final normalizedEmail = email.trim();
     final validationError = _validate(normalizedEmail, password);
     if (validationError != null) {
@@ -159,35 +191,40 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<void> signInWithBiometrics() async {
     if (state.isLoading) return;
-    if (!_gateway.isConfigured) {
+    final authenticator = this.authenticator;
+    if (authenticator == null || !state.canUseBiometrics) {
       emit(
         state.copyWith(
           error:
-              'Akun online belum tersedia karena Supabase belum dikonfigurasi.',
+              'Login biometrik belum tersedia. Masuk dengan email dan password terlebih dahulu.',
           clearStatus: true,
         ),
       );
       return;
     }
-
     emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
     try {
-      final signedIn = await _gateway.signInWithGoogle();
+      final authenticated = await authenticator.authenticate(
+        biometricOnly: true,
+      );
+      if (!authenticated) {
+        emit(
+          state.copyWith(
+            isLoading: false,
+            error: 'Autentikasi biometrik dibatalkan atau tidak berhasil.',
+          ),
+        );
+        return;
+      }
+      await _gateway.signInWithRememberedSession();
       emit(
         state.copyWith(
-          email: signedIn ? _gateway.currentEmail : null,
-          clearEmail: !signedIn,
+          email: _gateway.currentEmail,
           isLoading: false,
-          status: signedIn
-              ? 'Login Google berhasil dan akun online sudah terhubung.'
-              : null,
-          error: signedIn
-              ? null
-              : 'Login Google tidak selesai. Coba lagi.',
-          clearStatus: !signedIn,
-          clearError: signedIn,
+          canUseBiometrics: false,
+          status: 'Berhasil masuk ke akun online dengan biometrik.',
         ),
       );
     } catch (error) {
@@ -196,7 +233,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           isLoading: false,
           error: _messageFor(
             error,
-            'Login Google gagal. Periksa konfigurasi Google dan coba lagi.',
+            'Login biometrik gagal. Masuk dengan email dan password.',
           ),
         ),
       );
@@ -204,6 +241,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
   }
 
   Future<void> sendPasswordReset(String email) async {
+    if (state.isLoading) return;
     final normalizedEmail = email.trim();
     if (!_isValidEmail(normalizedEmail)) {
       emit(state.copyWith(error: 'Masukkan alamat email yang valid.'));
@@ -244,6 +282,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     required String token,
     required String password,
   }) async {
+    if (state.isLoading) return;
     if (token.isEmpty || password.length < 8 || password.length > 128) {
       emit(
         state.copyWith(
@@ -285,38 +324,6 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
-  Future<void> verifyEmail(String token) async {
-    if (token.isEmpty) {
-      emit(state.copyWith(error: 'Tautan verifikasi tidak valid.'));
-      return;
-    }
-    if (!_gateway.isConfigured) {
-      emit(
-        state.copyWith(
-          error: 'Verifikasi email belum tersedia karena Supabase belum dikonfigurasi.',
-        ),
-      );
-      return;
-    }
-    emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
-    try {
-      await _gateway.verifyEmail(token);
-      emit(
-        state.copyWith(
-          isLoading: false,
-          status: 'Email berhasil diverifikasi. Silakan masuk.',
-        ),
-      );
-    } catch (error) {
-      emit(
-        state.copyWith(
-          isLoading: false,
-          error: _messageFor(error, 'Tautan verifikasi tidak dapat digunakan.'),
-        ),
-      );
-    }
-  }
-
   Future<void> signOut() async {
     if (!_gateway.isConfigured || state.isLoading) return;
     emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
@@ -326,6 +333,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
         state.copyWith(
           clearEmail: true,
           isLoading: false,
+          canUseBiometrics: false,
           status:
               'Berhasil keluar dari akun online. Data lokal tetap tersimpan.',
         ),

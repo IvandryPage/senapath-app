@@ -6,7 +6,6 @@ import '../features/authentication/presentation/cloud_account_cubit.dart';
 import '../core/units/unit_settings_cubit.dart';
 import '../features/session/presentation/session_cubit.dart';
 import '../features/emergency/presentation/emergency_cubit.dart';
-import '../features/authentication/presentation/device_auth_cubit.dart';
 import '../features/profile/presentation/profile_cubit.dart';
 import '../features/routes/presentation/routes_cubit.dart';
 import '../features/logistics/presentation/logistics_cubit.dart';
@@ -19,7 +18,6 @@ import 'theme/theme_settings_cubit.dart';
 
 class SenapathApp extends StatelessWidget {
   const SenapathApp({
-    required this.authCubit,
     required this.cloudAccountCubit,
     required this.themeSettingsCubit,
     required this.emergencyCubit,
@@ -35,7 +33,6 @@ class SenapathApp extends StatelessWidget {
     super.key,
   });
 
-  final DeviceAuthCubit authCubit;
   final CloudAccountCubit cloudAccountCubit;
   final ThemeSettingsCubit themeSettingsCubit;
   final EmergencyCubit emergencyCubit;
@@ -53,7 +50,6 @@ class SenapathApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider.value(value: authCubit),
         BlocProvider.value(value: cloudAccountCubit),
         BlocProvider.value(value: themeSettingsCubit),
         BlocProvider.value(value: emergencyCubit),

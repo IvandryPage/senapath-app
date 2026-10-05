@@ -25,6 +25,9 @@ class CustomAuthSessionManager {
   String? get currentUserId => isConfigured ? _session?.userId : null;
   Stream<String?> get authChanges => _authChanges.stream;
 
+  Future<bool> get hasStoredSession async =>
+      (await _secureVault.read(_storageKey)) != null;
+
   Future<void> restore() async {
     final stored = await _secureVault.read(_storageKey);
     if (stored == null) return;
@@ -38,6 +41,23 @@ class CustomAuthSessionManager {
     } on TypeError {
       await _clearSession();
     }
+  }
+
+  Future<void> restoreForBiometricSignIn() async {
+    await restore();
+    if (_session == null) {
+      throw StateError(
+        'Tidak ada sesi akun tersimpan. Masuk dengan email dan password terlebih dahulu.',
+      );
+    }
+    try {
+      await requireAccessToken();
+    } catch (_) {
+      _session = null;
+      _client?.rest.setAuth(null);
+      rethrow;
+    }
+    _authChanges.add(_session!.email);
   }
 
   Future<Map<String, Object?>> authenticate(
@@ -140,11 +160,19 @@ class CustomAuthSessionManager {
     } on FunctionException catch (error) {
       final details = error.details;
       final message = details is Map ? details['error'] : null;
+      if (error.status == 404) {
+        throw const CustomAuthException(
+          status: 404,
+          message:
+              'Edge Function app-auth belum tersedia. Deploy dengan `supabase functions deploy app-auth`.',
+        );
+      }
       throw CustomAuthException(
         status: error.status,
-        message: message is String && message.isNotEmpty
-            ? message
-            : 'Autentikasi gagal (HTTP ${error.status}).',
+        message: switch (message) {
+          String value when value.isNotEmpty => value,
+          _ => 'Autentikasi gagal (HTTP ${error.status}). Periksa konfigurasi Supabase Edge Function.',
+        },
       );
     }
     if (response.status < 200 || response.status >= 300) {

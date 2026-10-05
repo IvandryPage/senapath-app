@@ -37,7 +37,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
           const Text(
-            'Akun ini digunakan untuk layanan online. Unlock biometrik/PIN tetap terpisah dan melindungi data di perangkat.',
+            'Masuk dengan email dan password, atau gunakan biometrik untuk masuk kembali ke akun yang tersimpan di perangkat ini.',
           ),
           const SizedBox(height: 16),
           if (!state.isConfigured)
@@ -58,34 +58,18 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                     _confirmationController.clear();
                   }),
           ),
+          if (!_isRegistering && state.canUseBiometrics)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: state.isLoading
+                    ? null
+                    : context.read<CloudAccountCubit>().signInWithBiometrics,
+                icon: const Icon(Icons.fingerprint),
+                label: const Text('Masuk ke akun tersimpan dengan biometrik'),
+              ),
+            ),
           const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: state.isConfigured && !state.isLoading
-                ? context.read<CloudAccountCubit>().signInWithGoogle
-                : null,
-            icon: state.isLoading
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.account_circle_outlined),
-            label: Text(
-              state.isLoading ? 'Memulai login Google…' : 'Lanjutkan dengan Google',
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              children: [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('atau gunakan email'),
-                ),
-                Expanded(child: Divider()),
-              ],
-            ),
-          ),
           Form(
             key: _formKey,
             child: Column(
@@ -198,7 +182,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           if (_isRegistering) ...[
             const SizedBox(height: 16),
             Text(
-              'Verifikasi email diperlukan sebelum masuk. Password dikirim melalui HTTPS ke layanan autentikasi Senapath dan disimpan di server hanya sebagai hash PBKDF2; aplikasi tidak menyimpan password.',
+              'Kamu langsung masuk setelah daftar tanpa verifikasi email. Pastikan email benar karena kepemilikannya tidak diperiksa. Password disimpan server sebagai hash PBKDF2.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -241,6 +225,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
       );
 
   Future<void> _submit() async {
+    if (context.read<CloudAccountCubit>().state.isLoading) return;
     if (!_formKey.currentState!.validate()) return;
     final cubit = context.read<CloudAccountCubit>();
     if (_isRegistering) {

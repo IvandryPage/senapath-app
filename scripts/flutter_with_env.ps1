@@ -16,9 +16,7 @@ if (-not (Test-Path $envPath)) {
 $clientValues = @{}
 $allowedClientKeys = @(
     'SUPABASE_URL',
-    'SUPABASE_PUBLISHABLE_KEY',
-    'GOOGLE_SERVER_CLIENT_ID',
-    'GOOGLE_IOS_CLIENT_ID'
+    'SUPABASE_PUBLISHABLE_KEY'
 )
 foreach ($line in Get-Content $envPath) {
     $trimmedLine = $line.Trim()
@@ -56,9 +54,7 @@ if ($clientValues['SUPABASE_URL'] -notmatch '^https://') {
 [System.IO.Directory]::CreateDirectory($clientAssetDirectory) | Out-Null
 $clientAssetLines = @(
     "SUPABASE_URL=$($clientValues['SUPABASE_URL'])",
-    "SUPABASE_PUBLISHABLE_KEY=$($clientValues['SUPABASE_PUBLISHABLE_KEY'])",
-    "GOOGLE_SERVER_CLIENT_ID=$($clientValues['GOOGLE_SERVER_CLIENT_ID'])",
-    "GOOGLE_IOS_CLIENT_ID=$($clientValues['GOOGLE_IOS_CLIENT_ID'])"
+    "SUPABASE_PUBLISHABLE_KEY=$($clientValues['SUPABASE_PUBLISHABLE_KEY'])"
 )
 [System.IO.File]::WriteAllLines(
     $clientAssetPath,

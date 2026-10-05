@@ -59,6 +59,9 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   String? resetEmail;
   int signInCalls = 0;
 
+  @override
+  Future<bool> get hasRememberedSession async => false;
+
   Future<void> close() => _authChanges.close();
 
   @override
@@ -83,7 +86,7 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
-  Future<bool> signInWithGoogle() async => true;
+  Future<void> signInWithRememberedSession() async {}
 
   @override
   Future<void> sendPasswordReset(String email) async {
@@ -95,9 +98,6 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
     required String token,
     required String password,
   }) async {}
-
-  @override
-  Future<void> verifyEmail(String token) async {}
 
   @override
   Future<void> signOut() async {

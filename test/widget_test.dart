@@ -12,10 +12,8 @@ import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/core/units/unit_settings_cubit.dart';
 import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/widgets/feature_state_view.dart';
-import 'package:senapath/features/authentication/data/device_authenticator.dart';
 import 'package:senapath/features/authentication/data/supabase_cloud_account_gateway.dart';
 import 'package:senapath/features/authentication/data/custom_auth_session_manager.dart';
-import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 import 'package:senapath/features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'package:senapath/features/assistant/presentation/ai_chat_cubit.dart';
@@ -46,9 +44,6 @@ import 'package:drift/native.dart';
 
 void main() {
   testWidgets('main shell navigates between core destinations', (tester) async {
-    final authCubit = DeviceAuthCubit(_FakeDeviceAuthenticator());
-    await authCubit.initialize();
-    await authCubit.authenticateWithBiometrics();
     final database = AppDatabase.forTesting(NativeDatabase.memory());
     final settingsCubit = UnitSettingsCubit(UnitSettingsRepository(database));
     await settingsCubit.load();
@@ -84,15 +79,12 @@ void main() {
 
     await tester.pumpWidget(
       SenapathApp(
-        authCubit: authCubit,
         cloudAccountCubit: CloudAccountCubit(
           SupabaseCloudAccountGateway(
             sessionManager: CustomAuthSessionManager(
               client: null,
               secureVault: _FakeSecureVault(),
             ),
-            googleServerClientId: '',
-            googleIosClientId: '',
           ),
         ),
         themeSettingsCubit: themeSettingsCubit,
@@ -134,6 +126,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Buka Senapath'), findsNothing);
 
     print(
       'SESSION CUBIT STATE: isInitialized=${sessionCubit.state.isInitialized}, isLoading=${sessionCubit.state.isLoading}, error=${sessionCubit.state.message}, sessions=${sessionCubit.state.completedSessions.length}',
@@ -161,8 +154,11 @@ void main() {
     await tester.scrollUntilVisible(find.text('Chat AI'), 400);
     await tester.tap(find.text('Chat AI'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('AI belum tersambung'), findsOneWidget);
-    expect(find.textContaining('Tidak ada pesan yang dikirim'), findsOneWidget);
+    expect(find.textContaining('Chat belum terhubung'), findsOneWidget);
+    expect(
+      find.textContaining('Chat akan aktif setelah backend Supabase'),
+      findsOneWidget,
+    );
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
@@ -320,17 +316,10 @@ void main() {
     await tester.tap(find.text('Batal'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Kunci aplikasi'));
-    await tester.pumpAndSettle();
-    expect(find.text('Buka Senapath'), findsOneWidget);
-
-    await tester.tap(find.text('Gunakan PIN atau sandi perangkat'));
-    await tester.pumpAndSettle();
     expect(find.text('Kontak darurat'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await database.close();
-    await authCubit.close();
     await profileCubit.close();
     await emergencyCubit.close();
     await routesCubit.close();
@@ -369,17 +358,6 @@ void main() {
     await tester.tap(find.text('Coba lagi'));
     expect(retried, isTrue);
   });
-}
-
-class _FakeDeviceAuthenticator implements DeviceAuthenticator {
-  @override
-  Future<bool> get hasEnrolledBiometrics async => true;
-
-  @override
-  Future<bool> get supportsDeviceCredentials async => true;
-
-  @override
-  Future<bool> authenticate({required bool biometricOnly}) async => true;
 }
 
 class _FakeProfileRepository implements UserProfileRepository {

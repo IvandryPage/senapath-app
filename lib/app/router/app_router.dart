@@ -11,14 +11,10 @@ import '../../features/routes/domain/saved_route.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
 import '../../features/strategy_game/presentation/strategy_game_screen.dart';
-import '../../features/authentication/presentation/device_auth_cubit.dart';
-import '../../features/authentication/presentation/device_unlock_screen.dart';
 import '../../features/authentication/presentation/cloud_account_screen.dart';
 import '../../features/authentication/presentation/password_reset_screen.dart';
-import '../../features/authentication/presentation/email_verification_screen.dart';
 import '../../features/authentication/presentation/cloud_account_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
-import '../../features/assistant/presentation/ai_chat_cubit.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 import '../../features/session/domain/ride_session.dart';
@@ -46,12 +42,6 @@ final appRouter = GoRouter(
       path: '/reset-password',
       builder: (context, state) =>
           PasswordResetScreen(token: state.uri.queryParameters['token'] ?? ''),
-    ),
-    GoRoute(
-      path: '/verify-email',
-      builder: (context, state) => EmailVerificationScreen(
-        token: state.uri.queryParameters['token'] ?? '',
-      ),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -153,17 +143,11 @@ class _AppShellState extends State<_AppShell> {
   @override
   void initState() {
     super.initState();
-    context.read<DeviceAuthCubit>().initialize();
     context.read<CloudAccountCubit>().initialize();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.watch<DeviceAuthCubit>().state;
-    if (!authState.isUnlocked) {
-      return const Scaffold(body: SafeArea(child: DeviceUnlockScreen()));
-    }
-
     final title = switch (widget.location) {
       '/strategy' => 'Strategi Rute',
       '/assistant' => 'Chat AI',
@@ -178,17 +162,6 @@ class _AppShellState extends State<_AppShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        actions: [
-          if (widget.location == '/profile')
-            IconButton(
-              tooltip: 'Kunci aplikasi',
-              onPressed: () {
-                context.read<AiChatCubit>().clearConversation();
-                context.read<DeviceAuthCubit>().logout();
-              },
-              icon: const Icon(Icons.logout),
-            ),
-        ],
       ),
       body: SafeArea(top: false, child: widget.navigationShell),
       bottomNavigationBar: NavigationBar(

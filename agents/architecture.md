@@ -144,7 +144,7 @@ Saat cloud dikonfigurasi, tambahkan `supabase_flutter` dan buat adapter remote/s
 ## 9. Keamanan, Privasi, dan Izin
 
 - `flutter_secure_storage` menyimpan token dan kunci pembuka data terenkripsi; tentukan backup/restore, rotasi, logout, perangkat rooted/jailbroken sesuai threat model, serta apa yang terjadi bila kunci hilang.
-- Biometrik melalui `local_auth` adalah gate lokal untuk penggunaan kredensial yang dilindungi platform; biometrik bukan pengganti autentikasi/otorisasi server.
+- Biometrik melalui `local_auth` adalah verifikasi user-presence sebelum aplikasi memulihkan refresh session yang tersimpan; jangan simpan password atau menjadikan biometric prompt sebagai gerbang seluruh aplikasi. Server tetap memvalidasi JWT dan otorisasi.
 - Minta izin tepat sebelum fitur membutuhkan lokasi, notifikasi, foto, atau koneksi sensor/provider. Berikan alasan, dampak penolakan, dan cara mencabut akses.
 - Pisahkan data identitas dari telemetri bila memungkinkan. Terapkan prinsip minimisasi: kumpulkan hanya sampel dan metrik yang diperlukan, batasi retensi, dan hapus sesuai pilihan/kebijakan.
 - Jangan menulis token, koordinat detail, kontak, payload wearable privat, atau isi SOS ke log, analytics, crash report, maupun blockchain publik.
@@ -193,7 +193,7 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 | AI              | Backend REST ke provider LLM                                         | Jangan panggil provider ber-secret langsung dari aplikasi.                                                 |
 | Blockchain      | EVM Polygon Amoy untuk staging; relayer server-side                   | Deploy/verifikasi kontrak dan transaksi testnet; produksi/mainnet dan batas biaya belum diputuskan. Key relayer hanya di secret manager. |
 | Cloud database  | Supabase dipilih                                                     | Konfigurasikan URL/key, schema/migrasi SQL, RLS, backup, dan strategi Drift outbox sebelum sync client.    |
-| Custom app auth | Email/password hash, Google ID-token verification, custom JWT, refresh-token rotation | Kredensial/session dikelola Edge Function dan `public.app_users`; custom JWT harus memakai signing key yang dipercaya Supabase agar RLS `auth.uid()` bekerja. Refresh token disimpan di secure storage perangkat. |
+| Custom app auth | Email/password hash, custom JWT, refresh-token rotation | Kredensial/session dikelola Edge Function dan `public.app_users`; custom JWT harus memakai signing key yang dipercaya Supabase agar RLS `auth.uid()` bekerja. Refresh token disimpan di secure storage perangkat. Email verification dan reset memakai provider email yang dikonfigurasi di server. |
 | Cloud storage   | Belum diputuskan                                                     | Tentukan apakah foto/media perlu Supabase Storage, bucket private, policy, dan signed URL.                 |
 | Edge Functions  | Supabase Edge Functions                                              | Gunakan untuk integrasi yang memerlukan provider/secret; leaderboard memakai fungsi PostgreSQL `SECURITY DEFINER` dengan tabel privat, bukan akses tabel langsung dari client. |
 | Push/notifikasi | Lokal dan provider push terpilih                                     | Tentukan platform, consent, payload minimal, dan status delivery.                                          |

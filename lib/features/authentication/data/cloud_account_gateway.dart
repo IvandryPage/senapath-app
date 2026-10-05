@@ -8,6 +8,7 @@ abstract interface class CloudAccountGateway {
   bool get isConfigured;
   String? get currentEmail;
   Stream<String?> get authChanges;
+  Future<bool> get hasRememberedSession;
 
   Future<CloudAccountRegistrationResult> register({
     required String email,
@@ -15,9 +16,8 @@ abstract interface class CloudAccountGateway {
   });
 
   Future<void> signIn({required String email, required String password});
-  Future<bool> signInWithGoogle();
+  Future<void> signInWithRememberedSession();
   Future<void> sendPasswordReset(String email);
-  Future<void> verifyEmail(String token);
   Future<void> completePasswordReset({
     required String token,
     required String password,

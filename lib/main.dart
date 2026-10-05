@@ -12,7 +12,6 @@ import 'core/units/unit_settings_repository.dart';
 import 'features/authentication/data/device_authenticator.dart';
 import 'features/authentication/data/custom_auth_session_manager.dart';
 import 'features/authentication/data/supabase_cloud_account_gateway.dart';
-import 'features/authentication/presentation/device_auth_cubit.dart';
 import 'features/authentication/presentation/cloud_account_cubit.dart';
 import 'features/emergency/data/emergency_contact_actions.dart';
 import 'features/emergency/presentation/emergency_cubit.dart';
@@ -45,14 +44,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var supabaseUrl = '';
   var supabasePublishableKey = '';
-  var googleServerClientId = '';
-  var googleIosClientId = '';
   try {
     await dotenv.load(fileName: 'assets/config/client.env');
     supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
     supabasePublishableKey = dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? '';
-    googleServerClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '';
-    googleIosClientId = dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
   } catch (_) {
     // Local-only features remain available when client config is absent.
   }
@@ -60,7 +55,6 @@ Future<void> main() async {
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: supabasePublishableKey,
       publishableKey: supabasePublishableKey,
     );
     supabaseClient = Supabase.instance.client;
@@ -71,7 +65,6 @@ Future<void> main() async {
     client: supabaseClient,
     secureVault: secureVault,
   );
-  await authSessionManager.restore();
   final database = AppDatabase();
   final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
@@ -85,13 +78,9 @@ Future<void> main() async {
 
   runApp(
     SenapathApp(
-      authCubit: DeviceAuthCubit(LocalDeviceAuthenticator()),
       cloudAccountCubit: CloudAccountCubit(
-        SupabaseCloudAccountGateway(
-          sessionManager: authSessionManager,
-          googleServerClientId: googleServerClientId,
-          googleIosClientId: googleIosClientId,
-        ),
+        SupabaseCloudAccountGateway(sessionManager: authSessionManager),
+        authenticator: LocalDeviceAuthenticator(),
       ),
       themeSettingsCubit: themeSettingsCubit,
       emergencyCubit: EmergencyCubit(
@@ -109,9 +98,7 @@ Future<void> main() async {
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
-      strategyGameCubit: StrategyGameCubit(
-        StrategyGameRepository(database),
-      ),
+      strategyGameCubit: StrategyGameCubit(StrategyGameRepository(database)),
       aiChatCubit: AiChatCubit(
         SupabaseAiChatGateway(supabaseClient, authSessionManager),
       ),
