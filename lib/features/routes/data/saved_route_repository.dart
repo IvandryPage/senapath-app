@@ -96,6 +96,20 @@ class SavedRouteRepository {
     return _map(row);
   }
 
+  Future<void> deleteImportedRoute(String routeId) async {
+    final deleted =
+        await (database.delete(database.savedRoutes)
+              ..where(
+                (route) =>
+                    route.id.equals(routeId) &
+                    route.source.equals('GPX lokal'),
+              ))
+            .go();
+    if (deleted == 0) {
+      throw StateError('Rute GPX tidak ditemukan atau bukan rute impor.');
+    }
+  }
+
   Future<RouteRecord> _map(SavedRoute row) async => RouteRecord(
     id: row.id,
     name: row.name,

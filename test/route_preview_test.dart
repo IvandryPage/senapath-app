@@ -112,6 +112,54 @@ void main() {
     expect(find.textContaining('mi'), findsOneWidget);
     expect(find.textContaining('ft'), findsOneWidget);
   });
+
+  testWidgets('deletes an imported GPX route after confirmation', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
+    await repository.saveImportedRoute(
+      name: 'Loop untuk dihapus',
+      points: const [
+        (latitude: -7.79, longitude: 110.36, elevation: 10),
+        (latitude: -7.792, longitude: 110.362, elevation: 18),
+      ],
+    );
+    final routesCubit = RoutesCubit(
+      repository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    await routesCubit.load();
+    await unitCubit.load();
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: routesCubit,
+        child: BlocProvider.value(
+          value: unitCubit,
+          child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Hapus rute GPX Loop untuk dihapus'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hapus rute GPX?'), findsOneWidget);
+    await tester.tap(find.text('Hapus rute'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Loop untuk dihapus'), findsNothing);
+    expect(find.text('Belum ada rute tersimpan'), findsOneWidget);
+    expect(await repository.search(''), isEmpty);
+  });
 }
 
 class _MemorySecureVault implements SecureVault {

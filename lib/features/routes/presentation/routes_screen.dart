@@ -54,7 +54,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
         builder: (context, state) {
           final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
           return LayoutBuilder(
-            builder: (context, constraints) => Column(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
@@ -145,10 +146,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
                   ],
                 ),
               ),
-              Expanded(child: _buildResults(state, unitSystem)),
+              _buildResults(state, unitSystem),
             ],
           ),
-          );
+          ));
         },
       ),
     );
@@ -196,6 +197,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       itemCount: state.routes.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) => _RouteTile(
         route: state.routes[index],
         unitSystem: unitSystem,
@@ -243,12 +246,45 @@ class _RouteTile extends StatelessWidget {
                     child: Icon(Icons.cloud_off_outlined),
                   )
                 : const Icon(Icons.cloud_done_outlined),
+            if (route.source == 'GPX lokal')
+              IconButton(
+                tooltip: 'Hapus rute GPX ${route.name}',
+                onPressed: () => _confirmDelete(context),
+                icon: const Icon(Icons.delete_outline),
+              ),
             const SizedBox(width: 8),
             const Icon(Icons.chevron_right),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus rute GPX?'),
+        content: Text(
+          '“${route.name}” akan dihapus dari rute tersimpan. Tindakan ini '
+          'tidak dapat dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Hapus rute'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<RoutesCubit>().deleteImportedRoute(route.id);
+    }
   }
 
   void _showRoutePreview(BuildContext context) {

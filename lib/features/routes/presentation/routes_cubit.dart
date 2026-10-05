@@ -78,5 +78,19 @@ class RoutesCubit extends Cubit<RoutesState> {
     }
   }
 
+  Future<void> deleteImportedRoute(String routeId) async {
+    try {
+      await repository.deleteImportedRoute(routeId);
+      await search(state.query);
+      emit(state.copyWith(message: 'Rute GPX berhasil dihapus.'));
+    } catch (error) {
+      emit(
+        state.copyWith(
+          message: 'Rute GPX tidak dapat dihapus: $error',
+        ),
+      );
+    }
+  }
+
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 }

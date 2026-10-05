@@ -71,35 +71,18 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
             );
           }
 
-          return ListView(
+          return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-            children: [
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                    value: false,
-                    label: Text('Mata uang'),
-                    icon: Icon(Icons.currency_exchange),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text('Waktu dunia'),
-                    icon: Icon(Icons.public),
-                  ),
-                ],
-                selected: {_showWorldTime},
-                onSelectionChanged: (selection) =>
-                    setState(() => _showWorldTime = selection.first),
-              ),
-              const SizedBox(height: 20),
-              if (_showWorldTime)
-                _buildTimeSection(context)
-              else ...[
-                _buildCurrencySection(context, state),
-                const SizedBox(height: 18),
+            child: Column(
+              children: [
+                // Budget section first — keeps 'Tambah item anggaran' near the top
                 _buildBudgetSection(context, state),
+                const SizedBox(height: 18),
+                _buildCurrencySection(context, state),
+                const SizedBox(height: 20),
+                _buildTimeSection(context),
               ],
-            ],
+            ),
           );
         },
       ),
@@ -133,29 +116,19 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  tooltip: 'Kelola kurs',
-                  onSelected: (action) {
-                    if (action == 'refresh') {
-                      context.read<LogisticsCubit>().refreshRates();
-                    } else {
-                      _editRates(context, data);
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'refresh',
-                      child: ListTile(
-                        leading: Icon(Icons.sync),
-                        title: Text('Ambil kurs referensi'),
-                      ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Ambil kurs referensi',
+                      onPressed: () =>
+                          context.read<LogisticsCubit>().refreshRates(),
+                      icon: const Icon(Icons.sync),
                     ),
-                    PopupMenuItem(
-                      value: 'manual',
-                      child: ListTile(
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('Atur kurs manual'),
-                      ),
+                    IconButton(
+                      tooltip: 'Atur kurs',
+                      onPressed: () => _editRates(context, data),
+                      icon: const Icon(Icons.edit_outlined),
                     ),
                   ],
                 ),
@@ -167,7 +140,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                   ? 'Kurs belum tersedia. Ambil kurs referensi atau atur manual.'
                   : data.rateSource == 'Frankfurter'
                   ? 'Kurs referensi harian · Frankfurter · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}'
-                  : 'Kurs manual · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}',
+                  : 'Kurs manual · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())} · bukan real-time',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (state.isRefreshingRates) ...[
@@ -198,22 +171,22 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     return Card(
       child: ExpansionTile(
         leading: const Icon(Icons.receipt_long_outlined),
-        title: const Text('Anggaran perjalanan'),
+        title: const Text('Anggaran'),
+        initiallyExpanded: true,
         subtitle: Text(
           total == null
               ? 'Tambahkan biaya perjalanan dan pilih mata uang total.'
               : 'Total saat ini ${_formatMoney(total, data.targetCurrency)}',
         ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
+        trailing: Tooltip(
+          message: 'Tambah item anggaran',
+          child: IconButton(
             onPressed: state.isSaving ? null : () => _editItem(context),
             icon: const Icon(Icons.add),
-            label: const Text('Tambah biaya'),
           ),
         ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
         DropdownButtonFormField<BudgetCurrency>(
           initialValue: data.targetCurrency,
           decoration: const InputDecoration(labelText: 'Total dalam'),

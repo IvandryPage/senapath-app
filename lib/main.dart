@@ -55,6 +55,7 @@ Future<void> main() async {
   if (supabaseUrl.isNotEmpty && supabasePublishableKey.isNotEmpty) {
     await Supabase.initialize(
       url: supabaseUrl,
+      anonKey: supabasePublishableKey,
       publishableKey: supabasePublishableKey,
     );
     supabaseClient = Supabase.instance.client;

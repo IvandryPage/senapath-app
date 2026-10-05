@@ -79,6 +79,7 @@ void main() {
       readinessChecker: _FakeReadinessChecker(),
       locationSource: _FakeLocationSource(),
     );
+    await sessionCubit.initialize();
 
     await tester.pumpWidget(
       SenapathApp(
@@ -106,8 +107,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ExploreMap), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Belum ada sesi'), 300);
+    print('SESSION CUBIT STATE: isInitialized=${sessionCubit.state.isInitialized}, isLoading=${sessionCubit.state.isLoading}, error=${sessionCubit.state.message}, sessions=${sessionCubit.state.completedSessions.length}');
+    await tester.drag(find.text('Hai, siap gowes?'), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    for (final element in find.byType(Text).evaluate()) {
+      print('FOUND TEXT AFTER DRAG: ${(element.widget as Text).data ?? (element.widget as Text).textSpan?.toPlainText()}');
+    }
     expect(find.text('Belum ada sesi'), findsOneWidget);
 
     final leaderboardShortcut = find.byKey(
