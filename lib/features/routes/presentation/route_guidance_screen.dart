@@ -129,7 +129,9 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
     if (state.isStarting) return 'Memulai GPS…';
     if (state.currentPosition == null) return 'Menunggu posisi GPS…';
     if (state.isOffRoute) return 'Periksa posisi terhadap jalur';
-    return 'Ikuti jalur GPX';
+    return widget.route.source.startsWith('Google Maps')
+        ? 'Ikuti rute Google Maps'
+        : 'Ikuti jalur GPX';
   }
 
   String? _warningLabel(RouteGuidanceState state) {
