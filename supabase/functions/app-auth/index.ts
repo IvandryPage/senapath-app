@@ -46,6 +46,7 @@ Deno.serve(async (request) => {
     }, 503);
   }
 
+  const requestId = crypto.randomUUID();
   try {
     const input = await request.json();
     if (!isRecord(input) || typeof input.action !== "string") {
@@ -99,8 +100,29 @@ Deno.serve(async (request) => {
         return jsonResponse({ error: "Unsupported auth action." }, 400);
     }
   } catch (error) {
-    console.error("app-auth request failed", error);
-    return jsonResponse({ error: "Authentication request failed." }, 500);
+    const code = getErrorCode(error);
+    console.error("app-auth request failed", { requestId, code, error });
+    if (
+      code &&
+      [
+        "42P01",
+        "42703",
+        "42883",
+        "PGRST202",
+        "PGRST204",
+        "PGRST205",
+      ].includes(code)
+    ) {
+      return jsonResponse({
+        error:
+          "Auth database schema is incomplete. Apply the Supabase migrations with `supabase db push`, then redeploy app-auth.",
+        requestId,
+      }, 503);
+    }
+    return jsonResponse({
+      error:
+        `Authentication request failed. Check app-auth logs (reference ${requestId}).`,
+    }, 500);
   }
 });
 
@@ -118,23 +140,26 @@ async function register(input: Record<string, unknown>): Promise<Response> {
       400,
     );
   }
-  const passwordHash = await hashPassword(password);
   const { data: existing, error: lookupError } = await supabase!.from(
     "app_users",
   ).select("id, password_hash").eq("email", email).maybeSingle();
   if (lookupError) throw lookupError;
   if (existing) {
     return jsonResponse({
-      error:
-        existing.password_hash === null
-          ? "This email belongs to an existing account without a custom password. It cannot be claimed without proving ownership."
-          : "An account with this email already exists. Sign in instead.",
+      error: existing.password_hash === null
+        ? "This email belongs to an existing account without a custom password. It cannot be claimed without proving ownership."
+        : "An account with this email already exists. Sign in instead.",
     }, 409);
   }
-  const { data: user, error } = await supabase!.from("app_users")
-    .insert({ email, password_hash: passwordHash })
-    .select("id, email")
-    .single();
+  const refreshToken = randomToken();
+  const { data, error } = await supabase!.rpc("register_app_user", {
+    p_email: email,
+    p_password_hash: await hashPassword(password),
+    p_refresh_token_hash: await sha256(refreshToken),
+    p_expires_at: new Date(
+      Date.now() + refreshTokenLifetimeSeconds * 1000,
+    ).toISOString(),
+  }).single();
   if (error) {
     if (error.code === "23505") {
       return jsonResponse({
@@ -143,10 +168,17 @@ async function register(input: Record<string, unknown>): Promise<Response> {
     }
     throw error;
   }
-  if (!user) {
+  if (
+    !isRecord(data) ||
+    typeof data.account_id !== "string" ||
+    typeof data.account_email !== "string"
+  ) {
     throw new Error("Account creation returned no user.");
   }
-  return jsonResponse(await createSession(user.id, user.email), 201);
+  return jsonResponse(
+    await createSession(data.account_id, data.account_email, refreshToken),
+    201,
+  );
 }
 
 async function signIn(input: Record<string, unknown>): Promise<Response> {
@@ -332,10 +364,10 @@ function passwordRecoveryConfigured(): boolean {
 async function createSession(
   userId: string,
   email: string,
-  rotatedRefreshToken?: string,
+  existingRefreshToken?: string,
 ) {
-  const refreshToken = rotatedRefreshToken ?? randomToken();
-  if (!rotatedRefreshToken) {
+  const refreshToken = existingRefreshToken ?? randomToken();
+  if (!existingRefreshToken) {
     const { error } = await supabase!.from("app_auth_sessions").insert({
       user_id: userId,
       refresh_token_hash: await sha256(refreshToken),
@@ -480,6 +512,11 @@ function normalizeEmail(value: unknown): string | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getErrorCode(error: unknown): string | null {
+  if (!isRecord(error) || typeof error.code !== "string") return null;
+  return error.code;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

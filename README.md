@@ -37,14 +37,16 @@ Pendaftaran langsung membuat sesi; verifikasi email dan Resend tidak diperlukan 
    ```
 
    `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` disediakan otomatis untuk Supabase Edge Functions. Untuk mengaktifkan lupa password saja, tambahkan `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, dan `AUTH_PASSWORD_RESET_URL`.
-3. Terapkan migrasi dan deploy function:
+3. Terapkan semua migrasi (termasuk migrasi auth yang menghapus tabel verifikasi email yang tidak dipakai dan membuat pendaftaran+sesi atomik), lalu deploy function:
 
    ```sh
    supabase db push
    supabase functions deploy app-auth
    ```
 
-4. Pastikan `.env` aplikasi berisi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY`, lalu rebuild/restart aplikasi. Tes daftar email; jika secret backend belum lengkap, aplikasi sekarang menampilkan secret/konfigurasi yang perlu diatur.
+4. Pastikan `.env` aplikasi berisi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY`, lalu rebuild/restart aplikasi. Tes daftar email; jika secret backend belum lengkap, aplikasi menampilkan konfigurasi yang perlu diatur.
+
+Jika pendaftaran gagal, periksa pesan error yang tampil terlebih dahulu. Error skema meminta migrasi dijalankan dengan `supabase db push` dan function di-deploy ulang. Untuk error lain, buka **Supabase Dashboard → Edge Functions → app-auth → Logs** dan cari reference ID yang ditampilkan aplikasi. Pastikan URL/publishable key aplikasi mengarah ke project yang sama, `APP_AUTH_JWT_SECRET` sudah disetel, dan migration history menunjukkan semua migrasi selesai.
 
 Migrasi mempertahankan UUID akun lama dari `auth.users`, tetapi password Supabase Auth tidak dapat dipakai oleh custom auth. Akun lama yang belum memiliki password custom tidak dapat diklaim melalui daftar tanpa verifikasi kepemilikan; hubungi operator untuk migrasi aman. Ini sengaja mencegah orang lain mengambil alih data lama hanya dengan mengetik alamat email yang sama.
 
