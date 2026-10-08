@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import 'feedback_cubit.dart';
 
 class FeedbackScreen extends StatefulWidget {
@@ -110,7 +111,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               ),
               const SizedBox(height: 8),
               for (final submission in state.pending)
-                Card(
+                SenapathCard(
                   child: ListTile(
                     title: Text(
                       DateFormat('d MMM yyyy · HH:mm')

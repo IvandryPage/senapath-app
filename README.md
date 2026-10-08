@@ -54,17 +54,16 @@ Di **Profil → Akun online**, pengguna dapat mendaftar/masuk dengan email dan p
 
 ## Tema tampilan
 
-Pilih **Sistem**, **Terang**, atau **Gelap** di bagian **Profil → Tema tampilan**. Pilihan disimpan di preferensi lokal Drift dan diterapkan ke seluruh aplikasi. Mode Sistem mengikuti pengaturan tampilan perangkat.
+Senapath menggunakan **tema terang** di seluruh aplikasi, terlepas dari pengaturan tampilan perangkat.
 
 ## Rute GPX dan panduan offline
 
-1. Buka tab **Jelajah** untuk melihat basemap OpenStreetMap; peta tetap tampil meskipun belum ada rute tersimpan.
-2. Pilih tombol **Impor GPX**.
-3. Pilih berkas GPX yang berisi minimal dua titik track.
-4. Ketuk rute yang tersimpan untuk melihat bentuk jalur, jarak, dan elevasi yang tersedia.
-5. Pilih **Ikuti rute** untuk melihat jalur bersama posisi GPS, progres, jarak tersisa, dan peringatan bila fix GPS akurat menunjukkan kamu keluar jalur.
+1. Buka **Profil → Rute tersimpan** untuk mengelola rute GPX; daftar ini sengaja tidak ditampilkan di peta aktivitas Jelajah.
+2. Pilih **Impor berkas GPX**, lalu pilih berkas dengan minimal dua titik track.
+3. Kembali ke **Jelajah** dan mulai sesi. Aplikasi akan menanyakan apakah kamu ingin merekam tanpa rute atau memakai rute yang tersimpan/hasil pencarian.
+4. Saat sesi berlangsung, jalur pilihan dan jejak GPS tampil bersama pada peta. Untuk melihat navigasi rute lengkap, buka pratinjau rute dari perpustakaan dan pilih **Ikuti rute**.
 
-Beranda dan tab Jelajah menampilkan basemap OpenStreetMap online, dengan jalur GPX dan posisi GPS di atasnya jika tersedia. Tombol lokasi meminta izin hanya saat digunakan; tanpa izin, peta tetap dapat digeser dan diperbesar di sekitar Yogyakarta. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Peta menyediakan status tile dan tombol muat ulang, serta atribusi OpenStreetMap. Izin lokasi dan layanan GPS perangkat diperlukan untuk posisi langsung.
+Beranda dan tab Jelajah menampilkan basemap OpenStreetMap online. Peta aktivitas tidak menampilkan perpustakaan rute yang tersimpan; jalur baru muncul di peta sesi setelah dipilih saat mulai merekam. Tombol lokasi meminta izin hanya saat digunakan; tanpa izin, peta tetap dapat digeser dan diperbesar di sekitar Yogyakarta. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Peta menyediakan status tile dan tombol muat ulang, serta atribusi OpenStreetMap. Izin lokasi dan layanan GPS perangkat diperlukan untuk posisi langsung.
 
 ### Pencarian rute sepeda Google Maps
 

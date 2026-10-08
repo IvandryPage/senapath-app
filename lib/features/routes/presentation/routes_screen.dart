@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -8,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
@@ -29,15 +28,6 @@ class RoutesScreen extends StatefulWidget {
 class _RoutesScreenState extends State<RoutesScreen> {
   final _destinationController = TextEditingController();
   final _destinationFocusNode = FocusNode();
-  bool _loaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_loaded) return;
-    _loaded = true;
-    unawaited(context.read<RoutesCubit>().load());
-  }
 
   @override
   void dispose() {
@@ -79,22 +69,23 @@ class _RoutesScreenState extends State<RoutesScreen> {
                       longitude: currentLocation.longitude,
                       elevationMeters: currentLocation.altitudeMeters,
                     );
+              final sessionStatus = sessionState.session?.status;
+              final hasActiveSession =
+                  sessionStatus == RideSessionStatus.recording ||
+                  sessionStatus == RideSessionStatus.paused;
+              final activeRoute = hasActiveSession
+                  ? state.sessionRouteSelected
+                        ? state.sessionRoute
+                        : state.plannedRoute
+                  : state.plannedRoute;
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final displayedRoutes = [
-                    ...state.routes,
-                    if (state.plannedRoute != null) state.plannedRoute!,
-                  ];
-                  final plannedGoogleRoute = state.plannedRoute;
-                  final isRecording =
-                      sessionState.session?.status ==
-                      RideSessionStatus.recording;
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (plannedGoogleRoute != null)
+                      if (activeRoute?.source.startsWith('Google Maps') == true)
                         GoogleDirectionsMap(
-                          route: plannedGoogleRoute,
+                          route: activeRoute!,
                           currentPosition: currentRoutePoint,
                           trackPoints: trackPoints,
                           followCurrentPosition:
@@ -104,7 +95,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                         )
                       else
                         ExploreMap(
-                          routes: state.routes,
+                          routes: activeRoute == null ? const [] : [activeRoute],
                           height: constraints.maxHeight,
                           trackPoints: trackPoints,
                           currentLocation: currentLocation == null
@@ -126,31 +117,25 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           compactControls: true,
                         ),
                       ),
-                      if (!isRecording) ...[
+                      if (!hasActiveSession) ...[
                         Positioned(
                           top: 12,
                           left: 16,
                           right: 16,
                           child: _buildMapSearch(state),
                         ),
-                        if (displayedRoutes.isNotEmpty || state.isLoading)
+                        if (state.plannedRoute != null)
                           Positioned(
-                            left: 12,
-                            right: 12,
-                            top: 150,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight: constraints.maxHeight * 0.38,
-                              ),
-                              child: _buildResults(state, unitSystem),
+                            left: 16,
+                            right: 16,
+                            top: 132,
+                            child: _buildPlannedRouteCard(
+                              state.plannedRoute!,
+                              unitSystem,
+                              isSelected:
+                                  state.sessionRoute?.id ==
+                                  state.plannedRoute!.id,
                             ),
-                          )
-                        else
-                          Positioned(
-                            left: 20,
-                            right: 20,
-                            top: 150,
-                            child: _buildEmptyMapCard(),
                           ),
                       ],
                     ],
@@ -166,13 +151,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
 
   Widget _buildMapSearch(RoutesState state) {
     final colors = Theme.of(context).colorScheme;
-    return Material(
-      elevation: 4,
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
-        child: Column(
+    return SenapathCard(
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      margin: const EdgeInsets.only(left: 4, right: 9, top: 4, bottom: 9),
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
@@ -185,16 +167,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Tambah atau impor rute',
-                  onPressed: state.isLoading || state.isPlanning
-                      ? null
-                      : _showAddRouteOptions,
-                  icon: const Icon(Icons.add),
-                ),
               ],
             ),
-            const Divider(height: 1),
+            const Divider(height: 12),
             Row(
               children: [
                 Icon(Icons.place_outlined, color: colors.error, size: 20),
@@ -236,39 +211,50 @@ class _RoutesScreenState extends State<RoutesScreen> {
               ),
             ),
           ],
-        ),
       ),
     );
   }
 
-  Widget _buildEmptyMapCard() => Card(
-    elevation: 3,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.route_outlined),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Belum ada rute tersimpan',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
+  Widget _buildPlannedRouteCard(
+    RouteRecord route,
+    UnitSystem unitSystem, {
+    required bool isSelected,
+  }) {
+    final distance = route.distanceMeters == null
+        ? 'Jarak belum tersedia'
+        : _formatRouteDistance(route.distanceMeters!, unitSystem);
+    return SenapathCard(
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(route.name, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text('$distance · Google Maps · bukan navigasi turn-by-turn'),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: isSelected
+                    ? null
+                    : () {
+                        context.read<RoutesCubit>().selectSessionRoute(route);
+                        _showMessage(
+                          'Rute dipilih. Rute ini akan tampil saat sesi dimulai.',
+                        );
+                      },
+                icon: Icon(isSelected ? Icons.check : Icons.route),
+                label: Text(isSelected ? 'Dipilih untuk sesi' : 'Pilih untuk sesi'),
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Cari tujuan untuk membuat rute sepeda, atau impor jalur GPX.',
-            textAlign: TextAlign.start,
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _searchGoogleRoute() async {
     final destination = _destinationController.text.trim();
@@ -322,99 +308,78 @@ class _RoutesScreenState extends State<RoutesScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _showAddRouteOptions() async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.file_upload_outlined),
-              title: const Text('Impor rute GPX'),
-              onTap: () => Navigator.pop(context, 'gpx'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text('Cari rute dari lokasiku'),
-              onTap: () => Navigator.pop(context, 'search'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted) return;
-    if (action == 'gpx') {
-      await context.read<RoutesCubit>().importGpx();
-    } else if (action == 'search') {
-      _destinationFocusNode.requestFocus();
-    }
+}
+
+class SavedRoutesScreen extends StatefulWidget {
+  const SavedRoutesScreen({super.key});
+
+  @override
+  State<SavedRoutesScreen> createState() => _SavedRoutesScreenState();
+}
+
+class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loaded) return;
+    _loaded = true;
+    context.read<RoutesCubit>().load();
   }
 
-  Widget _buildResults(RoutesState state, UnitSystem unitSystem) {
-    final routes = [
-      ...state.routes,
-      if (state.plannedRoute != null) state.plannedRoute!,
-    ];
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      elevation: 5,
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    state.plannedRoute == null
-                        ? 'Rute tersimpan'
-                        : 'Rute ditemukan',
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Tutup daftar rute',
-                  onPressed: state.plannedRoute == null
-                      ? null
-                      : context.read<RoutesCubit>().clearPlannedRoute,
-                  icon: const Icon(Icons.close),
-                ),
-              ],
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<RoutesCubit, RoutesState>(
+      builder: (context, state) {
+        final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+          children: [
+            Text(
+              'Perpustakaan rute',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-          ),
-          if (state.isLoading)
-            const Flexible(
-              child: Center(
+            const SizedBox(height: 6),
+            const Text(
+              'Rute tersimpan tidak tampil di peta Jelajah. Pilih rute saat '
+              'memulai sesi untuk menampilkannya bersama jejak GPS.',
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: state.isLoading
+                    ? null
+                    : context.read<RoutesCubit>().importGpx,
+                icon: const Icon(Icons.file_upload_outlined),
+                label: const Text('Impor berkas GPX'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (state.isLoading)
+              const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.all(28),
                   child: FeatureStateView.loading(),
                 ),
-              ),
-            )
-          else if (routes.isEmpty)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 4, 16, 18),
-              child: Text(
-                'Belum ada rute tersimpan. Impor GPX atau cari tujuan di peta.',
-              ),
-            )
-          else
-            Flexible(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                itemCount: routes.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 4),
-                itemBuilder: (context, index) =>
-                    _RouteTile(route: routes[index], unitSystem: unitSystem),
-              ),
-            ),
-        ],
-      ),
+              )
+            else if (state.routes.isEmpty)
+              const SenapathCard(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    'Belum ada rute GPX. Impor berkas dari perangkat untuk '
+                    'menyimpannya di sini.',
+                  ),
+                ),
+              )
+            else
+              for (final route in state.routes)
+                _RouteTile(route: route, unitSystem: unitSystem),
+          ],
+        );
+      },
     );
   }
 }
@@ -438,7 +403,7 @@ class _RouteTile extends StatelessWidget {
         : route.poiSummary;
     final description = route.description;
 
-    return Card(
+    return SenapathCard(
       child: ListTile(
         onTap: () => _showRoutePreview(context),
         leading: const Icon(Icons.route_outlined),
@@ -667,7 +632,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                         Polyline(
                           points: routePoints,
                           strokeWidth: 5,
-                          color: colors.primary,
+                          color: SenapathColors.sky,
                         ),
                       ],
                     ),
@@ -680,7 +645,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                           height: 36,
                           child: Icon(
                             Icons.trip_origin,
-                            color: colors.tertiary,
+                            color: SenapathColors.spring,
                             size: 28,
                           ),
                         ),
@@ -691,7 +656,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                           height: 36,
                           child: Icon(
                             Icons.flag,
-                            color: colors.error,
+                            color: SenapathColors.gold,
                             size: 28,
                           ),
                         ),
@@ -702,7 +667,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                           height: 36,
                           child: Icon(
                             Icons.my_location,
-                            color: colors.secondary,
+                            color: SenapathColors.ink,
                             size: 28,
                           ),
                         ),
@@ -746,4 +711,15 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
       ),
     );
   }
+}
+
+String _formatRouteDistance(double meters, UnitSystem unitSystem) {
+  if (unitSystem == UnitSystem.metric) {
+    return meters >= 1000
+        ? '${(meters / 1000).toStringAsFixed(1)} km'
+        : '${meters.toStringAsFixed(0)} m';
+  }
+  return meters >= 1609.344
+      ? '${(meters / 1609.344).toStringAsFixed(1)} mi'
+      : '${(meters * 3.28084).toStringAsFixed(0)} ft';
 }

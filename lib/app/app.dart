@@ -14,12 +14,10 @@ import '../features/feedback/presentation/feedback_cubit.dart';
 import '../features/leaderboard/presentation/leaderboard_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
-import 'theme/theme_settings_cubit.dart';
 
 class SenapathApp extends StatelessWidget {
   const SenapathApp({
     required this.cloudAccountCubit,
-    required this.themeSettingsCubit,
     required this.emergencyCubit,
     required this.profileCubit,
     required this.routesCubit,
@@ -34,7 +32,6 @@ class SenapathApp extends StatelessWidget {
   });
 
   final CloudAccountCubit cloudAccountCubit;
-  final ThemeSettingsCubit themeSettingsCubit;
   final EmergencyCubit emergencyCubit;
   final ProfileCubit profileCubit;
   final RoutesCubit routesCubit;
@@ -51,7 +48,6 @@ class SenapathApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: cloudAccountCubit),
-        BlocProvider.value(value: themeSettingsCubit),
         BlocProvider.value(value: emergencyCubit),
         BlocProvider.value(value: profileCubit),
         BlocProvider.value(value: routesCubit),
@@ -71,14 +67,11 @@ class SenapathApp extends StatelessWidget {
           sessionCubit.cancelPendingSync();
           leaderboardCubit.clearForAccountChange();
         },
-        child: BlocBuilder<ThemeSettingsCubit, ThemeSettingsState>(
-          builder: (context, state) => MaterialApp.router(
-            title: 'Senapath',
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: state.themeMode,
-            routerConfig: appRouter,
-          ),
+        child: MaterialApp.router(
+          title: 'Senapath',
+          theme: AppTheme.light,
+          themeMode: ThemeMode.light,
+          routerConfig: appRouter,
         ),
       ),
     );

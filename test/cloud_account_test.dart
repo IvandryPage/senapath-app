@@ -1,28 +1,33 @@
 import 'dart:async';
 
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:senapath/core/storage/app_database.dart';
+import 'package:senapath/features/authentication/data/biometric_sign_in_settings_repository.dart';
 import 'package:senapath/features/authentication/data/cloud_account_gateway.dart';
 import 'package:senapath/features/authentication/data/custom_auth_session_manager.dart';
 import 'package:senapath/features/authentication/data/device_authenticator.dart';
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 
 void main() {
-  test('registration creates the account and signs in without email verification',
-      () async {
-    final gateway = _FakeCloudAccountGateway();
-    final cubit = CloudAccountCubit(gateway);
-    addTearDown(cubit.close);
+  test(
+    'registration creates the account and signs in without email verification',
+    () async {
+      final gateway = _FakeCloudAccountGateway();
+      final cubit = CloudAccountCubit(gateway);
+      addTearDown(cubit.close);
 
-    await cubit.register(
-      email: '  rider@example.com ',
-      password: 'strong-pass-1',
-    );
+      await cubit.register(
+        email: '  rider@example.com ',
+        password: 'strong-pass-1',
+      );
 
-    expect(gateway.registeredEmail, 'rider@example.com');
-    expect(gateway.registeredPassword, 'strong-pass-1');
-    expect(cubit.state.isSignedIn, isTrue);
-    expect(cubit.state.status, contains('sudah masuk'));
-  });
+      expect(gateway.registeredEmail, 'rider@example.com');
+      expect(gateway.registeredPassword, 'strong-pass-1');
+      expect(cubit.state.isSignedIn, isTrue);
+      expect(cubit.state.status, contains('sudah masuk'));
+    },
+  );
 
   test(
     'sign-in, password reset, and sign-out use cloud auth gateway',
@@ -49,16 +54,12 @@ void main() {
     final gateway = _FakeCloudAccountGateway()
       ..signInError = const CustomAuthException(
         status: 503,
-        message:
-            'Auth server is missing APP_AUTH_JWT_SECRET. Configure Supabase Edge Function secrets.',
+        message: 'Auth server is missing APP_AUTH_JWT_SECRET. Configure Supabase Edge Function secrets.',
       );
     final cubit = CloudAccountCubit(gateway);
     addTearDown(cubit.close);
 
-    await cubit.signIn(
-      email: 'rider@example.com',
-      password: 'strong-pass-1',
-    );
+    await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
 
     expect(cubit.state.error, contains('APP_AUTH_JWT_SECRET'));
   });
@@ -93,28 +94,104 @@ void main() {
     expect(cubit.state.status, contains('biometrik'));
   });
 
-  test('repeated manual submissions are ignored while sign-in is pending',
-      () async {
-    final gateway = _FakeCloudAccountGateway()
-      ..signInCompleter = Completer<void>();
-    final cubit = CloudAccountCubit(gateway);
-    addTearDown(cubit.close);
+  test(
+    'startup requires enabled biometrics for a remembered session',
+    () async {
+      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(database.close);
+      final settings = BiometricSignInSettingsRepository(database);
+      await settings.save(true);
+      final gateway = _FakeCloudAccountGateway()
+        ..rememberedSession = true
+        ..rememberedEmail = 'rider@example.com';
+      final cubit = CloudAccountCubit(
+        gateway,
+        authenticator: _FakeAuthenticator(),
+        biometricSettings: settings,
+      );
+      addTearDown(cubit.close);
 
-    final firstAttempt = cubit.signIn(
-      email: 'rider@example.com',
-      password: 'strong-pass-1',
-    );
-    await Future<void>.delayed(Duration.zero);
-    await cubit.signIn(
-      email: 'rider@example.com',
-      password: 'strong-pass-1',
-    );
+      await cubit.initialize();
 
-    expect(gateway.signInCalls, 1);
-    gateway.signInCompleter!.complete();
-    await firstAttempt;
-    expect(cubit.state.isSignedIn, isTrue);
-  });
+      expect(cubit.state.isInitialized, isTrue);
+      expect(cubit.state.isSignedIn, isFalse);
+      expect(cubit.state.biometricSignInEnabled, isTrue);
+      expect(cubit.state.canUseBiometrics, isTrue);
+      expect(gateway.restoreCalls, 0);
+    },
+  );
+
+  test(
+    'startup restores a remembered session when biometrics are off',
+    () async {
+      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(database.close);
+      final settings = BiometricSignInSettingsRepository(database);
+      final gateway = _FakeCloudAccountGateway()
+        ..rememberedSession = true
+        ..rememberedEmail = 'rider@example.com';
+      final cubit = CloudAccountCubit(
+        gateway,
+        authenticator: _FakeAuthenticator(),
+        biometricSettings: settings,
+      );
+      addTearDown(cubit.close);
+
+      await cubit.initialize();
+
+      expect(cubit.state.isSignedIn, isTrue);
+      expect(cubit.state.email, 'rider@example.com');
+      expect(cubit.state.biometricSignInEnabled, isFalse);
+      expect(gateway.restoreCalls, 1);
+    },
+  );
+
+  test(
+    'biometric sign-in preference is persisted and can be disabled',
+    () async {
+      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(database.close);
+      final settings = BiometricSignInSettingsRepository(database);
+      final gateway = _FakeCloudAccountGateway();
+      final cubit = CloudAccountCubit(
+        gateway,
+        authenticator: _FakeAuthenticator(),
+        biometricSettings: settings,
+      );
+      addTearDown(cubit.close);
+
+      await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
+      await cubit.setBiometricSignInEnabled(true);
+      expect(cubit.state.biometricSignInEnabled, isTrue);
+      expect(await settings.load(), isTrue);
+
+      await cubit.setBiometricSignInEnabled(false);
+      expect(cubit.state.biometricSignInEnabled, isFalse);
+      expect(await settings.load(), isFalse);
+    },
+  );
+
+  test(
+    'repeated manual submissions are ignored while sign-in is pending',
+    () async {
+      final gateway = _FakeCloudAccountGateway()
+        ..signInCompleter = Completer<void>();
+      final cubit = CloudAccountCubit(gateway);
+      addTearDown(cubit.close);
+
+      final firstAttempt = cubit.signIn(
+        email: 'rider@example.com',
+        password: 'strong-pass-1',
+      );
+      await Future<void>.delayed(Duration.zero);
+      await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
+
+      expect(gateway.signInCalls, 1);
+      gateway.signInCompleter!.complete();
+      await firstAttempt;
+      expect(cubit.state.isSignedIn, isTrue);
+    },
+  );
 
   test(
     'shows an honest unavailable state without Supabase configuration',
@@ -164,7 +241,11 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   }) async {
     registeredEmail = email;
     registeredPassword = password;
-    if (registrationHasSession) currentEmail = email;
+    if (registrationHasSession) {
+      currentEmail = email;
+      rememberedSession = true;
+      rememberedEmail = email;
+    }
     return CloudAccountRegistrationResult(hasSession: registrationHasSession);
   }
 
@@ -185,6 +266,8 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
     await signInCompleter?.future;
     if (signInError != null) throw signInError!;
     currentEmail = email;
+    rememberedSession = true;
+    rememberedEmail = email;
   }
 
   @override
@@ -197,6 +280,7 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   Future<void> signOut() async {
     signOutCalls++;
     currentEmail = null;
+    rememberedSession = false;
   }
 }
 

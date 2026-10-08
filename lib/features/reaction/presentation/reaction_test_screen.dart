@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../app/theme/senapath_design.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -290,7 +292,7 @@ class _ReactionTestScreenState extends State<ReactionTestScreen>
     ),
   );
 
-  Widget _buildHistoryItem(ReactionTestResult result) => Card(
+  Widget _buildHistoryItem(ReactionTestResult result) => SenapathCard(
     child: ListTile(
       title: Text(
         DateFormat('d MMM yyyy · HH:mm').format(result.completedAt.toLocal()),

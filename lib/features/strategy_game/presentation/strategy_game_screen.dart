@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../app/theme/senapath_design.dart';
 import 'package:intl/intl.dart';
 
 import '../../session/domain/ride_session.dart';
@@ -95,7 +97,7 @@ class _StrategyGameScreenState extends State<StrategyGameScreen> {
                 )
               else
                 for (final result in state.results.take(20))
-                  Card(
+                  SenapathCard(
                     child: ListTile(
                       leading: const Icon(Icons.route_outlined),
                       title: Text(
@@ -125,7 +127,7 @@ class _StrategyGameScreenState extends State<StrategyGameScreen> {
     BuildContext context,
     bool isSessionActive,
     bool sessionIsInitialized,
-  ) => Card(
+  ) => SenapathCard(
     color: isSessionActive
         ? Theme.of(context).colorScheme.errorContainer
         : Theme.of(context).colorScheme.secondaryContainer,
@@ -175,7 +177,7 @@ class _StrategyGameScreenState extends State<StrategyGameScreen> {
               strategyScenarios.length,
         ),
         const SizedBox(height: 16),
-        Card(
+        SenapathCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -240,7 +242,7 @@ class _StrategyGameScreenState extends State<StrategyGameScreen> {
     int selected,
   ) {
     final isRecommended = selected == scenario.recommendedOption;
-    return Card(
+    return SenapathCard(
       color: isRecommended
           ? Theme.of(context).colorScheme.secondaryContainer
           : Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -267,7 +269,7 @@ class _StrategyGameScreenState extends State<StrategyGameScreen> {
 
   Widget _buildResult(BuildContext context, StrategyGameState state) {
     final score = state.answers.where((answer) => answer.wasRecommended).length;
-    return Card(
+    return SenapathCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

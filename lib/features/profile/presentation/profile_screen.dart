@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../domain/user_profile.dart';
@@ -94,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileNavigation(BuildContext context) => Card(
+  Widget _buildProfileNavigation(BuildContext context) => SenapathCard(
     child: Column(
       children: [
         ListTile(
@@ -103,6 +104,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           subtitle: const Text('Aktivitas dan ringkasan perjalanan'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/profile/sessions'),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.route_outlined),
+          title: const Text('Rute tersimpan'),
+          subtitle: const Text('Kelola GPX untuk perjalanan berikutnya'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/profile/routes'),
         ),
         const Divider(height: 1),
         ListTile(

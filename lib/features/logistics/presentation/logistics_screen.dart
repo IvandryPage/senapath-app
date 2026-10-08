@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../domain/event_time_converter.dart';
 import '../domain/logistics_models.dart';
 import 'logistics_cubit.dart';
@@ -90,7 +91,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
 
   Widget _buildCurrencySection(BuildContext context, LogisticsState state) {
     final data = state.data;
-    return Card(
+    return SenapathCard(
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -167,7 +168,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       eurRates: data.eurRates,
     );
 
-    return Card(
+    return SenapathCard(
       child: ExpansionTile(
         leading: const Icon(Icons.receipt_long_outlined),
         title: const Text('Anggaran'),
@@ -301,7 +302,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     BuildContext context,
     BudgetItem item,
     LogisticsState state,
-  ) => Card(
+  ) => SenapathCard(
     child: ListTile(
       title: Text(item.name),
       subtitle: Text(_formatMoney(item.amount, item.currency)),

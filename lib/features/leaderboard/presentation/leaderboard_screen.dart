@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../../session/domain/ride_session.dart';
 import '../domain/leaderboard_models.dart';
 import 'leaderboard_cubit.dart';
@@ -81,7 +82,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 20),
-              Card(
+              SenapathCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -139,7 +140,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ),
               if (summary != null) ...[
                 const SizedBox(height: 12),
-                Card(
+                SenapathCard(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(

@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 import 'package:senapath/app/app.dart';
-import 'package:senapath/app/theme/theme_settings_cubit.dart';
-import 'package:senapath/app/theme/theme_settings_repository.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/core/units/unit_settings_cubit.dart';
@@ -47,10 +45,6 @@ void main() {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
     final settingsCubit = UnitSettingsCubit(UnitSettingsRepository(database));
     await settingsCubit.load();
-    final themeSettingsCubit = ThemeSettingsCubit(
-      ThemeSettingsRepository(database),
-    );
-    await themeSettingsCubit.load();
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
@@ -87,7 +81,6 @@ void main() {
             ),
           ),
         ),
-        themeSettingsCubit: themeSettingsCubit,
         emergencyCubit: emergencyCubit,
         profileCubit: profileCubit,
         routesCubit: routesCubit,
@@ -127,6 +120,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Buka Senapath'), findsNothing);
+    final configuredApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(configuredApp.themeMode, ThemeMode.light);
+    expect(configuredApp.darkTheme, isNull);
+    expect(configuredApp.theme?.brightness, Brightness.light);
 
     print(
       'SESSION CUBIT STATE: isInitialized=${sessionCubit.state.isInitialized}, isLoading=${sessionCubit.state.isLoading}, error=${sessionCubit.state.message}, sessions=${sessionCubit.state.completedSessions.length}',
@@ -214,14 +211,31 @@ void main() {
 
     await tester.tap(find.text('Jelajah').last);
     await tester.pumpAndSettle();
-    expect(find.text('Belum ada rute tersimpan'), findsOneWidget);
+    expect(find.text('Belum ada rute tersimpan'), findsNothing);
     expect(find.byType(ExploreMap), findsOneWidget);
     expect(find.text('OpenStreetMap'), findsOneWidget);
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rute tersimpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Perpustakaan rute'), findsOneWidget);
+    expect(find.textContaining('Belum ada rute GPX.'), findsOneWidget);
+    await tester.tap(find.text('Jelajah').last);
+    await tester.pumpAndSettle();
 
     expect(find.byType(ExploreMap), findsOneWidget);
     expect(find.text('Cari tujuan atau alamat'), findsOneWidget);
     expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
     expect(find.text('Detail kesiapan & izin'), findsOneWidget);
+    await tester.ensureVisible(find.text('Mulai sesi'));
+    await tester.tap(find.text('Mulai sesi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pakai rute untuk sesi ini?'), findsOneWidget);
+    expect(find.text('Mulai tanpa rute'), findsOneWidget);
+    expect(find.text('Kelola rute'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(sessionCubit.state.session, isNull);
     await tester.ensureVisible(find.text('Detail kesiapan & izin'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Detail kesiapan & izin'));
@@ -257,6 +271,7 @@ void main() {
     await tester.pump();
     expect(find.textContaining('170,000'), findsOneWidget);
 
+    await tester.ensureVisible(find.byTooltip('Tambah item anggaran'));
     await tester.tap(find.byTooltip('Tambah item anggaran'));
     await tester.pumpAndSettle();
     final itemFields = find.byType(TextFormField);
@@ -281,26 +296,16 @@ void main() {
 
     await tester.tap(find.text('Profil').last);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.scrollUntilVisible(find.text('Tema tampilan'), 300);
-    expect(find.text('Tema tampilan'), findsOneWidget);
-    await tester.tap(find.text('Gelap'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(themeSettingsCubit.state.themeMode, ThemeMode.dark);
-    expect(
-      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
-      ThemeMode.dark,
-    );
-    await tester.tap(find.text('Terang'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(themeSettingsCubit.state.themeMode, ThemeMode.light);
-    expect(
-      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
-      ThemeMode.light,
-    );
-    await tester.scrollUntilVisible(find.text('Akun online'), -300);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Akun online'), findsOneWidget);
+    await tester.ensureVisible(find.text('Tema terang'));
+    expect(find.text('Tema terang'), findsOneWidget);
+    expect(find.text('Gelap'), findsNothing);
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.light);
+    expect(app.darkTheme, isNull);
+    expect(app.theme?.brightness, Brightness.light);
+    await tester.ensureVisible(find.text('Akun online'));
     await tester.tap(find.text('Akun online'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -338,7 +343,6 @@ void main() {
     await emergencyCubit.close();
     await routesCubit.close();
     await settingsCubit.close();
-    await themeSettingsCubit.close();
     await sessionCubit.close();
     await logisticsCubit.close();
     await strategyGameCubit.close();

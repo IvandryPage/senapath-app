@@ -12,6 +12,8 @@ class RoutesState {
     this.isLoading = false,
     this.isPlanning = false,
     this.plannedRoute,
+    this.sessionRoute,
+    this.sessionRouteSelected = false,
     this.message,
   });
 
@@ -20,6 +22,8 @@ class RoutesState {
   final bool isLoading;
   final bool isPlanning;
   final RouteRecord? plannedRoute;
+  final RouteRecord? sessionRoute;
+  final bool sessionRouteSelected;
   final String? message;
 
   RoutesState copyWith({
@@ -28,15 +32,20 @@ class RoutesState {
     bool? isLoading,
     bool? isPlanning,
     RouteRecord? plannedRoute,
+    RouteRecord? sessionRoute,
+    bool? sessionRouteSelected,
     String? message,
     bool clearMessage = false,
     bool clearPlannedRoute = false,
+    bool clearSessionRoute = false,
   }) => RoutesState(
     query: query ?? this.query,
     routes: routes ?? this.routes,
     isLoading: isLoading ?? this.isLoading,
     isPlanning: isPlanning ?? this.isPlanning,
     plannedRoute: clearPlannedRoute ? null : plannedRoute ?? this.plannedRoute,
+    sessionRoute: clearSessionRoute ? null : sessionRoute ?? this.sessionRoute,
+    sessionRouteSelected: sessionRouteSelected ?? this.sessionRouteSelected,
     message: clearMessage ? null : message ?? this.message,
   );
 }
@@ -94,7 +103,12 @@ class RoutesCubit extends Cubit<RoutesState> {
     try {
       await repository.deleteImportedRoute(routeId);
       await search(state.query);
-      emit(state.copyWith(message: 'Rute GPX berhasil dihapus.'));
+      emit(
+        state.copyWith(
+          clearSessionRoute: state.sessionRoute?.id == routeId,
+          message: 'Rute GPX berhasil dihapus.',
+        ),
+      );
     } catch (error) {
       emit(
         state.copyWith(
@@ -154,6 +168,15 @@ class RoutesCubit extends Cubit<RoutesState> {
 
   void clearPlannedRoute() =>
       emit(state.copyWith(clearPlannedRoute: true, clearMessage: true));
+
+  void selectSessionRoute(RouteRecord? route) => emit(
+    state.copyWith(
+      sessionRoute: route,
+      clearSessionRoute: route == null,
+      sessionRouteSelected: true,
+      clearMessage: true,
+    ),
+  );
 
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 }

@@ -9,19 +9,96 @@ import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/core/units/unit_settings_cubit.dart';
 import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/units/unit_system.dart';
+import 'package:senapath/app/theme/app_theme.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
-import 'package:senapath/features/routes/presentation/explore_map.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/routes/presentation/routes_screen.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
 import 'package:senapath/features/session/data/session_file_service.dart';
+import 'package:senapath/features/session/domain/ride_session.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
+import 'package:senapath/features/session/presentation/session_screen.dart';
 
 void main() {
-  testWidgets('opens an imported route over an OpenStreetMap basemap', (
+  testWidgets('selects a saved route before starting a new session', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
+    await repository.saveImportedRoute(
+      name: 'Loop Utara',
+      points: const [
+        (latitude: -6.2, longitude: 106.8, elevation: 10),
+        (latitude: -6.202, longitude: 106.804, elevation: 24),
+      ],
+    );
+    final routesCubit = RoutesCubit(
+      repository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = RideSessionCubit(
+      repository: DriftRideSessionRepository(
+        database: database,
+        telemetryCodec: EncryptedTelemetryCodec(
+          secureVault: _MemorySecureVault(),
+        ),
+      ),
+      readinessChecker: const _TestReadinessChecker(
+        locationPermissionGranted: true,
+      ),
+      locationSource: _EmptyLocationSource(),
+    );
+    await unitCubit.load();
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: routesCubit),
+          BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: sessionCubit),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: SessionScreen(
+              showMap: false,
+              showHistory: false,
+              showSummary: false,
+              compactControls: true,
+              initialPanelSize: 0.92,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mulai sesi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pakai rute untuk sesi ini?'), findsOneWidget);
+    expect(find.text('Loop Utara'), findsOneWidget);
+
+    await tester.tap(find.text('Loop Utara'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(routesCubit.state.sessionRoute?.name, 'Loop Utara');
+    expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
+    await sessionCubit.pause();
+  });
+
+  testWidgets('opens an imported route from the saved route library', (
     tester,
   ) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
@@ -57,13 +134,13 @@ void main() {
           value: cubit,
           child: BlocProvider.value(
             value: unitCubit,
-            child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+            child: const MaterialApp(home: Scaffold(body: SavedRoutesScreen())),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(ExploreMap), findsOneWidget);
+    expect(find.text('Loop Utara'), findsOneWidget);
     await tester.ensureVisible(find.text('Loop Utara'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Loop Utara'));
@@ -76,7 +153,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.byType(RichAttributionWidget), findsNWidgets(2));
+    expect(find.byType(RichAttributionWidget), findsOneWidget);
     expect(find.text('Ikuti rute'), findsOneWidget);
   });
 
@@ -116,7 +193,7 @@ void main() {
           value: routeCubit,
           child: BlocProvider.value(
             value: unitCubit,
-            child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+            child: const MaterialApp(home: Scaffold(body: SavedRoutesScreen())),
           ),
         ),
       ),
@@ -162,7 +239,7 @@ void main() {
           value: routesCubit,
           child: BlocProvider.value(
             value: unitCubit,
-            child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+            child: const MaterialApp(home: Scaffold(body: SavedRoutesScreen())),
           ),
         ),
       ),
@@ -176,8 +253,78 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Loop untuk dihapus'), findsNothing);
-    expect(find.text('Belum ada rute tersimpan'), findsOneWidget);
+    expect(find.textContaining('Belum ada rute GPX.'), findsOneWidget);
     expect(await repository.search(''), isEmpty);
+  });
+
+  testWidgets('session details show route, metrics, and charts', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = DriftRideSessionRepository(
+      database: database,
+      telemetryCodec: EncryptedTelemetryCodec(
+        secureVault: _MemorySecureVault(),
+      ),
+    );
+    final startedAt = DateTime.utc(2026, 9, 30, 12);
+    final session = await repository.start(startedAt);
+    for (var index = 0; index < 5; index++) {
+      await repository.recordLocation(
+        sessionId: session.id,
+        location: TelemetryLocation(
+          recordedAt: startedAt.add(Duration(seconds: index * 10)),
+          latitude: -6.2,
+          longitude: 106.8 + index * 0.0001,
+          accuracyMeters: 5,
+          altitudeMeters: 20 + index.toDouble(),
+          altitudeAccuracyMeters: 5,
+          barometricPressureHpa: 1013.25 - index * 0.1,
+          speedMetersPerSecond: 3 + index.toDouble(),
+        ),
+        addedDistanceMeters: 12,
+      );
+    }
+    await repository.finish(
+      session.id,
+      startedAt.add(const Duration(minutes: 1)),
+    );
+    final sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _TestReadinessChecker(),
+      locationSource: _EmptyLocationSource(),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    await unitCubit.load();
+    addTearDown(sessionCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: sessionCubit),
+          BlocProvider.value(value: unitCubit),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: SessionScreen(
+              showMap: false,
+              historyOnly: true,
+              summarySessionId: session.id,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(sessionCubit.state.summaryLocations, hasLength(5));
+    expect(find.text('Metrik utama'), findsOneWidget);
+    expect(find.text('Grafik kecepatan (km/j)'), findsOneWidget);
+    expect(find.text('Profil elevasi'), findsOneWidget);
+    expect(find.text('5 titik GPS pada jejak sesi'), findsOneWidget);
   });
 }
 
@@ -191,12 +338,16 @@ RideSessionCubit _createSessionCubit(AppDatabase database) => RideSessionCubit(
 );
 
 class _TestReadinessChecker implements ReadinessChecker {
+  const _TestReadinessChecker({this.locationPermissionGranted = false});
+
+  final bool locationPermissionGranted;
+
   @override
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
-  }) async => const ReadinessReport(
-    locationPermissionGranted: false,
+  }) async => ReadinessReport(
+    locationPermissionGranted: locationPermissionGranted,
     locationPermanentlyDenied: false,
     locationServicesEnabled: false,
     gpsFixAvailable: false,

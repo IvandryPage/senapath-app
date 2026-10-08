@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as maps;
 import 'package:latlong2/latlong.dart' as latlong;
 
+import '../../../app/theme/senapath_design.dart';
 import '../domain/saved_route.dart';
 
 class GoogleDirectionsMap extends StatefulWidget {
@@ -75,7 +76,7 @@ class _GoogleDirectionsMapState extends State<GoogleDirectionsMap> {
                 maps.Polyline(
                   polylineId: const maps.PolylineId('cycling-route'),
                   points: points,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: SenapathColors.sky,
                   width: 6,
                 ),
               if (widget.trackPoints.length >= 2)
@@ -85,7 +86,7 @@ class _GoogleDirectionsMapState extends State<GoogleDirectionsMap> {
                     for (final point in widget.trackPoints)
                       maps.LatLng(point.latitude, point.longitude),
                   ],
-                  color: Theme.of(context).colorScheme.tertiary,
+                  color: SenapathColors.coral,
                   width: 6,
                 ),
             },
@@ -94,12 +95,18 @@ class _GoogleDirectionsMapState extends State<GoogleDirectionsMap> {
                 maps.Marker(
                   markerId: const maps.MarkerId('route-origin'),
                   position: points.first,
+                  icon: maps.BitmapDescriptor.defaultMarkerWithHue(
+                    maps.BitmapDescriptor.hueGreen,
+                  ),
                   infoWindow: const maps.InfoWindow(title: 'Mulai'),
                 ),
               if (points.length >= 2)
                 maps.Marker(
                   markerId: const maps.MarkerId('route-destination'),
                   position: points.last,
+                  icon: maps.BitmapDescriptor.defaultMarkerWithHue(
+                    maps.BitmapDescriptor.hueYellow,
+                  ),
                   infoWindow: maps.InfoWindow(title: widget.route.name),
                 ),
               if (widget.currentPosition case final current?)

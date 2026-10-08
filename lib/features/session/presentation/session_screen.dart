@@ -8,8 +8,11 @@ import 'package:latlong2/latlong.dart' as latlong;
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../app/theme/senapath_design.dart';
 import '../../routes/data/route_file_exchange.dart';
+import '../../routes/domain/saved_route.dart';
 import '../../routes/presentation/explore_map.dart';
+import '../../routes/presentation/routes_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
@@ -24,6 +27,7 @@ class SessionScreen extends StatefulWidget {
     this.showHistory = true,
     this.showSummary = true,
     this.historyOnly = false,
+    this.summarySessionId,
     this.initialPanelSize = 0.7,
     this.compactControls = false,
     super.key,
@@ -33,6 +37,7 @@ class SessionScreen extends StatefulWidget {
   final bool showHistory;
   final bool showSummary;
   final bool historyOnly;
+  final String? summarySessionId;
   final double initialPanelSize;
   final bool compactControls;
 
@@ -42,14 +47,21 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   bool _initialized = false;
+  String? _loadedSummarySessionId;
   static const _fileExchange = RouteFileExchange(SessionFileService());
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_initialized) return;
-    _initialized = true;
-    unawaited(context.read<RideSessionCubit>().initialize());
+    if (!_initialized) {
+      _initialized = true;
+      unawaited(context.read<RideSessionCubit>().initialize());
+    }
+    final sessionId = widget.summarySessionId;
+    if (sessionId != null && _loadedSummarySessionId != sessionId) {
+      _loadedSummarySessionId = sessionId;
+      unawaited(context.read<RideSessionCubit>().loadSummary(sessionId));
+    }
   }
 
   @override
@@ -77,6 +89,30 @@ class _SessionScreenState extends State<SessionScreen> {
           final session = state.session;
 
           if (widget.historyOnly) {
+            if (widget.summarySessionId case final sessionId?) {
+              final summary = state.summary;
+              if (state.isLoadingSummary || summary == null) {
+                return Center(
+                  child: state.isLoadingSummary
+                      ? const CircularProgressIndicator()
+                      : const Text('Ringkasan sesi tidak tersedia.'),
+                );
+              }
+              if (summary.session.id != sessionId) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                children: [
+                  _buildSummaryDetail(
+                    context,
+                    summary,
+                    state.summaryLocations,
+                    unitSystem,
+                  ),
+                ],
+              );
+            }
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
               children: [
@@ -90,14 +126,6 @@ class _SessionScreenState extends State<SessionScreen> {
                   )
                 else
                   _buildHistory(context, state.completedSessions, unitSystem),
-                if (state.isLoadingSummary) ...[
-                  const SizedBox(height: 20),
-                  const LinearProgressIndicator(),
-                ],
-                if (state.summary case final summary?) ...[
-                  const SizedBox(height: 24),
-                  _buildSummary(context, summary, unitSystem),
-                ],
               ],
             );
           }
@@ -134,8 +162,14 @@ class _SessionScreenState extends State<SessionScreen> {
                     child: Material(
                       color: Theme.of(context).colorScheme.surface
                           .withValues(alpha: 0.97),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(4),
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outline,
+                          width: 2,
+                        ),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: ListView(
@@ -163,9 +197,8 @@ class _SessionScreenState extends State<SessionScreen> {
                                     RideSessionStatus.completed) ...[
                               const SizedBox(height: 8),
                               Theme(
-                                data: Theme.of(context).copyWith(
-                                  dividerColor: Colors.transparent,
-                                ),
+                                data: Theme.of(context)
+                                    .copyWith(dividerColor: Colors.transparent),
                                 child: ExpansionTile(
                                   tilePadding: EdgeInsets.zero,
                                   childrenPadding: EdgeInsets.zero,
@@ -176,11 +209,7 @@ class _SessionScreenState extends State<SessionScreen> {
                                     ),
                                   ),
                                   children: [
-                                    _buildReadiness(
-                                      context,
-                                      readiness,
-                                      state,
-                                    ),
+                                    _buildReadiness(context, readiness, state),
                                   ],
                                 ),
                               ),
@@ -220,7 +249,12 @@ class _SessionScreenState extends State<SessionScreen> {
                           if (widget.showSummary)
                             if (state.summary case final summary?) ...[
                               const SizedBox(height: 24),
-                              _buildSummary(context, summary, unitSystem),
+                              _buildSummaryDetail(
+                                context,
+                                summary,
+                                state.summaryLocations,
+                                unitSystem,
+                              ),
                             ],
                           const SizedBox(height: 24),
                           if (widget.showMap) ...[
@@ -257,7 +291,7 @@ class _SessionScreenState extends State<SessionScreen> {
   ) {
     final contact = contacts.isEmpty ? null : contacts.first;
     final isCountingDown = emergencyState.isCountingDown;
-    return Card(
+    return SenapathCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -395,8 +429,7 @@ class _SessionScreenState extends State<SessionScreen> {
               Expanded(
                 child: _ReadinessPill(
                   label: 'Lokasi',
-                  isReady:
-                      state.readiness?.locationPermissionGranted ?? false,
+                  isReady: state.readiness?.locationPermissionGranted ?? false,
                 ),
               ),
               const SizedBox(width: 10),
@@ -705,15 +738,10 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Widget _buildStartControl(BuildContext context, RideSessionState state) {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: state.canStart
-            ? () => context.read<RideSessionCubit>().start()
-            : null,
-        icon: const Icon(Icons.play_arrow),
-        label: const Text('Mulai sesi'),
-      ),
+    return SenapathButton(
+      onPressed: state.canStart ? () => _chooseRouteAndStart(context) : null,
+      icon: Icons.play_arrow,
+      label: 'Mulai sesi',
     );
   }
 
@@ -722,15 +750,12 @@ class _SessionScreenState extends State<SessionScreen> {
     if (session.status == RideSessionStatus.completed) {
       return Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: state.canStart
-                  ? () => context.read<RideSessionCubit>().start()
-                  : null,
-              icon: const Icon(Icons.add),
-              label: const Text('Mulai sesi baru'),
-            ),
+          SenapathButton(
+            onPressed: state.canStart
+                ? () => _chooseRouteAndStart(context)
+                : null,
+            icon: Icons.add,
+            label: 'Mulai sesi baru',
           ),
           const SizedBox(height: 8),
           TextButton.icon(
@@ -783,6 +808,85 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
+  Future<void> _chooseRouteAndStart(BuildContext context) async {
+    final routesCubit = context.read<RoutesCubit>();
+    await routesCubit.load();
+    if (!context.mounted) return;
+
+    final routeState = routesCubit.state;
+    final availableRoutes = [
+      ?routeState.plannedRoute,
+      ...routeState.routes.where(
+        (route) =>
+            route.points.length >= 2 && route.id != routeState.plannedRoute?.id,
+      ),
+    ];
+    final choice = await showDialog<_SessionRouteChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Pakai rute untuk sesi ini?'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 360),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Rute pilihan akan tampil di peta bersama jejak GPS. '
+                  'Sesi tetap bisa dimulai tanpa rute.',
+                ),
+                const SizedBox(height: 12),
+                if (availableRoutes.isEmpty)
+                  const Text(
+                    'Belum ada rute siap pakai. Impor GPX lewat Profil → '
+                    'Rute tersimpan, atau cari tujuan di Jelajah.',
+                  ),
+                for (final route in availableRoutes)
+                  SenapathCard(
+                    child: ListTile(
+                      leading: const Icon(Icons.route_outlined),
+                      title: Text(route.name),
+                      subtitle: Text(
+                        '${route.source} · ${route.points.length} titik',
+                      ),
+                      onTap: () => Navigator.pop(
+                        dialogContext,
+                        _SessionRouteChoice(route),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              const _SessionRouteChoice.manageRoutes(),
+            ),
+            icon: const Icon(Icons.folder_open_outlined),
+            label: const Text('Kelola rute'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, const _SessionRouteChoice(null)),
+            child: const Text('Mulai tanpa rute'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted || choice == null) return;
+    if (choice.openLibrary) {
+      await context.push('/profile/routes');
+      return;
+    }
+
+    routesCubit.selectSessionRoute(choice.route);
+    await context.read<RideSessionCubit>().start();
+  }
+
   Widget _buildHistory(
     BuildContext context,
     List<RideSessionSnapshot> sessions,
@@ -809,32 +913,56 @@ class _SessionScreenState extends State<SessionScreen> {
               '${_syncStatusLabel(session.syncStatus)}',
             ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () =>
-                context.read<RideSessionCubit>().loadSummary(session.id),
+            onTap: () => context.push('/profile/sessions/${session.id}'),
           ),
       ],
     );
   }
 
-  Widget _buildSummary(
+  Widget _buildSummaryDetail(
     BuildContext context,
     RideSessionSummary summary,
+    List<TelemetryLocation> locations,
     UnitSystem unitSystem,
   ) {
     final metric = unitSystem == UnitSystem.metric;
     final session = summary.session;
     final distanceLabel = _formatDistance(session.distanceMeters, metric);
+    final duration = session.durationAt(session.endedAt ?? session.startedAt);
     final elevationLabel = summary.elevationGainMeters == null
         ? 'Tidak tersedia'
         : '${summary.elevationGainMeters!.toStringAsFixed(0)} m';
     final speedUnit = metric ? 'km/j' : 'mph';
+    final speedFactor = metric ? 3.6 : 2.236936;
     final graphSpeeds = summary.speedSamples
-        .map(
-          (sample) => metric
-              ? sample.speedMetersPerSecond * 3.6
-              : sample.speedMetersPerSecond * 2.236936,
-        )
+        .map((sample) => sample.speedMetersPerSecond * speedFactor)
         .toList(growable: false);
+    final averageSpeed = duration.inSeconds > 0
+        ? session.distanceMeters / duration.inSeconds * speedFactor
+        : 0.0;
+    final maxSpeed = summary.speedSamples.isEmpty
+        ? 0.0
+        : summary.speedSamples
+                  .map((sample) => sample.speedMetersPerSecond)
+                  .reduce((first, next) => math.max(first, next).toDouble()) *
+              speedFactor;
+    final trackPoints = locations
+        .where(
+          (point) =>
+              point.accuracyMeters <= 50 &&
+              point.latitude.isFinite &&
+              point.longitude.isFinite &&
+              point.latitude >= -90 &&
+              point.latitude <= 90 &&
+              point.longitude >= -180 &&
+              point.longitude <= 180,
+        )
+        .map((point) => latlong.LatLng(point.latitude, point.longitude))
+        .toList(growable: false);
+    final elevationSamples = _elevationProfile(
+      locations,
+      source: summary.elevationSource,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,88 +970,159 @@ class _SessionScreenState extends State<SessionScreen> {
         Row(
           children: [
             Expanded(
-              child: Text(
-                'Ringkasan sesi',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ringkasan sesi',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatSessionDate(session.startedAt),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            IconButton(
-              tooltip: 'Tutup ringkasan',
-              onPressed: () => context.read<RideSessionCubit>().closeSummary(),
-              icon: const Icon(Icons.close),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _MetricValue(
-                label: 'Jarak',
-                value: distanceLabel.split(' ').first,
-                unit: distanceLabel.split(' ').last,
+        if (trackPoints.isEmpty)
+          Container(
+            height: 180,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.route_outlined, size: 30),
+                  SizedBox(height: 8),
+                  Text('Tidak ada jejak GPS untuk divisualisasikan.'),
+                ],
               ),
             ),
-            Expanded(
-              child: _MetricValue(
-                label: 'Durasi',
-                value: _formatDuration(
-                  session.durationAt(session.endedAt ?? session.startedAt),
-                ),
-                unit: '',
-              ),
+          )
+        else
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: ExploreMap(
+              height: 260,
+              borderRadius: 4,
+              trackPoints: trackPoints,
+              currentLocation: trackPoints.last,
+              showLocationButton: false,
+              showEmptyMessage: false,
+            ),
+          ),
+        const SizedBox(height: 8),
+        Text(
+          trackPoints.length < 2
+              ? 'Jejak peta tidak tersedia untuk sesi ini.'
+              : '${trackPoints.length} titik GPS pada jejak sesi',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 24),
+        Text('Metrik utama', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        _SummaryMetricCard(
+          children: [
+            _MetricValue(
+              label: 'Jarak',
+              value: distanceLabel.split(' ').first,
+              unit: distanceLabel.split(' ').last,
+            ),
+            _MetricValue(
+              label: 'Durasi',
+              value: _formatDuration(duration),
+              unit: '',
+            ),
+            _MetricValue(
+              label: 'Elevasi naik',
+              value: elevationLabel.replaceAll(' m', ''),
+              unit: elevationLabel.endsWith(' m') ? 'm' : '',
+            ),
+            _MetricValue(
+              label: 'Sampel GPS',
+              value: '${summary.sampleCount}',
+              unit: '',
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Sumber elevasi: ${summary.elevationSource}. '
+          'Nilai kosong berarti data sensor yang akurat belum tersedia.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 20),
+        Text('Kecepatan', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        _SummaryMetricCard(
+          children: [
+            _MetricValue(
+              label: 'Rata-rata',
+              value: averageSpeed.toStringAsFixed(1),
+              unit: speedUnit,
+            ),
+            _MetricValue(
+              label: 'Maksimum tercatat',
+              value: maxSpeed.toStringAsFixed(1),
+              unit: speedUnit,
             ),
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _MetricValue(
-                label: 'Akumulasi elevasi',
-                value: elevationLabel,
-                unit: '',
-              ),
-            ),
-            Expanded(
-              child: _MetricValue(
-                label: 'Sampel tersimpan',
-                value: '${summary.sampleCount}',
-                unit: '',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Sumber elevasi: ${summary.elevationSource}. '
-          'Data barometer/GPS yang tidak cukup atau tidak akurat ditandai '
-          'sebagai tidak tersedia.',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          'Sampel gerak/orientasi: akselerometer '
-          '${summary.accelerometerSampleCount}/${summary.sampleCount}, '
-          'gyroscope ${summary.gyroscopeSampleCount}/${summary.sampleCount}. '
-          'Data ini tidak ditafsirkan sebagai cadence atau lean angle.',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 18),
         Text(
           'Grafik kecepatan ($speedUnit)',
-          style: Theme.of(context).textTheme.titleSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 8),
         if (summary.hasSpeedGraph)
           _SpeedGraph(values: graphSpeeds)
         else
           const Text('Belum cukup sampel untuk menampilkan grafik kecepatan.'),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        Text('Profil elevasi', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          elevationSamples.length >= 2
+              ? 'Perubahan relatif dari ${summary.elevationSource.toLowerCase()}'
+              : 'Data elevasi belum cukup untuk membuat grafik.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        if (elevationSamples.length >= 2) ...[
+          const SizedBox(height: 8),
+          _SpeedGraph(values: elevationSamples),
+        ],
+        const SizedBox(height: 20),
+        Text(
+          'Sensor & kualitas data',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Akselerometer: ${summary.accelerometerSampleCount} dari '
+          '${summary.sampleCount} sampel · Gyroscope: '
+          '${summary.gyroscopeSampleCount} dari ${summary.sampleCount} sampel. '
+          'Data gerak tidak ditafsirkan sebagai cadence atau lean angle.',
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 20),
         _buildSummarySync(context, summary),
         const SizedBox(height: 16),
         OutlinedButton.icon(
@@ -950,6 +1149,50 @@ class _SessionScreenState extends State<SessionScreen> {
         ),
       ],
     );
+  }
+
+  List<double> _elevationProfile(
+    List<TelemetryLocation> locations, {
+    required String source,
+  }) {
+    if (source == 'Barometer') {
+      final barometerReadings = locations
+          .where((location) {
+            final pressure = location.barometricPressureHpa;
+            return pressure != null &&
+                pressure.isFinite &&
+                pressure >= 300 &&
+                pressure <= 1100;
+          })
+          .toList(growable: false);
+      if (barometerReadings.length < 2) return const [];
+      final referencePressure = barometerReadings.first.barometricPressureHpa!;
+      return barometerReadings
+          .map(
+            (location) =>
+                (44330 *
+                        (1 -
+                            math.pow(
+                              location.barometricPressureHpa! /
+                                  referencePressure,
+                              0.1903,
+                            )))
+                    .toDouble(),
+          )
+          .toList(growable: false);
+    }
+
+    if (source != 'Estimasi GPS') return const [];
+    return locations
+        .where(
+          (location) =>
+              location.altitudeMeters.isFinite &&
+              location.altitudeAccuracyMeters != null &&
+              location.altitudeAccuracyMeters! > 0 &&
+              location.altitudeAccuracyMeters! <= 25,
+        )
+        .map((location) => location.altitudeMeters)
+        .toList(growable: false);
   }
 
   Widget _buildSummarySync(BuildContext context, RideSessionSummary summary) {
@@ -1128,6 +1371,15 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 }
 
+class _SessionRouteChoice {
+  const _SessionRouteChoice(this.route) : openLibrary = false;
+
+  const _SessionRouteChoice.manageRoutes() : route = null, openLibrary = true;
+
+  final RouteRecord? route;
+  final bool openLibrary;
+}
+
 class _ReadinessLine extends StatelessWidget {
   const _ReadinessLine({
     required this.label,
@@ -1188,9 +1440,8 @@ class _ReadinessPill extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             '$label · ${isReady ? 'siap' : 'perlu dicek'}',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -1228,18 +1479,16 @@ class _CompactMetric extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -1263,29 +1512,42 @@ class _MetricValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 4),
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 5,
+    return SenapathMetric(
+      label: label,
+      value: value,
+      unit: unit,
+    );
+  }
+}
+
+class _SummaryMetricCard extends StatelessWidget {
+  const _SummaryMetricCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SenapathCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            if (unit.isNotEmpty)
-              Text(unit, style: Theme.of(context).textTheme.bodyMedium),
+            for (var index = 0; index < children.length; index += 2) ...[
+              if (index > 0) const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: children[index]),
+                  if (index + 1 < children.length) ...[
+                    const SizedBox(width: 12),
+                    Expanded(child: children[index + 1]),
+                  ],
+                ],
+              ),
+            ],
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -1298,13 +1560,16 @@ class _SpeedGraph extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 150,
+      height: 160,
       width: double.infinity,
-      child: CustomPaint(
-        painter: _SpeedGraphPainter(
-          values: values,
-          lineColor: Theme.of(context).colorScheme.primary,
-          gridColor: Theme.of(context).colorScheme.outlineVariant,
+      child: Semantics(
+        label: 'Grafik garis sesi',
+        child: CustomPaint(
+          painter: _SpeedGraphPainter(
+            values: values,
+            lineColor: Theme.of(context).colorScheme.onSurface,
+            gridColor: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
       ),
     );
@@ -1334,13 +1599,18 @@ class _SpeedGraphPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    final maxSpeed = math.max(1, values.reduce(math.max));
+    final minValue = values.reduce(
+      (first, next) => first < next ? first : next,
+    );
+    final maxValue = values.reduce(
+      (first, next) => first > next ? first : next,
+    );
+    final range = math.max(1, maxValue - minValue).toDouble();
     final path = Path();
     for (var index = 0; index < values.length; index++) {
       final x = size.width * index / (values.length - 1);
       final y =
-          size.height -
-          (values[index].clamp(0, maxSpeed) / maxSpeed) * size.height;
+          size.height - ((values[index] - minValue) / range) * size.height;
       if (index == 0) {
         path.moveTo(x, y);
       } else {

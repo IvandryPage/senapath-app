@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../domain/saved_route.dart';
@@ -170,7 +171,7 @@ class _GuidanceStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
+    return SenapathCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
@@ -179,7 +180,7 @@ class _GuidanceStatus extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.navigation_outlined, color: colors.primary),
+                Icon(Icons.navigation_outlined, color: SenapathColors.sky),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -228,7 +229,7 @@ class _GuidanceControls extends StatelessWidget {
   final VoidCallback onStop;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => SenapathCard(
     child: Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
       child: Column(

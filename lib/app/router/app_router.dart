@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -108,6 +110,20 @@ final appRouter = GoRouter(
                   path: 'sessions',
                   builder: (context, state) =>
                       const SessionScreen(showMap: false, historyOnly: true),
+                  routes: [
+                    GoRoute(
+                      path: ':sessionId',
+                      builder: (context, state) => SessionScreen(
+                        showMap: false,
+                        historyOnly: true,
+                        summarySessionId: state.pathParameters['sessionId'],
+                      ),
+                    ),
+                  ],
+                ),
+                GoRoute(
+                  path: 'routes',
+                  builder: (context, state) => const SavedRoutesScreen(),
                 ),
                 GoRoute(
                   path: 'settings',
@@ -136,11 +152,23 @@ class _AppShellState extends State<_AppShell> {
   @override
   void initState() {
     super.initState();
-    context.read<CloudAccountCubit>().initialize();
+    unawaited(context.read<CloudAccountCubit>().initialize());
   }
 
   @override
   Widget build(BuildContext context) {
+    final account = context.watch<CloudAccountCubit>().state;
+    if (account.isConfigured && !account.isInitialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (account.isConfigured && !account.isSignedIn) {
+      return const Scaffold(
+        body: SafeArea(child: CloudAccountScreen(isEntryFlow: true)),
+      );
+    }
+
     final title = switch (widget.location) {
       '/strategy' => 'Strategi Rute',
       '/assistant' => 'Chat AI',
@@ -149,6 +177,9 @@ class _AppShellState extends State<_AppShell> {
       '/account' => 'Akun online',
       '/profile/settings' => 'Pengaturan',
       '/profile/sessions' => 'Riwayat sesi',
+      _ when widget.location.startsWith('/profile/sessions/') =>
+        'Detail sesi',
+      '/profile/routes' => 'Rute tersimpan',
       '/routes/navigation' => 'Panduan Rute',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
@@ -160,27 +191,36 @@ class _AppShellState extends State<_AppShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        leading: isSubmenu
-            ? BackButton(onPressed: () => context.pop())
-            : null,
+        leading: isSubmenu ? BackButton(onPressed: () => context.pop()) : null,
       ),
       body: SafeArea(top: false, child: widget.navigationShell),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          widget.navigationShell.goBranch(
-            index,
-            initialLocation: index == widget.navigationShell.currentIndex,
-          );
-        },
-        destinations: [
-          for (final item in _destinations)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.selectedIcon),
-              label: item.label,
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outline,
+              width: 2,
             ),
-        ],
+          ),
+        ),
+        child: NavigationBar(
+          selectedIndex: widget.navigationShell.currentIndex,
+          onDestinationSelected: (index) {
+            widget.navigationShell.goBranch(
+              index,
+              initialLocation: index == widget.navigationShell.currentIndex,
+            );
+          },
+          destinations: [
+            for (final item in _destinations)
+              NavigationDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.selectedIcon),
+                label: item.label,
+              ),
+          ],
+        ),
       ),
     );
   }

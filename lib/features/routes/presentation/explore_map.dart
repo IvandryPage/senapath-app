@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../domain/saved_route.dart';
 
 class ExploreMap extends StatefulWidget {
@@ -13,7 +14,7 @@ class ExploreMap extends StatefulWidget {
     this.currentLocation,
     this.followLocation = false,
     this.height = 280,
-    this.borderRadius = 20,
+    this.borderRadius = 0,
     this.showLocationButton = true,
     this.showEmptyMessage = true,
     super.key,
@@ -80,7 +81,7 @@ class _ExploreMapState extends State<ExploreMap> {
     final hasTrack = widget.trackPoints.length >= 2;
 
     return Semantics(
-      label: 'Peta OpenStreetMap untuk eksplorasi dan rute tersimpan',
+      label: 'Peta OpenStreetMap untuk eksplorasi dan sesi aktif',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.borderRadius),
         child: SizedBox(
@@ -130,7 +131,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           Polyline(
                             points: line,
                             strokeWidth: 5,
-                            color: colors.primary,
+                            color: SenapathColors.sky,
                           ),
                       ],
                     ),
@@ -139,8 +140,8 @@ class _ExploreMapState extends State<ExploreMap> {
                       polylines: [
                         Polyline(
                           points: widget.trackPoints,
-                          strokeWidth: 6,
-                          color: colors.tertiary,
+                          strokeWidth: 7,
+                          color: SenapathColors.coral,
                         ),
                       ],
                     ),
@@ -153,7 +154,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           height: 38,
                           child: Icon(
                             Icons.trip_origin,
-                            color: colors.tertiary,
+                            color: SenapathColors.spring,
                             size: 30,
                           ),
                         ),
@@ -164,7 +165,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           height: 38,
                           child: Icon(
                             Icons.flag_rounded,
-                            color: colors.error,
+                            color: SenapathColors.gold,
                             size: 30,
                           ),
                         ),
@@ -175,7 +176,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           height: 38,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: colors.primary,
+                              color: SenapathColors.ink,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: colors.surface,
@@ -191,7 +192,7 @@ class _ExploreMapState extends State<ExploreMap> {
                             child: Icon(
                               Icons.navigation_rounded,
                               size: 19,
-                              color: colors.onPrimary,
+                              color: SenapathColors.white,
                             ),
                           ),
                         ),
@@ -209,6 +210,16 @@ class _ExploreMapState extends State<ExploreMap> {
                   ),
                 ],
               ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(widget.borderRadius),
+                      border: Border.all(color: colors.outline, width: 2),
+                    ),
+                  ),
+                ),
+              ),
               Positioned(
                 top: 12,
                 left: 12,
@@ -224,20 +235,15 @@ class _ExploreMapState extends State<ExploreMap> {
                 Positioned(
                   top: 10,
                   right: 10,
-                  child: Material(
-                    color: colors.surface,
-                    shape: const CircleBorder(),
-                    elevation: 2,
-                    child: IconButton(
-                      tooltip: 'Tampilkan lokasi saya',
-                      onPressed: _isLocating ? null : _showCurrentLocation,
-                      icon: _isLocating
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.my_location),
-                    ),
+                  child: IconButton(
+                    tooltip: 'Tampilkan lokasi saya',
+                    onPressed: _isLocating ? null : _showCurrentLocation,
+                    icon: _isLocating
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
                   ),
                 ),
               if (widget.showEmptyMessage &&
@@ -250,7 +256,10 @@ class _ExploreMapState extends State<ExploreMap> {
                   bottom: 12,
                   child: Material(
                     color: colors.surface.withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      side: BorderSide(color: colors.outline, width: 2),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -262,8 +271,8 @@ class _ExploreMapState extends State<ExploreMap> {
                           const SizedBox(width: 10),
                           const Expanded(
                             child: Text(
-                              'Peta siap dijelajahi. Tampilkan lokasi atau '
-                              'impor GPX untuk melihat jalur.',
+                              'Jelajahi area sekitar, atau mulai sesi untuk '
+                              'merekam jejak GPS dan memilih rute.',
                               maxLines: 2,
                             ),
                           ),
@@ -279,7 +288,10 @@ class _ExploreMapState extends State<ExploreMap> {
                   top: 56,
                   child: Material(
                     color: colors.errorContainer,
-                    borderRadius: BorderRadius.circular(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      side: BorderSide(color: colors.outline, width: 2),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(10),
                       child: Text(
@@ -293,19 +305,14 @@ class _ExploreMapState extends State<ExploreMap> {
                 Positioned(
                   right: 10,
                   bottom: hasRoute || _currentLocation != null ? 10 : 76,
-                  child: Material(
-                    color: colors.surface,
-                    shape: const CircleBorder(),
-                    elevation: 2,
-                    child: IconButton(
-                      tooltip: 'Muat ulang peta',
-                      onPressed: () => setState(() {
-                        _hasTileError = false;
-                        _mapKey++;
-                        _mapController = MapController();
-                      }),
-                      icon: const Icon(Icons.refresh),
-                    ),
+                  child: IconButton(
+                    tooltip: 'Muat ulang peta',
+                    onPressed: () => setState(() {
+                      _hasTileError = false;
+                      _mapKey++;
+                      _mapController = MapController();
+                    }),
+                    icon: const Icon(Icons.refresh),
                   ),
                 ),
             ],
@@ -398,8 +405,10 @@ class _MapStatusBadge extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Material(
       color: isError ? colors.errorContainer : colors.surface,
-      borderRadius: BorderRadius.circular(24),
-      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4),
+        side: BorderSide(color: colors.outline, width: 2),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(

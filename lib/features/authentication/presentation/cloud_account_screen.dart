@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import 'cloud_account_cubit.dart';
 
 class CloudAccountScreen extends StatefulWidget {
-  const CloudAccountScreen({super.key});
+  const CloudAccountScreen({this.isEntryFlow = false, super.key});
+
+  final bool isEntryFlow;
 
   @override
   State<CloudAccountScreen> createState() => _CloudAccountScreenState();
@@ -36,9 +39,31 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
-          const Text(
-            'Masuk dengan email dan password, atau gunakan biometrik untuk masuk kembali ke akun yang tersimpan di perangkat ini.',
-          ),
+          if (widget.isEntryFlow) ...[
+            const SizedBox(height: 20),
+            const SenapathBadge(
+              label: 'RIDE YOUR WAY',
+              color: SenapathColors.sky,
+              icon: Icons.directions_bike,
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Perjalananmu.\nRuangmu.',
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                height: 1.02,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Masuk untuk menyimpan sesi dan mengakses fitur akun Senapath.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 24),
+          ] else
+            const Text(
+              'Masuk dengan email dan password, atau gunakan biometrik untuk masuk kembali ke akun yang tersimpan di perangkat ini.',
+            ),
           const SizedBox(height: 16),
           if (!state.isConfigured)
             const _AccountNotice(
@@ -58,7 +83,9 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                     _confirmationController.clear();
                   }),
           ),
-          if (!_isRegistering && state.canUseBiometrics)
+          if (!_isRegistering &&
+              state.biometricSignInEnabled &&
+              state.canUseBiometrics)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -162,14 +189,11 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
               ),
             ),
           const SizedBox(height: 8),
-          FilledButton(
+          SenapathButton(
             onPressed: state.isConfigured && !state.isLoading ? _submit : null,
-            child: state.isLoading
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(_isRegistering ? 'Buat akun' : 'Masuk'),
+            icon: _isRegistering ? Icons.person_add_alt_1 : Icons.login,
+            isLoading: state.isLoading,
+            label: _isRegistering ? 'Buat akun Senapath' : 'Masuk',
           ),
           if (state.status != null) ...[
             const SizedBox(height: 16),

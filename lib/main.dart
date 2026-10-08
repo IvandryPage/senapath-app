@@ -3,13 +3,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
-import 'app/theme/theme_settings_cubit.dart';
-import 'app/theme/theme_settings_repository.dart';
 import 'core/storage/app_database.dart';
 import 'core/storage/secure_vault.dart';
 import 'core/units/unit_settings_cubit.dart';
 import 'core/units/unit_settings_repository.dart';
 import 'features/authentication/data/device_authenticator.dart';
+import 'features/authentication/data/biometric_sign_in_settings_repository.dart';
 import 'features/authentication/data/custom_auth_session_manager.dart';
 import 'features/authentication/data/supabase_cloud_account_gateway.dart';
 import 'features/authentication/presentation/cloud_account_cubit.dart';
@@ -72,18 +71,13 @@ Future<void> main() async {
     database: database,
     telemetryCodec: telemetryCodec,
   );
-  final themeSettingsCubit = ThemeSettingsCubit(
-    ThemeSettingsRepository(database),
-  );
-  await themeSettingsCubit.load();
-
   runApp(
     SenapathApp(
       cloudAccountCubit: CloudAccountCubit(
         SupabaseCloudAccountGateway(sessionManager: authSessionManager),
         authenticator: LocalDeviceAuthenticator(),
+        biometricSettings: BiometricSignInSettingsRepository(database),
       ),
-      themeSettingsCubit: themeSettingsCubit,
       emergencyCubit: EmergencyCubit(
         const UrlLauncherEmergencyContactActions(),
       ),

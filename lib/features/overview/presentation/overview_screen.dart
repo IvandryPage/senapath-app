@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../routes/presentation/explore_map.dart';
@@ -34,6 +35,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
       builder: (context, state) {
         final colorScheme = Theme.of(context).colorScheme;
         final sessions = state.completedSessions;
+        final activeSession =
+            state.session != null &&
+            state.session!.status != RideSessionStatus.completed;
         final now = DateTime.now();
         final weekSessions = sessions.where(
           (session) =>
@@ -82,6 +86,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
             ),
             const SizedBox(height: 16),
             _WelcomeCard(
+              title: activeSession ? 'RIDE IN PROGRESS' : 'READY TO RIDE',
+              startLabel: activeSession ? 'Lanjutkan sesi' : 'Mulai sesi',
               onExplore: () => context.go('/routes'),
               onStart: () => context.go('/routes'),
             ),
@@ -166,7 +172,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
               for (final session in sessions.take(3))
                 _ActivityCard(
                   session: session,
-                  onTap: () => context.go('/profile/sessions'),
+                  onTap: () => context.push('/profile/sessions/${session.id}'),
                 ),
             const SizedBox(height: 18),
             Text(
@@ -261,24 +267,23 @@ class _OverviewScreenState extends State<OverviewScreen> {
 }
 
 class _WelcomeCard extends StatelessWidget {
-  const _WelcomeCard({required this.onExplore, required this.onStart});
+  const _WelcomeCard({
+    required this.title,
+    required this.startLabel,
+    required this.onExplore,
+    required this.onStart,
+  });
 
+  final String title;
+  final String startLabel;
   final VoidCallback onExplore;
   final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [colors.primary, colors.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-      ),
+    return SenapathCard(
       padding: const EdgeInsets.fromLTRB(20, 18, 14, 18),
+      color: SenapathColors.indigo,
       child: Row(
         children: [
           Expanded(
@@ -288,16 +293,16 @@ class _WelcomeCard extends StatelessWidget {
                 Text(
                   'RIDE YOUR WAY',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: colors.onPrimary.withValues(alpha: 0.78),
+                    color: SenapathColors.white.withValues(alpha: 0.82),
                     letterSpacing: 1.4,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Rencanakan rute.\nNikmati perjalanan.',
+                  title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: colors.onPrimary,
+                    color: SenapathColors.white,
                     height: 1.15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -307,23 +312,22 @@ class _WelcomeCard extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    FilledButton(
-                      onPressed: onExplore,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colors.surface,
-                        foregroundColor: colors.primary,
-                      ),
-                      child: const Text('Jelajahi'),
+                    SenapathButton(
+                      fullWidth: false,
+                      onPressed: onStart,
+                      icon: Icons.play_arrow,
+                      label: startLabel,
                     ),
                     OutlinedButton(
-                      onPressed: onStart,
+                      onPressed: onExplore,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: colors.onPrimary,
-                        side: BorderSide(
-                          color: colors.onPrimary.withValues(alpha: 0.65),
+                        foregroundColor: SenapathColors.white,
+                        side: const BorderSide(
+                          color: SenapathColors.white,
+                          width: 2,
                         ),
                       ),
-                      child: const Text('Mulai sesi'),
+                      child: const Text('Jelajahi'),
                     ),
                   ],
                 ),
@@ -333,7 +337,7 @@ class _WelcomeCard extends StatelessWidget {
           const SizedBox(width: 4),
           Icon(
             Icons.directions_bike_rounded,
-            color: colors.onPrimary.withValues(alpha: 0.2),
+            color: SenapathColors.sky,
             size: 76,
           ),
         ],
@@ -356,7 +360,7 @@ class _SummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
+    return SenapathCard(
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -385,7 +389,7 @@ class _EmptyActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
+    return SenapathCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -435,75 +439,69 @@ class _ActivityCard extends StatelessWidget {
     final distance = unit == UnitSystem.metric
         ? '${(session.distanceMeters / 1000).toStringAsFixed(2)} km'
         : '${(session.distanceMeters / 1609.344).toStringAsFixed(2)} mi';
-    return Card(
+    return SenapathCard(
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: onTap,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: colors.secondaryContainer,
-                    child: Icon(
-                      Icons.directions_bike_rounded,
-                      size: 20,
-                      color: colors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Sesi bersepeda',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _formatActivityDate(session.startedAt.toLocal()),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
-                ],
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: colors.secondaryContainer,
+                child: Icon(
+                  Icons.directions_bike_rounded,
+                  size: 20,
+                  color: colors.primary,
+                ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                distance,
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Sesi bersepeda',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatActivityDate(session.startedAt.toLocal()),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  _ActivityMetric(
-                    icon: Icons.timer_outlined,
-                    value: _formatDuration(duration),
-                    label: 'Durasi',
-                  ),
-                  const SizedBox(width: 22),
-                  _ActivityMetric(
-                    icon: session.syncStatus == 'synced'
-                        ? Icons.cloud_done_outlined
-                        : Icons.phone_android_outlined,
-                    value: session.syncStatus == 'synced'
-                        ? 'Tersinkron'
-                        : 'Lokal',
-                    label: 'Penyimpanan',
-                  ),
-                ],
+              Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            distance,
+            style: Theme.of(context).textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _ActivityMetric(
+                icon: Icons.timer_outlined,
+                value: _formatDuration(duration),
+                label: 'Durasi',
+              ),
+              const SizedBox(width: 22),
+              _ActivityMetric(
+                icon: session.syncStatus == 'synced'
+                    ? Icons.cloud_done_outlined
+                    : Icons.phone_android_outlined,
+                value: session.syncStatus == 'synced' ? 'Tersinkron' : 'Lokal',
+                label: 'Penyimpanan',
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -582,46 +580,42 @@ class _FeatureShortcut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
+    return SenapathCard(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: colors.secondaryContainer,
-                child: Icon(icon, size: 19, color: colors.primary),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: colors.secondaryContainer,
+            child: Icon(icon, size: 19, color: colors.primary),
           ),
-        ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

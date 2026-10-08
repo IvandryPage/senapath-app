@@ -28,12 +28,11 @@ Bottom navigation yang diusulkan:
 | Tab | Isi utama |
 | --- | --- |
 | **Beranda** | Feed aktivitas cyclist, progres ringkas, status rekaman/sinkronisasi, peta, dan aksi utama. |
-| **Jelajah** | Pencarian tempat/rute, hasil yang dapat dipilih, detail, simpan rencana. |
-| **Sesi** | Mulai/jeda/lanjutkan/akhiri sesi, peta/LBS, status sensor/lokasi, detail dan ringkasan. |
+| **Jelajah** | Peta dan pencarian tempat/rute; pemilihan rute opsional dan kontrol sesi aktif terintegrasi di alur ini. |
 | **Logistik / Tools** | Kurs mata uang dan waktu dunia untuk perjalanan/event; ekstensi companion yang tidak muat di alur inti. |
-| **Profil** | Akun, preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, penghapusan data, dan **Logout**. |
+| **Profil** | Riwayat dan ringkasan sesi, rute tersimpan, akun, preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, penghapusan data, dan **Logout**. |
 
-Gunakan label konsisten antara dokumen dan UI aktual. Aktivitas, ringkasan, dan persiapan rute tidak boleh tersembunyi di balik daftar menu generik. Logout bukan pengganti penghapusan akun atau data.
+Gunakan empat destinasi utama yang sesuai dengan keputusan UX saat ini; sesi bukan tab terpisah. Aktivitas, ringkasan, dan persiapan rute tidak boleh tersembunyi di balik daftar menu generik. Logout bukan pengganti penghapusan akun atau data. Jika PO mengubah navigasi, perbarui dokumen dan UI dalam increment yang sama.
 
 ### Batasan keselamatan, privasi, dan kejujuran produk
 
@@ -43,6 +42,7 @@ Gunakan label konsisten antara dokumen dan UI aktual. Aktivitas, ringkasan, dan 
 - Data lokasi dan sensor bersifat sensitif: minta izin saat relevan, kumpulkan seperlunya, batasi retensi, sediakan penghapusan/ekspor, dan jangan masukkan koordinat mentah ke log, analitik, prompt LLM, atau blockchain secara default.
 - Rute dan sesi inti harus tetap dapat dibaca lokal tanpa jaringan. Status **tersimpan lokal**, **menunggu sinkronisasi**, dan **terkonfirmasi server** harus berbeda.
 - Mini-game hanya untuk kondisi diam/aman; nonaktifkan atau tampilkan peringatan yang jelas jika sesi perjalanan sedang direkam. Tidak mendorong pengguna berinteraksi dengan layar saat bergerak.
+- Fokus produk adalah tema terang tetap; perubahan appearance sistem tidak boleh mengubah permukaan aplikasi menjadi tema gelap.
 - AI untuk klasifikasi/rekomendasi dan LLM generatif adalah dua fitur, pipeline, kriteria evaluasi, dan label UI yang terpisah.
 - Blockchain bukan database perjalanan: simpan hash/bukti minimal saja setelah consent; jangan mencatat lokasi pribadi atau data akun on-chain. Tanpa jaringan/acknowledgment tidak boleh menyatakan proof terverifikasi.
 - Push notification harus opt-in, dapat dimatikan per kategori, dan tidak memuat data lokasi sensitif di teks notifikasi.
@@ -127,9 +127,10 @@ Urutan berikut menempatkan pencatatan dan peninjauan latihan cyclist sebelum eks
 | SP-11 | **Asisten LLM untuk cyclist** | Memenuhi FR-32: LLM menjawab pertanyaan tentang rute/aktivitas dengan konteks eksplisit yang dipilih pengguna, bukan AI analitik. Consent mendahului pengiriman; sumber data provider tidak dikarang; secret, kuota, moderasi, timeout, penghapusan riwayat dan kegagalan ditangani. Jawaban bukan instruksi keselamatan/diagnosis. |
 | SP-12 | **Konversi mata uang** | Pengguna memilih mata uang sumber/tujuan, nominal, dan melihat nilai serta waktu/sumber kurs. Mode offline memakai kurs tersimpan yang diberi label tanggal, bukan kurs live. Nilai invalid, kurs tidak tersedia, pembulatan, dan kegagalan API ditangani. |
 | SP-13 | **Konversi waktu dunia** | Cari dan pilih lokasi/zona waktu dari daftar zona waktu dunia berbasis IANA; konversi waktu/tanggal antar zona menampilkan nama lokasi, offset, dan tanggal lokal dengan dukungan daylight-saving serta perubahan tanggal. Tes mencakup zona berbeda dan transisi DST; jangan hanya menggeser jam dengan offset statis. |
-| SP-14 | **Bottom navigation dan profil** | Lima tab Beranda/Jelajah/Rekam/Tools/Profil membuka alur utama dan mempertahankan state yang wajar. Profil menyediakan preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, dan **Logout**. Form saran/feedback memvalidasi input, menampilkan acknowledgment nyata, dan menyatakan jika pengiriman offline/pending/gagal. |
+| SP-14 | **Bottom navigation dan profil** | Empat tab Beranda/Jelajah/Logistik/Profil membuka alur utama dan mempertahankan state yang wajar; sesi dimulai dan dikendalikan dari Jelajah, bukan tab terpisah. Profil menyediakan preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, dan **Logout**. Form saran/feedback memvalidasi input, menampilkan acknowledgment nyata, dan menyatakan jika pengiriman offline/pending/gagal. |
 | SP-15 | **Push notification berbasis mobile** | Pengguna memilih opt-in dan kategori; izin OS dapat ditolak/dicabut; token perangkat diikat ke akun secara aman dan dapat dihapus saat logout. Delivery/deep link/token kedaluwarsa/offline/duplikasi diuji. Push bukan kanal jaminan SOS dan payload lock-screen tidak menyertakan koordinat atau data sensitif. |
 | SP-16 | **Tantangan strategi rute/balap** | Ganti tes reaksi visual dengan skenario strategi rute/balap yang dimainkan saat berhenti; pilihan memberi trade-off/penjelasan dan skor disimpan lokal. Blokir game saat sesi merekam atau dijeda; tidak memberi instruksi real-time, klaim medis, atau saran keselamatan tervalidasi. |
+| SP-28 | **Ride-mode safety dan minimisasi distraksi** | Saat sesi aktif, tampilkan status/aksi capture yang besar dan jelas; hindari form atau alur kompleks; blokir game saat recording/paused; jangan mendorong chat/LLM ketika bergerak; state penting tidak hanya dibedakan oleh warna; tidak mengklaim SOS terkirim. Interaksi, semantics, touch target, interupsi, dan perilaku layar mati diuji pada device matrix; layar mati hanya dijanjikan jika background capture platform telah lulus validasi SP-21. |
 | SP-26 | **Sensor sepeda eksternal** | Setelah protokol/perangkat sasaran diputuskan, pasangkan sensor BLE yang didukung (misalnya HR/cadence/speed/power) melalui profil standar relevan. Sampel menyimpan sumber, unit, waktu, dan kualitas; izin, disconnect/reconnect, stale data, range, duplikasi, dan consent sinkronisasi diuji. Sensor hilang tidak menghentikan rekaman lokal dan nilai tidak dibuat-buat. |
 | SP-27 | **Integrasi wearable Garmin Health** | Alur pairing/consent, import metrik yang benar-benar disediakan API, deduplikasi dan pencabutan akses. PBI tetap blocked sampai approval partner dan credentials resmi tersedia; sebelum itu UI menyatakan belum tersedia dan tidak meminta kredensial palsu. Data diberi label sumber/waktu dan tidak disebut real-time tanpa dukungan provider. |
 
@@ -246,3 +247,188 @@ Jika gate belum lulus, batasi rilis ke internal/tester dan nyatakan fitur sebaga
 Gunakan status konsisten: **belum dikonfigurasi**, **offline**, **memuat**, **tersedia**, **tersimpan lokal**, **menunggu sinkronisasi**, **terkonfirmasi**, dan **gagal**. Tampilkan status sesuai bukti: `hash dibuat` bukan `proof terverifikasi`; `login lokal terbuka` bukan `session cloud valid`; `permintaan push dibuat` bukan `notifikasi diterima`; track GPX bukan navigasi jalan.
 
 Pada setiap Review, catat PBI diterima/ditolak, hasil tes, perangkat dan environment yang diuji, provider/versinya, blocker, risiko residual, keputusan PO, dan langkah tindak lanjut. Metrik awal yang disepakati tim dapat meliputi keberhasilan login/sync, kegagalan crash, usia data kurs, akurasi klasifikasi AI, respons/timeout LLM, konsumsi baterai perekaman, dan status delivery push. Metrik tidak boleh mengumpulkan lokasi atau konten percakapan tanpa kebutuhan dan consent. Velocity untuk forecast tim, bukan target individu.
+
+## 9. Definition of Success dan Product Metrics
+
+Product Goal dinilai dari outcome, bukan jumlah layar atau PBI yang ditutup. Catat nilai awal dari baseline sebelum PO menyetujui target; jangan menganggap contoh target berikut sebagai hasil yang telah dicapai.
+
+| Outcome | Metrik dan definisi | Baseline | Target/release threshold | Bukti dan pemilik |
+| --- | --- | --- | --- | --- |
+| Ride tidak kehilangan data | Persentase skenario lifecycle yang memulihkan seluruh sampel yang telah di-acknowledge secara lokal; laporkan kehilangan maksimum dalam menit terpisah. | Diukur Sprint C pada device matrix. | Ditetapkan PO/Developers setelah baseline; blocker bila melanggar ambang yang disetujui. | Laporan device lifecycle; Developers. |
+| Ringkasan dapat dipercaya | Persentase metrik deterministik summary yang sama dengan hasil hitung ulang fixture sumber. | Diukur Sprint D. | 100% untuk fixture deterministik yang disepakati. | Test report berisi fixture dan source activity; Developers. |
+| Alur inti offline-first | Skenario persiapan lokal, rekam, buka kembali, ekspor, dan review yang tetap berjalan tanpa jaringan. | Diukur Sprint B. | Semua skenario inti lokal yang disepakati lulus. | Integration/device tests; Developers. |
+| Status sync jujur | Item yang berstatus confirmed memiliki acknowledgment server; pending/retry tetap dapat ditemukan setelah restart. | Belum terbukti di staging. | 100% status sesuai acknowledgment dalam skenario tes. | API/integration test; Developers. |
+| Privasi | Temuan risiko tinggi yang belum dimitigasi dalam scope release dan data sensitif yang tidak sengaja masuk log. | Audit awal release. | Nol temuan high-risk terbuka; nol payload sensitif pada log yang diuji. | Security/privacy review; PO dan Developers. |
+| Operasi | Crash, kegagalan sync, biaya provider dan konsumsi baterai per jam pada workload yang ditetapkan. | Diukur sebelum release candidate. | Ambang disetujui setelah provider/device dipilih. | Dashboard dan laporan uji; owner ditentukan di dependency register. |
+
+Setiap metrik harus menyebut numerator, denominator, periode, versi aplikasi/provider, device cohort, batas data, dan apakah pengumpulan bersifat opt-in. Jangan mengumpulkan lokasi mentah atau konten percakapan untuk mengukur produk tanpa justifikasi dan consent.
+
+## 10. Matriks Platform dan Perangkat
+
+Matriks ini menentukan arti "perangkat yang didukung". Baris TBD bukan dukungan yang telah dijanjikan. PO dan Developers mengisi serta menyetujui OS minimum, device reference, dan konfigurasi sebelum memilih PBI background/sensor sebagai scope Sprint.
+
+| Platform | OS minimum | Device reference | GPS foreground/background | BLE/sensor | Biometrik | Push | Status/bukti |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Android | TBD — keputusan Sprint A | TBD — pilih model nyata | GPS foreground ada pada kode; background belum diverifikasi | Motion sensor tersedia melalui plugin; BLE belum dipilih/diuji | Plugin tersedia; matrix biometrik belum diuji | Izin deklaratif saja bukan bukti delivery | Belum release-supported; catat model, build OS, dan hasil uji sebelum mengubah status |
+| iOS | TBD — keputusan Sprint A | TBD — pilih model nyata | Belum diverifikasi pada perangkat | Belum diverifikasi | Belum diverifikasi | Belum diverifikasi | Belum release-supported |
+
+Catatan setiap uji perangkat memuat model, versi OS/build, versi Senapath, status izin, jaringan, kondisi baterai, provider, langkah reproduksi, hasil, dan keterbatasan. Dukungan vendor/OS lain tidak boleh diinferensikan dari satu model.
+
+## 11. Kontrak Data Kanonis dan Provenance
+
+Unit penyimpanan kanonis tidak berubah mengikuti locale atau pilihan imperial. Presentasi melakukan konversi di batas UI. Entity opsional yang belum menjadi kapabilitas produk boleh tetap berstatus planned; tabel ini adalah kontrak target untuk refinement SP-03/SP-04/SP-22/SP-23/SP-26/SP-27, bukan klaim bahwa semua tabel telah dibuat.
+
+| Entity | Identitas/owner | Waktu, sumber, nilai | Status, lineage dan retensi |
+| --- | --- | --- | --- |
+| `User` | `userId` stabil; ownership akun server | Email dinormalisasi; tidak menyimpan password client-side | Server auth status; hapus sesuai siklus akun dan aturan legal yang disepakati. |
+| `Activity` | `activityId` UUID stabil; `ownerId` nullable untuk data lokal sebelum akun | `startedAt`/`endedAt` UTC; timezone IANA asal bila diketahui; title/type; source `recorded`, `imported`, atau `manual` | Local/sync status, created/updated/deleted version; session/source IDs. |
+| `ActivitySample` | `sampleId` stabil atau pasangan `(activityId, sequence)`; owner mewarisi Activity | `recordedAt` UTC; `source`; nilai kanonis/unit; quality/accuracy | Referensi Activity dan sequence untuk hitung ulang; telemetry mentah sensitif mengikuti retensi yang disetujui. |
+| `LocationSample` | `sampleId`, `activityId` | Lat/lon WGS84, altitude meter, speed m/s, accuracy meter, timestamp UTC, source dan quality | Geometri terenkripsi sesuai desain; tidak disalin ke log, AI, leaderboard atau chain secara default. |
+| `SensorSample` | `sampleId`, `activityId`, `sensorId` opsional | Jenis, nilai, unit SI, waktu, source, quality/staleness | Sensor eksternal/OS dibedakan; retensi/consent eksplisit. |
+| `ActivitySummary` | `(ownerId, activityId)` stabil | Metrik turunan dengan unit kanonis, algoritma/versi dan waktu hitung | Setiap nilai menunjuk ke activity dan bila relevan subset sample; tidak mengubah raw samples. |
+| `Workout` / `WorkoutInterval` | ID lokal stabil; owner lokal/cloud | Tipe durasi/jarak, urutan, batas/unit, cue | Versi dan referensi workout saat dipilih; cue opsional tidak memengaruhi capture jika gagal. |
+| `SyncItem` | `syncItemId` stabil/idempotency key; entity type + entity ID | Created/updated UTC dan payload version | `local`, `pending`, `syncing`, `confirmed`, `failed`, atau `deleted`; simpan retry/ack timestamp tanpa payload sensitif di log. |
+| `Consent` | `consentId`, `ownerId`, tujuan dan scope | Waktu UTC, versi notice, tindakan grant/revoke | Audit status consent; tidak menggunakan satu consent untuk tujuan lain. |
+| `DeviceSession` | ID sesi perangkat; owner bila login | Token hanya di secure storage; expiry/rotation server | Revocation/clear status; jangan simpan password. |
+| `ExternalSensor` | ID perangkat pseudonim + owner | Protocol/profile dan capabilities | Pairing/consent/revocation; jangan simpan identifier yang tidak dibutuhkan. |
+| `AIInsight` | ID insight dan owner/activity refs | Model/rule version, input-period, calculatedAt | Label calculated/experimental, confidence/limitations, source IDs; dapat dihapus tanpa mengubah Activity. |
+| `LLMContext` | Request ID pseudonim dan activity refs yang dipilih | Scope konteks, waktu, provider/model | Consent, retensi conversation, dan penghapusan terpisah dari AIInsight. |
+| `NotificationPreference` | owner + category | Channel, locale/quiet hours bila didukung | Opt-in/revocation dan device-token status; token dihapus saat logout sesuai kebijakan. |
+
+Setiap angka ditandai asalnya: `recorded`, `imported`, `manually_edited`, `calculated`, `ai_generated`, atau `externally_sourced`. Import GPX bukan rekaman aplikasi; edit metadata tidak mengubah sampel. Lineage minimal untuk agregat: `Weekly distance → [activityId A, activityId B, ...]`; bila filter/quality memengaruhi hasil, simpan aturan/versi dan jelaskan eksklusi. Data hilang tetap unknown, bukan nol.
+
+### Status alur jaringan dan aktivitas
+
+- Aktivitas lokal: `recording_local → paused_local → completed_local`.
+- Sinkronisasi ringkasan: `completed_local → pending_sync → syncing → confirmed`; kegagalan menjadi `retryable_failed` atau `permanent_failed` beserta aksi berikutnya.
+- Koneksi: `offline → online → syncing → partial_failure → retry → confirmed`; koneksi online tidak berarti data telah sync.
+- Hanya acknowledgment server yang boleh menghasilkan `confirmed`. Retry menggunakan ID/idempotency key yang sama; UI tidak boleh menggabungkan state yang berbeda menjadi “tersimpan” tanpa penjelasan.
+
+## 12. Konflik, Koreksi, Migrasi dan Versioning
+
+Kebijakan awal untuk refinement (perubahan harus dicatat PO, bukan diputuskan diam-diam di repository):
+
+| Kasus/field | Kebijakan |
+| --- | --- |
+| ID aktivitas, owner, waktu/sampel mentah dari rekaman | Immutable setelah commit lokal; koreksi sensor disimpan sebagai hasil turunan/anotasi dengan provenance, bukan overwrite diam-diam. |
+| Judul, jenis, catatan metadata | Last-write-wins berdasarkan `updatedAt` server setelah clock normalization; simpan versi/revision dan laporkan konflik jika perubahan bersamaan tidak dapat direkonsiliasi. |
+| Sampel/summary | Tidak di-merge dengan menjumlahkan dua salinan. Activity ID stabil + idempotency key membuat retry/upsert menjadi no-op atau update versi yang sama. |
+| Delete vs pending update | Tombstone dengan revision lebih tinggi menang; pending update lama tidak boleh menghidupkan data kembali. Penghapusan cloud gagal harus tetap terlihat gagal/pending. |
+| Import duplikat | Gunakan fingerprint geometri/waktu sebagai sinyal deteksi, bukan identitas otoritatif; minta konfirmasi bila kemungkinan duplikat dan jangan menghapus data berbeda otomatis. |
+| Timeout setelah server mungkin menerima | Retry dengan idempotency key sama dan query/ack reconciliation sebelum menyatakan gagal final atau mengirim objek baru. |
+
+Versi dan pemulihan:
+
+- **Drift/local DB:** setiap perubahan menaikkan `schemaVersion`; migrasi upgrade diuji dari fixture versi sebelumnya, termasuk DB offline berisi sesi/route. Pertahankan data sampai migrasi dan verifikasi selesai; backup/copy sebelum migrasi destruktif.
+- **Supabase:** migrasi SQL immutable, bernama/timestamp, dapat diulang hanya bila memang idempoten, dan diuji pada database kosong serta upgrade staging. Jangan mengubah migrasi yang telah diterapkan untuk environment bersama; buat migrasi korektif.
+- **API/payload:** gunakan `schemaVersion`/API version, additive change terlebih dahulu, toleransi field opsional yang tidak dikenal, dan kebijakan minimum app version yang disetujui. Jangan menghapus field sebelum client lama di luar masa dukungan.
+- **Kegagalan/rollback:** hentikan operasi tulis yang memakai schema tidak cocok, pertahankan ekspor lokal, tampilkan error yang dapat ditindaklanjuti, dan gunakan forward-fix untuk data cloud kecuali backup/restore rollback sudah diuji. Tentukan retention backup dan RPO/RTO sebelum production; saat ini TBD.
+
+## 13. Threat Model dan Penyalahgunaan
+
+Setiap PBI yang menyentuh ancaman di bawah harus menautkan test/evidence dan owner aktual pada refinement. “Owner” di tabel adalah peran sementara, bukan penugasan orang.
+
+| Ancaman | Mitigasi minimum | Uji/bukti wajib | Owner |
+| --- | --- | --- | --- |
+| Perangkat dicuri | Biometrik perangkat opsional untuk resume; secure storage; logout/revoke; minimisasi data | Secure-storage/revoke test dan skenario perangkat hilang | Developers + PO (retensi) |
+| Refresh token bocor/diulang | TLS, hash token server-side, rotasi atomik, expiry dan revoke | Replay token lama, expired dan concurrent refresh | Developers |
+| Client memalsukan summary / IDOR antar-akun | Anggap client tidak tepercaya; validasi bounds; RLS/authorization server-side | Multi-account integration test, owner ID spoofing | Developers |
+| Replay/duplikasi sync | ID stabil dan idempotency, acknowledgment terikat object/version | Retry setelah timeout dan duplicate submit | Developers |
+| Leaderboard palsu | Ambil nilai dari sesi milik user yang selesai di server; consent; batas nilai; label belum diverifikasi | RPC auth, owner spoof, duplicate dan opt-out tests | Developers + PO |
+| Prompt injection / data leakage LLM | Context eksplisit, minimisasi data, instruksi dianggap untrusted, provider/moderation/retention review | Adversarial prompt, no-consent, timeout dan delete test | Developers + PO |
+| GPX berbahaya atau terlalu besar | Batas ukuran/point count/time, parser aman, validasi koordinat dan resource | Malformed XML, oversized, invalid coordinate, huge track | Developers |
+| Storage exhaustion / payload mahal | Kuota, batas ukuran, rate limit, timeout, backpressure | Load/boundary/rate-limit tests dan alert | Developers + PO (biaya) |
+| Abuse token push | Binding token ke akun, rotate/delete saat logout, minimal payload | Token stale/reused, cross-account dan logout test | Developers |
+| Sensor spoof/stale data | Tandai source/quality/staleness; jangan klaim measurement verified | Missing, stale, out-of-range dan duplicate sample test | Developers |
+| Proof blockchain palsu/privasi | Hash ringkasan minimal, consent, relayer terkontrol, verifikasi tx/hash | Test Amoy dan bukti tanpa raw location/account data | Developers + PO |
+
+Threat model diperbarui saat provider, skema, atau data flow berubah; temuan high-risk yang belum dimitigasi memblokir release terkait atau harus dikecualikan eksplisit oleh PO dengan mitigasi dan pembatasan distribusi.
+
+## 14. Test Pyramid, Traceability dan Review Evidence
+
+Tes dipilih berdasarkan risiko, bukan hanya kemudahan. P0 wajib memiliki unit, integration, offline/restart, dan device lifecycle evidence pada platform yang diklaim; ekstensi cloud/provider wajib memiliki contract/RLS/failure tests; tidak ada mock yang dianggap bukti deployment.
+
+| Lapisan | Cakupan | Contoh bukti |
+| --- | --- | --- |
+| Unit/domain | Lifecycle, unit/timezone, statistik/provenance, bounds, idempotency/state machine | Test report dan fixture/versioned expected output |
+| Widget/UI | Loading/empty/error/offline/permission, navigasi/back, screen reader semantics, dynamic text/large targets | Widget test; screenshot opsional bukan pengganti assertion |
+| Integration/local DB | Drift migration dari versi sebelumnya, encrypted store, restart, import/export, tombstone | Migration/integration test pada DB nyata atau fixture native |
+| API/contract/security | Edge Function validation, timeout/error mapping, JWT, RLS multi-user, quota/rate limit | Staging response/test logs yang disanitasi |
+| Device/lifecycle | Lock screen, background, interrupt/call, force-stop, permission revoke, recovery, GPS weak, battery | Device matrix dengan versi/build dan langkah reproduksi |
+| Offline/transition | Airplane mode, online recovery, partial failure, retry, duplicate ack | State transition tests dan server acknowledgment evidence |
+| Performance/battery | Durasi sesi, ukuran GPX/DB, memory, sampling/write rate, tile/network usage | Benchmark pada device reference dan threshold yang disetujui |
+| Accessibility/safety | Semantics, contrast, color-independent states, touch targets, reduced motion, ride mode | Accessibility review/tool output dan device walkthrough |
+| Exploratory/field | Alur persiapan → rekam → review pada kondisi lapangan aman | Sprint Review evidence dengan batasan dan consent |
+
+Traceability wajib untuk setiap requirement/PBI yang diterima:
+
+`FR/PBI → acceptance criterion ID → test case ID → commit/build/environment → hasil/evidence → keputusan Review`
+
+Evidence tidak boleh memuat token, secret, alamat rumah/koordinat pribadi, atau konten percakapan. Catat kegagalan beserta issue/owner; jangan mengubah status test menjadi pass hanya karena UI terlihat benar.
+
+### Accessibility, localization dan ride-mode safety lintas PBI
+
+- Screen reader/semantics, kontras yang diuji, dukungan text scaling, target sentuh yang memadai, reduced motion, dan status yang tidak hanya dibedakan dengan warna berlaku pada P0 dan setiap layar yang diubah.
+- Map tidak menjadi satu-satunya cara memahami jarak/status; status recording, permission, sync, serta sensor quality punya teks/semantics. Haptic/audio alternatif hanya jika tersedia, dapat dimatikan, dan tidak mengganggu.
+- Simpan timestamp UTC dan IANA zone saat relevan; locale format tanggal/angka/mata uang hanya di presentasi. Satuan kanonis metric; preferensi metric/imperial mengubah tampilan saja. Bahasa awal, locale fallback, temperatur/cuaca, dan strategi translasi harus diputuskan Sprint A (saat ini TBD).
+- **SP-28 — Ride-mode safety & distraction minimization:** kontrol capture besar dan terbatas; jangan membuka form/flow kompleks saat merekam; blokir game ketika sesi recording/paused; chat/LLM tidak mendorong interaksi saat bergerak; state recording dapat dikenali tanpa warna; layar mati tidak boleh menghentikan capture bila dukungan platform telah divalidasi; UI SOS tetap jujur dan tidak mengklaim pesan terkirim. Uji transisi sesi, ukuran teks/semantics, tap target, dan interupsi di device matrix.
+
+### Budget performa dan baterai
+
+Sebelum Sprint C PO/Developers menetapkan baseline dan threshold untuk battery drain per jam, GPS/sensor sampling, interval persistensi, memory, puncak ukuran DB, durasi/point maksimum aktivitas, batas GPX, volume tile/data, sync batch dan timeout. Hingga disetujui, nilai berstatus **TBD**, bukan jaminan. Uji memakai device reference, workload, durasi, kondisi layar/jaringan, dan ambang yang sama; perubahan budget perlu dicatat sebagai keputusan.
+
+## 15. Hierarki Backlog
+
+Gunakan **Epic → Feature → PBI → Task**. P0/P1/P2 adalah prioritas produk, bukan ukuran; SP-01 sampai SP-27 saat ini harus diperlakukan sebagai item/cluster backlog tingkat tinggi sampai dipecah, bukan otomatis sebagai PBI yang muat satu sprint.
+
+- **Epic:** outcome besar lintas fitur, misalnya Reliable Ride Capture.
+- **Feature:** kapabilitas yang memberi nilai terlihat, misalnya Background Recording atau Session Recovery.
+- **PBI:** perubahan vertikal kecil yang dapat didemokan, punya actor/value, acceptance criteria teruji, owner keputusan, dependency, risiko, dan batas scope.
+- **Task:** langkah engineering/test/documentation yang diperlukan menyelesaikan PBI; task sendiri bukan increment nilai pengguna.
+
+Contoh pemecahan SP-21:
+
+```text
+Epic: Reliable Ride Capture
+  Feature: Background Recording
+    PBI: Simpan batch sampel secara periodik ketika layar mati
+    PBI: Pulihkan sesi terputus sebagai paused setelah process restart
+    PBI: Tampilkan dan tangani revokasi izin lokasi
+    PBI: Validasi perilaku low-battery dan penghentian OS
+```
+
+Jangan menambah PBI baru sebelum refinement menghapus overlap, menetapkan dependency/owner, dan membedakan fungsi sudah ada, belum diuji, deployed, serta blocked. Pemecahan harus mempertahankan urutan nilai P0 dan tidak menjadikan cloud/provider prasyarat ride lokal.
+
+## 16. Risk Register dan Decision/Dependency Register
+
+Daftar berikut adalah starter register berdasarkan bukti repo saat ini. Probabilitas/impact harus ditinjau PO dan Developers; status “terbuka” bukan keputusan yang sudah dibuat. Setiap keputusan eksternal mencatat owner peran, gate/tanggal yang ditentukan tim, dependency, status, dan bukti keputusan.
+
+### Product risk register
+
+| Risiko | Probabilitas / dampak awal | Mitigasi | Trigger | Owner/status |
+| --- | --- | --- | --- | --- |
+| OS menghentikan capture background | Tinggi / kritis | Implementasi lifecycle resmi, checkpoint lokal, recovery, uji device dan komunikasi batas OS | Sesi terputus/kehilangan sampel pada lifecycle test | Developers; terbuka, SP-21 |
+| GPS/sensor stale atau korup | Sedang / tinggi | Bounds, timestamp/source/quality, data missing sebagai unknown | Sampel invalid/stale atau jarak berbeda dari fixture | Developers; terbuka |
+| Sync duplicate / status palsu | Sedang / tinggi | ID stabil, idempotency, ack reconciliation, state machine | Timeout/retry menghasilkan duplikasi atau confirmed tanpa ack | Developers; terbuka |
+| RLS/auth salah konfigurasi | Sedang / kritis | JWT trust review, RLS multi-account, staging deployment gate | Cross-account read/write atau deploy migration gagal | Developers; staging belum terbukti |
+| Key Google pernah terekspos | Tinggi / tinggi hingga dirotasi | Revoke/rotate, pisahkan server/SDK key, restrict API/app, cek penggunaan | Key lama masih aktif atau dipakai dari origin tak dikenal | PO/owner cloud; rotasi harus dikonfirmasi |
+| Public OSM tile tak sesuai trafik produksi | Sedang / tinggi | Evaluasi lisensi/provider/cache/cost sebelum release publik | Volume/provider terms melewati batas | PO; terbuka |
+| LLM cost/privacy atau prompt injection | Sedang / tinggi | Consent, quota, context minimization, provider review, fallback | Budget threshold atau adversarial leakage test gagal | PO + Developers; terbuka |
+| Push/game mengganggu keselamatan | Rendah–sedang / tinggi | Opt-in, minimisasi payload, game block saat ride, ride mode | Interaksi saat sesi aktif atau pesan sensitif di lock screen | Developers; belum teruji end-to-end |
+| Garmin partner approval tertunda | Tinggi / sedang | Tetap blocked/feature-gated; jangan meminta credential palsu | Approval/credential tidak ada saat planning SP-27 | PO; blocked |
+
+### Decision/dependency register
+
+| Keputusan/dependency | Owner peran | Gate | Dependency | Status |
+| --- | --- | --- | --- | --- |
+| Android/iOS minimum + device reference | PO + Developers | Sebelum komitmen SP-21/SP-26 | Perangkat uji dan akses lapangan | TBD |
+| Local DB at-rest encryption, retention, RPO/RTO | PO + Developers | Sebelum klaim keamanan/release | Threat/data classification dan backup plan | TBD |
+| Supabase staging, signing/JWT, email provider, RLS | Owner backend/PO + Developers | Sebelum SP-01/03/05 diterima | Secrets di Supabase, migration/deploy access | Kode ada; deployment belum diverifikasi |
+| Google route/Maps keys, billing dan restriction | PO/owner cloud | Sebelum pencarian online dipromosikan | Key server/SDK terpisah, API enablement | Perlu verifikasi; key pernah dibagikan harus dirotasi |
+| Provider map/tile production, kurs, LLM, push | PO | Sebelum scope production fitur provider | Lisensi, wilayah, kuota, biaya, privacy | Belum seluruhnya diputuskan |
+| Sensor sepeda dan profil BLE | PO + Developers | Sebelum SP-26 | Hardware reference dan OS permissions | TBD |
+| Garmin Health approval | PO | Sebelum SP-27 | Persetujuan partner + credential resmi | Blocked sampai tersedia |
+| Polygon Amoy relayer/biaya | PO + Developers | Sebelum SP-17 | RPC/relayer, threat model, consent | Staging target; deployment belum dibuktikan |
+| App signing, release account, monitoring/support owner | PO/Release owner | Sebelum release candidate | Store accounts/certificates, budget, runbook | TBD |
+
+Keputusan yang mengubah scope/biaya/privacy dicatat dengan tanggal, opsi yang ditolak, alasan, approver, dan dampak backlog. Jangan memasukkan nilai secret ke register; referensikan secret manager/environment secara aman.

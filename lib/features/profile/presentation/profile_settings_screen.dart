@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../app/theme/theme_settings_cubit.dart';
+import '../../../app/theme/senapath_design.dart';
+import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../../core/storage/offline_storage_manager.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
@@ -29,7 +30,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     if (_initialized) return;
     _initialized = true;
     unawaited(context.read<UnitSettingsCubit>().load());
-    unawaited(context.read<ThemeSettingsCubit>().load());
     unawaited(_loadStorageUsage());
   }
 
@@ -46,7 +46,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       const SizedBox(height: 12),
       _unitSettings(),
       const SizedBox(height: 12),
-      _themeSettings(),
+      _themeModeInfo(),
+      const SizedBox(height: 12),
+      _biometricSettings(),
       const SizedBox(height: 28),
       _sectionHeading(
         context,
@@ -84,7 +86,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   );
 
   Widget _unitSettings() => BlocBuilder<UnitSettingsCubit, UnitSettingsState>(
-    builder: (context, state) => Card(
+    builder: (context, state) => SenapathCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -126,69 +128,58 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ),
   );
 
-  Widget _themeSettings() => BlocBuilder<ThemeSettingsCubit, ThemeSettingsState>(
-    builder: (context, state) => Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tema tampilan', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              'Pilih tema sistem, terang, atau gelap.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 14),
-            SegmentedButton<ThemeMode>(
-              segments: const [
-                ButtonSegment(
-                  value: ThemeMode.system,
-                  label: Text('Sistem'),
-                  icon: Icon(Icons.brightness_auto_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.light,
-                  label: Text('Terang'),
-                  icon: Icon(Icons.light_mode_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text('Gelap'),
-                  icon: Icon(Icons.dark_mode_outlined),
-                ),
-              ],
-              selected: {state.themeMode},
-              onSelectionChanged: state.isSaving
-                  ? null
-                  : (selection) =>
-                        context.read<ThemeSettingsCubit>().select(selection.first),
-            ),
-            if (state.isSaving)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-            if (state.error case final error?) ...[
-              const SizedBox(height: 8),
-              Text(
-                error,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              if (!state.isSaving)
-                TextButton.icon(
-                  onPressed: context.read<ThemeSettingsCubit>().load,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Coba lagi'),
-                ),
-            ],
-          ],
-        ),
-      ),
+  Widget _themeModeInfo() => SenapathCard(
+    child: ListTile(
+      leading: const Icon(Icons.light_mode_outlined),
+      title: const Text('Tema terang'),
+      subtitle: const Text('Senapath menggunakan tema terang di semua kondisi.'),
     ),
   );
 
-  Widget _storageSettings() => Card(
+  Widget _biometricSettings() =>
+      BlocBuilder<CloudAccountCubit, CloudAccountState>(
+        builder: (context, state) => SenapathCard(
+          child: Column(
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.fingerprint),
+                title: const Text('Login biometrik'),
+                subtitle: Text(
+                  state.canUseBiometrics
+                      ? state.biometricSignInEnabled
+                            ? 'Diminta saat membuka aplikasi berikutnya.'
+                            : 'Nonaktif. Login akun dipulihkan tanpa prompt.'
+                      : 'Masuk dan daftarkan sidik jari atau wajah di perangkat untuk mengaktifkan.',
+                ),
+                value: state.biometricSignInEnabled,
+                onChanged: state.isLoading || !state.isSignedIn
+                    ? null
+                    : context
+                          .read<CloudAccountCubit>()
+                          .setBiometricSignInEnabled,
+              ),
+              if (state.isLoading) const LinearProgressIndicator(),
+              if (state.error != null || state.status != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      state.error ?? state.status!,
+                      style: TextStyle(
+                        color: state.error == null
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _storageSettings() => SenapathCard(
     child: Column(
       children: [
         ListTile(

@@ -20,6 +20,7 @@ class RideSessionState {
     this.recordedLocations = const [],
     this.completedSessions = const [],
     this.summary,
+    this.summaryLocations = const [],
     this.isLoadingSummary = false,
     this.syncingSessionId,
     this.now,
@@ -34,6 +35,7 @@ class RideSessionState {
   final List<TelemetryLocation> recordedLocations;
   final List<RideSessionSnapshot> completedSessions;
   final RideSessionSummary? summary;
+  final List<TelemetryLocation> summaryLocations;
   final bool isLoadingSummary;
   final String? syncingSessionId;
   final DateTime? now;
@@ -48,6 +50,7 @@ class RideSessionState {
     List<TelemetryLocation>? recordedLocations,
     List<RideSessionSnapshot>? completedSessions,
     RideSessionSummary? summary,
+    List<TelemetryLocation>? summaryLocations,
     bool? isLoadingSummary,
     String? syncingSessionId,
     bool clearSummary = false,
@@ -64,6 +67,9 @@ class RideSessionState {
     recordedLocations: recordedLocations ?? this.recordedLocations,
     completedSessions: completedSessions ?? this.completedSessions,
     summary: clearSummary ? null : summary ?? this.summary,
+    summaryLocations: clearSummary
+        ? const []
+        : summaryLocations ?? this.summaryLocations,
     isLoadingSummary: isLoadingSummary ?? this.isLoadingSummary,
     syncingSessionId: clearSyncingSession
         ? null
@@ -107,6 +113,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   double? _rotationRateMagnitude;
   Timer? _ticker;
   int _syncGeneration = 0;
+  int _summaryGeneration = 0;
 
   bool get canSyncSessions =>
       syncCoordinator?.gateway.isConfigured == true &&
@@ -303,11 +310,23 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   }
 
   Future<void> loadSummary(String sessionId) async {
+    final generation = ++_summaryGeneration;
     emit(state.copyWith(isLoadingSummary: true, clearSummary: true));
     try {
-      final summary = await repository.loadSummary(sessionId);
-      emit(state.copyWith(summary: summary, isLoadingSummary: false));
+      final results = await Future.wait([
+        repository.loadSummary(sessionId),
+        repository.loadTelemetryLocations(sessionId),
+      ]);
+      if (isClosed || generation != _summaryGeneration) return;
+      emit(
+        state.copyWith(
+          summary: results[0] as RideSessionSummary,
+          summaryLocations: results[1] as List<TelemetryLocation>,
+          isLoadingSummary: false,
+        ),
+      );
     } catch (_) {
+      if (isClosed || generation != _summaryGeneration) return;
       emit(
         state.copyWith(
           isLoadingSummary: false,
@@ -337,11 +356,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       final history = await repository.loadCompletedSessions();
       if (isClosed || generation != _syncGeneration) return;
       final summary = await repository.loadSummary(sessionId);
+      final summaryLocations = await repository.loadTelemetryLocations(
+        sessionId,
+      );
       if (isClosed || generation != _syncGeneration) return;
       emit(
         state.copyWith(
           completedSessions: history,
           summary: summary,
+          summaryLocations: summaryLocations,
           clearSyncingSession: true,
           message: 'Ringkasan sesi tersinkron ke akun Supabase.',
         ),
@@ -351,11 +374,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       final history = await repository.loadCompletedSessions();
       if (isClosed || generation != _syncGeneration) return;
       final summary = await repository.loadSummary(sessionId);
+      final summaryLocations = await repository.loadTelemetryLocations(
+        sessionId,
+      );
       if (isClosed || generation != _syncGeneration) return;
       emit(
         state.copyWith(
           completedSessions: history,
           summary: summary,
+          summaryLocations: summaryLocations,
           clearSyncingSession: true,
           message: 'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal; coba lagi saat online.',
         ),
@@ -369,7 +396,10 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     emit(state.copyWith(clearSyncingSession: true));
   }
 
-  void closeSummary() => emit(state.copyWith(clearSummary: true));
+  void closeSummary() {
+    _summaryGeneration++;
+    emit(state.copyWith(clearSummary: true, isLoadingSummary: false));
+  }
 
   Future<void> _handlePosition(String sessionId, Position position) async {
     final current = state.session;
