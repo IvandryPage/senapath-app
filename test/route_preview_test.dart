@@ -346,10 +346,11 @@ class _TestReadinessChecker implements ReadinessChecker {
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
   }) async => ReadinessReport(
     locationPermissionGranted: locationPermissionGranted,
     locationPermanentlyDenied: false,
-    locationServicesEnabled: false,
+    locationServicesEnabled: true,
     gpsFixAvailable: false,
     accelerometerAvailable: false,
     gyroscopeAvailable: false,
@@ -359,6 +360,9 @@ class _TestReadinessChecker implements ReadinessChecker {
 
   @override
   Future<bool> openLocationSettings() async => false;
+
+  @override
+  Future<bool> openLocationServiceSettings() async => false;
 
   @override
   Future<bool> openNotificationSettings() async => false;

@@ -223,6 +223,8 @@ void main() {
     expect(find.byType(ExploreMap), findsOneWidget);
     expect(find.text('Cari tujuan atau alamat'), findsOneWidget);
     expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
+    await tester.drag(find.text('SIAP BERSEPEDA'), const Offset(0, -300));
+    await tester.pumpAndSettle();
     expect(find.text('Detail kesiapan & izin'), findsOneWidget);
     await tester.ensureVisible(find.text('Mulai sesi'));
     await tester.tap(find.text('Mulai sesi'));
@@ -425,12 +427,16 @@ class _FakeReadinessChecker implements ReadinessChecker {
   Future<bool> openLocationSettings() async => true;
 
   @override
+  Future<bool> openLocationServiceSettings() async => true;
+
+  @override
   Future<bool> openNotificationSettings() async => true;
 
   @override
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
   }) async => ReadinessReport(
     locationPermissionGranted: true,
     locationPermanentlyDenied: false,
@@ -441,6 +447,7 @@ class _FakeReadinessChecker implements ReadinessChecker {
     notificationsGranted: requestNotificationPermission,
     notificationsPermanentlyDenied: false,
     gpsAccuracyMeters: 8,
+    gpsFixChecked: true,
   );
 }
 

@@ -45,10 +45,17 @@ class SessionScreen extends StatefulWidget {
   State<SessionScreen> createState() => _SessionScreenState();
 }
 
-class _SessionScreenState extends State<SessionScreen> {
+class _SessionScreenState extends State<SessionScreen>
+    with WidgetsBindingObserver {
   bool _initialized = false;
   String? _loadedSummarySessionId;
   static const _fileExchange = RouteFileExchange(SessionFileService());
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   void didChangeDependencies() {
@@ -62,6 +69,23 @@ class _SessionScreenState extends State<SessionScreen> {
       _loadedSummarySessionId = sessionId;
       unawaited(context.read<RideSessionCubit>().loadSummary(sessionId));
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
+        context.read<RideSessionCubit>().state.session == null) {
+      unawaited(
+        context.read<RideSessionCubit>().checkReadiness(checkGpsFix: false),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -396,6 +420,7 @@ class _SessionScreenState extends State<SessionScreen> {
   ) {
     final session = state.session;
     final theme = Theme.of(context);
+    final gpsAccuracy = state.readiness?.gpsAccuracyMeters;
     final isRecording = session?.status == RideSessionStatus.recording;
     final statusLabel = switch (session?.status) {
       RideSessionStatus.recording => 'SEDANG MEREKAM',
@@ -430,7 +455,11 @@ class _SessionScreenState extends State<SessionScreen> {
             ),
             if (session == null)
               Text(
-                'GPS ${state.readiness?.gpsFixAvailable == true ? 'siap' : 'cek'}',
+                state.readiness?.gpsFixChecked != true
+                    ? 'GPS belum dicek'
+                    : state.readiness?.gpsFixAvailable == true
+                    ? 'GPS siap'
+                    : 'GPS belum mendapat fix',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -439,6 +468,11 @@ class _SessionScreenState extends State<SessionScreen> {
         ),
         if (session == null) ...[
           const SizedBox(height: 14),
+          if (state.readiness?.gpsMessage case final gpsMessage?)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(gpsMessage, style: theme.textTheme.bodySmall),
+            ),
           Row(
             children: [
               Expanded(
@@ -450,7 +484,9 @@ class _SessionScreenState extends State<SessionScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: _ReadinessPill(
-                  label: 'GPS',
+                  label: gpsAccuracy == null
+                      ? 'GPS'
+                      : 'GPS ±${gpsAccuracy.toStringAsFixed(0)} m',
                   isReady:
                       state.readiness?.locationServicesEnabled == true &&
                       state.readiness?.gpsFixAvailable == true,
@@ -458,7 +494,38 @@ class _SessionScreenState extends State<SessionScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: state.isCheckingReadiness
+                ? null
+                : state.readiness?.locationPermanentlyDenied == true
+                ? () => context.read<RideSessionCubit>().openLocationSettings()
+                : state.readiness?.locationServicesEnabled == false
+                ? () => context
+                      .read<RideSessionCubit>()
+                      .openLocationServiceSettings()
+                : () => context.read<RideSessionCubit>().checkReadiness(
+                    requestLocationPermission:
+                        state.readiness?.locationPermissionGranted != true,
+                    checkGpsFix: true,
+                  ),
+            icon: state.isCheckingReadiness
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.gps_fixed),
+            label: Text(
+              state.readiness?.locationPermanentlyDenied == true
+                  ? 'Buka pengaturan izin lokasi'
+                  : state.readiness?.locationServicesEnabled == false
+                  ? 'Buka pengaturan lokasi'
+                  : state.readiness?.locationPermissionGranted != true
+                  ? 'Izinkan lokasi & cek GPS'
+                  : 'Cek GPS sekarang',
+            ),
+          ),
+          const SizedBox(height: 8),
           _buildStartControl(context, state),
         ] else ...[
           const SizedBox(height: 6),
@@ -577,6 +644,8 @@ class _SessionScreenState extends State<SessionScreen> {
         : 'Izin lokasi belum diberikan';
     final gpsLabel = !readiness.locationServicesEnabled
         ? 'Layanan lokasi perangkat nonaktif'
+        : !readiness.gpsFixChecked
+        ? 'GPS belum dicek'
         : readiness.gpsFixAvailable
         ? 'GPS siap · akurasi ±${readiness.gpsAccuracyMeters!.toStringAsFixed(0)} m'
         : 'GPS belum mendapat fix';
@@ -594,6 +663,11 @@ class _SessionScreenState extends State<SessionScreen> {
           label: locationLabel,
           isReady: readiness.locationPermissionGranted,
         ),
+        if (readiness.gpsMessage case final message?)
+          Padding(
+            padding: const EdgeInsets.only(left: 34, bottom: 8),
+            child: Text(message, style: Theme.of(context).textTheme.bodySmall),
+          ),
         _ReadinessLine(
           label: gpsLabel,
           isReady:
@@ -656,6 +730,7 @@ class _SessionScreenState extends State<SessionScreen> {
                         context.read<RideSessionCubit>().openLocationSettings()
                   : () => context.read<RideSessionCubit>().checkReadiness(
                       requestLocationPermission: true,
+                      checkGpsFix: true,
                     ),
               icon: Icon(
                 readiness.locationPermanentlyDenied
@@ -668,6 +743,17 @@ class _SessionScreenState extends State<SessionScreen> {
                     : 'Izinkan lokasi',
               ),
             ),
+          ),
+        ],
+        if (readiness.locationPermissionGranted &&
+            !readiness.locationServicesEnabled) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => context
+                .read<RideSessionCubit>()
+                .openLocationServiceSettings(),
+            icon: const Icon(Icons.location_on_outlined),
+            label: const Text('Buka pengaturan lokasi perangkat'),
           ),
         ],
         if (readiness.locationPermissionGranted &&
@@ -684,7 +770,9 @@ class _SessionScreenState extends State<SessionScreen> {
         TextButton.icon(
           onPressed: state.isCheckingReadiness
               ? null
-              : () => context.read<RideSessionCubit>().checkReadiness(),
+              : () => context.read<RideSessionCubit>().checkReadiness(
+                  checkGpsFix: true,
+                ),
           icon: state.isCheckingReadiness
               ? const SizedBox.square(
                   dimension: 16,

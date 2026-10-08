@@ -124,7 +124,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     emit(state.copyWith(isLoading: true, clearMessage: true));
     try {
       final results = await Future.wait([
-        readinessChecker.check(),
+        readinessChecker.check(checkGpsFix: false),
         repository.recoverCurrentSession(),
         repository.loadCompletedSessions(),
       ]);
@@ -174,12 +174,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   Future<void> checkReadiness({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
   }) async {
     emit(state.copyWith(isCheckingReadiness: true, clearMessage: true));
     try {
       final readiness = await readinessChecker.check(
         requestLocationPermission: requestLocationPermission,
         requestNotificationPermission: requestNotificationPermission,
+        checkGpsFix: checkGpsFix,
       );
       emit(
         state.copyWith(
@@ -214,17 +216,35 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  Future<void> openLocationServiceSettings() async {
+    try {
+      await readinessChecker.openLocationServiceSettings();
+    } catch (_) {
+      _setMessage('Pengaturan layanan lokasi tidak dapat dibuka.');
+    }
+  }
+
   Future<void> start() async {
     if (state.session != null &&
         state.session!.status != RideSessionStatus.completed) {
       _setMessage('Selesaikan atau lanjutkan sesi yang sedang tersimpan.');
       return;
     }
-    if (!state.canStart) {
-      _setMessage('Izin lokasi diperlukan untuk mulai merekam.');
+    try {
+      final readiness = await readinessChecker.check(checkGpsFix: false);
+      emit(state.copyWith(readiness: readiness));
+      if (!readiness.canStartRecording) {
+        _setMessage(
+          readiness.locationServicesEnabled
+              ? 'Izin lokasi diperlukan untuk mulai merekam.'
+              : 'Aktifkan layanan lokasi perangkat untuk mulai merekam.',
+        );
+        return;
+      }
+    } catch (_) {
+      _setMessage('Status izin dan layanan lokasi tidak dapat diperiksa.');
       return;
     }
-
     try {
       final session = await repository.start(_clock().toUtc());
       emit(

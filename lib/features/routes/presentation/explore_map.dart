@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -40,6 +42,8 @@ class _ExploreMapState extends State<ExploreMap> {
   bool _isLocating = false;
   bool _hasTileError = false;
   bool _mapReady = false;
+  bool _openDeviceLocationSettings = false;
+  bool _openAppLocationSettings = false;
   int _mapKey = 0;
   String? _locationMessage;
 
@@ -301,6 +305,22 @@ class _ExploreMapState extends State<ExploreMap> {
                     ),
                   ),
                 ),
+              if (_openDeviceLocationSettings || _openAppLocationSettings)
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  top: 108,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: _openDeviceLocationSettings
+                          ? Geolocator.openLocationSettings
+                          : Geolocator.openAppSettings,
+                      icon: const Icon(Icons.settings_outlined),
+                      label: const Text('Pengaturan lokasi'),
+                    ),
+                  ),
+                ),
               if (_hasTileError)
                 Positioned(
                   right: 10,
@@ -326,13 +346,16 @@ class _ExploreMapState extends State<ExploreMap> {
     setState(() {
       _isLocating = true;
       _locationMessage = null;
+      _openDeviceLocationSettings = false;
+      _openAppLocationSettings = false;
     });
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         if (mounted) {
-          setState(
-            () => _locationMessage = 'Aktifkan layanan lokasi perangkat.',
-          );
+          setState(() {
+            _locationMessage = 'Aktifkan layanan lokasi perangkat.';
+            _openDeviceLocationSettings = true;
+          });
         }
         return;
       }
@@ -343,10 +366,12 @@ class _ExploreMapState extends State<ExploreMap> {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (mounted) {
-          setState(
-            () => _locationMessage =
-                'Izin lokasi belum tersedia. Peta tetap bisa digunakan.',
-          );
+          setState(() {
+            _locationMessage =
+                'Izin lokasi belum tersedia. Peta tetap bisa digunakan.';
+            _openAppLocationSettings =
+                permission == LocationPermission.deniedForever;
+          });
         }
         return;
       }
@@ -361,10 +386,32 @@ class _ExploreMapState extends State<ExploreMap> {
         () => _currentLocation = LatLng(position.latitude, position.longitude),
       );
       _mapController.move(LatLng(position.latitude, position.longitude), 14);
-    } catch (_) {
+    } on TimeoutException {
       if (!mounted) return;
       setState(
-        () => _locationMessage = 'Lokasi belum berhasil didapat. Coba lagi di area dengan sinyal GPS.',
+        () => _locationMessage =
+            'Belum mendapat fix GPS setelah 15 detik. Coba lagi di luar '
+            'ruangan dengan pandangan langit terbuka.',
+      );
+    } on LocationServiceDisabledException {
+      if (!mounted) return;
+      setState(() {
+        _locationMessage = 'Aktifkan layanan lokasi perangkat.';
+        _openDeviceLocationSettings = true;
+      });
+    } on PermissionDeniedException {
+      if (!mounted) return;
+      setState(() {
+        _locationMessage =
+            'Izin lokasi dicabut. Izinkan kembali di pengaturan aplikasi.';
+        _openAppLocationSettings = true;
+      });
+    } on Exception {
+      if (!mounted) return;
+      setState(
+        () => _locationMessage =
+            'Perangkat gagal memberikan lokasi. Periksa izin dan pengaturan '
+            'akurasi lokasi, lalu coba lagi.',
       );
     } finally {
       if (mounted) setState(() => _isLocating = false);

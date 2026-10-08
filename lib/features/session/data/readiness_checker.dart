@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -13,6 +15,8 @@ class ReadinessReport {
     required this.notificationsGranted,
     required this.notificationsPermanentlyDenied,
     this.gpsAccuracyMeters,
+    this.gpsFixChecked = false,
+    this.gpsMessage,
   });
 
   final bool locationPermissionGranted;
@@ -24,8 +28,11 @@ class ReadinessReport {
   final bool notificationsGranted;
   final bool notificationsPermanentlyDenied;
   final double? gpsAccuracyMeters;
+  final bool gpsFixChecked;
+  final String? gpsMessage;
 
-  bool get canStartRecording => locationPermissionGranted;
+  bool get canStartRecording =>
+      locationPermissionGranted && locationServicesEnabled;
 
   bool get hasLimitedMetrics =>
       !locationServicesEnabled ||
@@ -38,8 +45,10 @@ abstract interface class ReadinessChecker {
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
   });
   Future<bool> openLocationSettings();
+  Future<bool> openLocationServiceSettings();
   Future<bool> openNotificationSettings();
 }
 
@@ -50,6 +59,7 @@ class DeviceReadinessChecker implements ReadinessChecker {
   Future<ReadinessReport> check({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
   }) async {
     var permission = await Geolocator.checkPermission();
     if (requestLocationPermission &&
@@ -65,17 +75,39 @@ class DeviceReadinessChecker implements ReadinessChecker {
     final locationServicesEnabled = await Geolocator.isLocationServiceEnabled();
 
     Position? position;
-    if (locationPermissionGranted && locationServicesEnabled) {
+    String? gpsMessage;
+    if (locationPermissionGranted &&
+        locationServicesEnabled &&
+        checkGpsFix) {
       try {
         position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.high,
-            timeLimit: Duration(seconds: 5),
+            timeLimit: Duration(seconds: 20),
           ),
         );
-      } catch (_) {
-        position = null;
+      } on TimeoutException {
+        gpsMessage =
+            'Belum mendapat fix GPS setelah 20 detik. Coba periksa di luar '
+            'ruangan dengan pandangan langit terbuka.';
+      } on LocationServiceDisabledException {
+        gpsMessage = 'Layanan lokasi perangkat dimatikan.';
+      } on PermissionDeniedException {
+        gpsMessage = 'Izin lokasi dicabut. Izinkan kembali di pengaturan.';
+      } on Exception {
+        gpsMessage =
+            'Perangkat gagal memberikan lokasi. Periksa izin dan pengaturan '
+            'akurasi lokasi, lalu coba lagi.';
       }
+    } else if (!locationServicesEnabled) {
+      gpsMessage = 'Aktifkan layanan lokasi perangkat untuk mendapat fix GPS.';
+    } else if (locationPermanentlyDenied) {
+      gpsMessage =
+          'Izin lokasi ditolak permanen. Aktifkan izin dari pengaturan aplikasi.';
+    } else if (!locationPermissionGranted) {
+      gpsMessage = 'Izinkan akses lokasi agar Senapath dapat memeriksa GPS.';
+    } else if (!checkGpsFix) {
+      gpsMessage = 'GPS belum dicek. Tekan “Cek GPS sekarang” untuk mencoba.';
     }
 
     final sensorAvailability = await Future.wait([
@@ -97,11 +129,18 @@ class DeviceReadinessChecker implements ReadinessChecker {
       notificationsGranted: notificationStatus.isGranted,
       notificationsPermanentlyDenied: notificationStatus.isPermanentlyDenied,
       gpsAccuracyMeters: position?.accuracy,
+      gpsFixChecked:
+          checkGpsFix && locationPermissionGranted && locationServicesEnabled,
+      gpsMessage: gpsMessage,
     );
   }
 
   @override
   Future<bool> openLocationSettings() => Geolocator.openAppSettings();
+
+  @override
+  Future<bool> openLocationServiceSettings() =>
+      Geolocator.openLocationSettings();
 
   @override
   Future<bool> openNotificationSettings() => openAppSettings();
