@@ -20,6 +20,7 @@ import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 import '../../features/session/domain/ride_session.dart';
+import '../../features/progress/presentation/activity_progress_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -68,6 +69,10 @@ final appRouter = GoRouter(
                   builder: (context, state) => LeaderboardScreen(
                     summary: state.extra as RideSessionSummary?,
                   ),
+                ),
+                GoRoute(
+                  path: 'progress',
+                  builder: (context, state) => const ActivityProgressScreen(),
                 ),
                 GoRoute(
                   path: 'account',
@@ -174,6 +179,7 @@ class _AppShellState extends State<_AppShell> {
       '/assistant' => 'Chat AI',
       '/feedback' => 'Saran & kesan',
       '/leaderboard' => 'Papan Peringkat',
+      '/progress' => 'Progres aktivitas',
       '/account' => 'Akun online',
       '/profile/settings' => 'Pengaturan',
       '/profile/sessions' => 'Riwayat sesi',

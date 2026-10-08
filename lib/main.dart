@@ -39,6 +39,8 @@ import 'features/feedback/data/supabase_feedback_gateway.dart';
 import 'features/feedback/presentation/feedback_cubit.dart';
 import 'features/leaderboard/data/supabase_leaderboard_gateway.dart';
 import 'features/leaderboard/presentation/leaderboard_cubit.dart';
+import 'features/progress/data/activity_goals_repository.dart';
+import 'features/progress/presentation/activity_goals_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,6 +109,9 @@ Future<void> main() async {
       ),
       leaderboardCubit: LeaderboardCubit(
         SupabaseLeaderboardGateway(supabaseClient, authSessionManager),
+      ),
+      activityGoalsCubit: ActivityGoalsCubit(
+        ActivityGoalsRepository(database),
       ),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,

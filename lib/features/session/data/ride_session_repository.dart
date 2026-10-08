@@ -11,6 +11,12 @@ abstract interface class RideSessionRepository {
   Future<List<RideSessionSnapshot>> loadCompletedSessions();
   Future<RideSessionSummary> loadSummary(String sessionId);
   Future<void> updateSyncStatus(String sessionId, String status);
+  Future<RideSessionSnapshot> updateActivityMetadata({
+    required String sessionId,
+    required String title,
+    required RideActivityType activityType,
+  });
+  Future<void> deleteCompletedSession(String sessionId);
   Future<List<TelemetryLocation>> loadTelemetryLocations(String sessionId);
   Future<RideSessionSnapshot> start(DateTime now);
   Future<RideSessionSnapshot> pause(String sessionId, DateTime now);
@@ -75,8 +81,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
                 (session) =>
                     session.status.equals(RideSessionStatus.completed.name),
               )
-              ..orderBy([(session) => OrderingTerm.desc(session.endedAt)])
-              ..limit(50))
+              ..orderBy([(session) => OrderingTerm.desc(session.endedAt)]))
             .get();
     return rows.map(_toSnapshot).toList(growable: false);
   }
@@ -186,6 +191,62 @@ class DriftRideSessionRepository implements RideSessionRepository {
     if (updated != 1) {
       throw StateError('Only a completed local session can be synchronized.');
     }
+  }
+
+  @override
+  Future<RideSessionSnapshot> updateActivityMetadata({
+    required String sessionId,
+    required String title,
+    required RideActivityType activityType,
+  }) async {
+    final normalizedTitle = title.trim();
+    if (normalizedTitle.length > 60) {
+      throw ArgumentError.value(
+        title,
+        'title',
+        'Must be 60 characters or less.',
+      );
+    }
+    final row = await _getSession(sessionId);
+    await (database.update(
+      database.rideSessions,
+    )..where((session) => session.id.equals(sessionId))).write(
+      RideSessionsCompanion(
+        title: Value(normalizedTitle),
+        activityType: Value(activityType.name),
+      ),
+    );
+    return RideSessionSnapshot(
+      id: row.id,
+      title: normalizedTitle,
+      activityType: activityType,
+      source: row.source,
+      startedAt: row.startedAt,
+      endedAt: row.endedAt,
+      pausedAt: row.pausedAt,
+      status: _parseStatus(row.status),
+      totalPausedMilliseconds: row.totalPausedMilliseconds,
+      distanceMeters: row.distanceMeters,
+      currentSpeedMetersPerSecond: row.currentSpeedMetersPerSecond,
+      syncStatus: row.syncStatus,
+      gpsAccuracyMeters: row.gpsAccuracyMeters,
+    );
+  }
+
+  @override
+  Future<void> deleteCompletedSession(String sessionId) async {
+    final row = await _getSession(sessionId);
+    if (row.status != RideSessionStatus.completed.name) {
+      throw StateError('Only a completed session can be deleted.');
+    }
+    await database.transaction(() async {
+      await (database.delete(
+        database.telemetryPoints,
+      )..where((point) => point.sessionId.equals(sessionId))).go();
+      await (database.delete(
+        database.rideSessions,
+      )..where((session) => session.id.equals(sessionId))).go();
+    });
   }
 
   @override
@@ -390,6 +451,9 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }) {
     return RideSessionSnapshot(
       id: row.id,
+      title: row.title,
+      activityType: _parseActivityType(row.activityType),
+      source: row.source,
       startedAt: row.startedAt,
       endedAt: endedAt ?? row.endedAt,
       pausedAt: pausedAt ?? row.pausedAt,
@@ -434,6 +498,13 @@ class DriftRideSessionRepository implements RideSessionRepository {
     'paused' => RideSessionStatus.paused,
     'completed' => RideSessionStatus.completed,
     _ => throw StateError('Unknown ride session status.'),
+  };
+
+  RideActivityType _parseActivityType(String value) => switch (value) {
+    'commute' => RideActivityType.commute,
+    'training' => RideActivityType.training,
+    'race' => RideActivityType.race,
+    _ => RideActivityType.ride,
   };
 
   String _newSessionId() {

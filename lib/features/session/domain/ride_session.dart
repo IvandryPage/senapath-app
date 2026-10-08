@@ -1,8 +1,13 @@
 enum RideSessionStatus { recording, paused, completed }
 
+enum RideActivityType { ride, commute, training, race }
+
 class RideSessionSnapshot {
   const RideSessionSnapshot({
     required this.id,
+    this.title = '',
+    this.activityType = RideActivityType.ride,
+    this.source = 'recorded',
     required this.startedAt,
     required this.status,
     required this.totalPausedMilliseconds,
@@ -15,6 +20,9 @@ class RideSessionSnapshot {
   });
 
   final String id;
+  final String title;
+  final RideActivityType activityType;
+  final String source;
   final DateTime startedAt;
   final DateTime? endedAt;
   final DateTime? pausedAt;
@@ -129,4 +137,15 @@ class RideSessionSummary {
   final int gyroscopeSampleCount;
 
   bool get hasSpeedGraph => speedSamples.length >= 5;
+
+  RideSessionSummary copyWith({RideSessionSnapshot? session}) =>
+      RideSessionSummary(
+        session: session ?? this.session,
+        sampleCount: sampleCount,
+        speedSamples: speedSamples,
+        elevationSource: elevationSource,
+        accelerometerSampleCount: accelerometerSampleCount,
+        gyroscopeSampleCount: gyroscopeSampleCount,
+        elevationGainMeters: elevationGainMeters,
+      );
 }

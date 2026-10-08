@@ -125,7 +125,22 @@ class _SessionScreenState extends State<SessionScreen> {
                     ),
                   )
                 else
-                  _buildHistory(context, state.completedSessions, unitSystem),
+                  ...[
+                    OutlinedButton.icon(
+                      onPressed: () => _exportAllSessions(
+                        context,
+                        state.completedSessions,
+                      ),
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Ekspor semua sesi dan jejak GPS'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHistory(
+                      context,
+                      state.completedSessions,
+                      unitSystem,
+                    ),
+                  ],
               ],
             );
           }
@@ -526,9 +541,15 @@ class _SessionScreenState extends State<SessionScreen> {
                 ),
               ),
               Text(
-                session == null
-                    ? 'Periksa perangkat sebelum merekam.'
-                    : 'Data sesi tersimpan lokal.',
+                switch (session?.status) {
+                  null => 'Periksa perangkat sebelum merekam.',
+                  RideSessionStatus.recording =>
+                    'Tersimpan lokal. Perekaman saat layar mati belum didukung atau diverifikasi.',
+                  RideSessionStatus.paused =>
+                    'Sesi tersimpan lokal dan menunggu dilanjutkan.',
+                  RideSessionStatus.completed =>
+                    'Data sesi tersimpan lokal.',
+                },
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -902,21 +923,129 @@ class _SessionScreenState extends State<SessionScreen> {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        for (final session in sessions.take(50))
+        for (final session in sessions)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.route_outlined),
-            title: Text(_formatSessionDate(session.startedAt)),
+            title: Text(
+              session.title.isEmpty
+                  ? _formatSessionDate(session.startedAt)
+                  : session.title,
+            ),
             subtitle: Text(
+              '${_activityTypeLabel(session.activityType)} · '
               '${_formatDistance(session.distanceMeters, metric)} · '
               '${_formatDuration(session.durationAt(session.endedAt ?? session.startedAt))} · '
               '${_syncStatusLabel(session.syncStatus)}',
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Hapus ${session.title.isEmpty ? 'sesi' : session.title}',
+                  onPressed: () => _confirmDeleteSession(context, session),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
             onTap: () => context.push('/profile/sessions/${session.id}'),
           ),
       ],
     );
+  }
+
+  Future<void> _confirmDeleteSession(
+    BuildContext context,
+    RideSessionSnapshot session,
+  ) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus aktivitas lokal?'),
+        content: const Text(
+          'Ringkasan dan titik GPS sesi ini akan dihapus dari perangkat. '
+          'Salinan yang pernah disinkronkan ke cloud tidak ikut terhapus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Hapus dari perangkat'),
+          ),
+        ],
+      ),
+    );
+    if (approved == true && context.mounted) {
+      await context.read<RideSessionCubit>().deleteCompletedSession(session.id);
+    }
+  }
+
+  Future<void> _exportAllSessions(
+    BuildContext context,
+    List<RideSessionSnapshot> sessions,
+  ) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ekspor semua sesi?'),
+        content: const Text(
+          'File JSON akan memuat ringkasan dan jejak lokasi GPS semua sesi '
+          'selesai di perangkat ini. Simpan dan bagikan file hanya kepada '
+          'orang yang kamu percaya.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Lanjut ekspor'),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !context.mounted) return;
+
+    try {
+      final repository = context.read<RideSessionCubit>().repository;
+      final activities = <({
+        RideSessionSnapshot session,
+        List<TelemetryLocation> locations,
+      })>[];
+      for (final session in sessions) {
+        activities.add((
+          session: session,
+          locations: await repository.loadTelemetryLocations(session.id),
+        ));
+      }
+      final content = _fileExchange.fileService.toJsonArchive(
+        activities: activities,
+      );
+      final saved = await _fileExchange.exportText(
+        content: content,
+        suggestedName: 'senapath-activities.json',
+        extension: 'json',
+        mimeType: 'application/json',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            saved ? 'Ekspor aktivitas selesai.' : 'Ekspor dibatalkan.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ekspor aktivitas gagal.')),
+      );
+    }
   }
 
   Widget _buildSummaryDetail(
@@ -974,18 +1103,24 @@ class _SessionScreenState extends State<SessionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ringkasan sesi',
+                    session.title.isEmpty ? 'Ringkasan sesi' : session.title,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatSessionDate(session.startedAt),
+                    '${_activityTypeLabel(session.activityType)} · '
+                    '${_formatSessionDate(session.startedAt)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: 'Ubah nama dan jenis aktivitas',
+              onPressed: () => _editActivityMetadata(context, session),
+              icon: const Icon(Icons.edit_outlined),
             ),
           ],
         ),
@@ -1151,6 +1286,70 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
+  Future<void> _editActivityMetadata(
+    BuildContext context,
+    RideSessionSnapshot session,
+  ) async {
+    final titleController = TextEditingController(text: session.title);
+    var activityType = session.activityType;
+    final result = await showDialog<(String, RideActivityType)>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Detail aktivitas'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                maxLength: 60,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Nama aktivitas',
+                  hintText: 'Contoh: Gowes pagi',
+                ),
+              ),
+              DropdownButtonFormField<RideActivityType>(
+                initialValue: activityType,
+                decoration: const InputDecoration(labelText: 'Jenis'),
+                items: [
+                  for (final type in RideActivityType.values)
+                    DropdownMenuItem(
+                      value: type,
+                      child: Text(_activityTypeLabel(type)),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => activityType = value);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                (titleController.text, activityType),
+              ),
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
+      ),
+    );
+    titleController.dispose();
+    if (result == null || !context.mounted) return;
+    await context.read<RideSessionCubit>().updateActivityMetadata(
+      sessionId: session.id,
+      title: result.$1,
+      activityType: result.$2,
+    );
+  }
+
   List<double> _elevationProfile(
     List<TelemetryLocation> locations, {
     required String source,
@@ -1280,6 +1479,13 @@ class _SessionScreenState extends State<SessionScreen> {
     'syncing' => 'Sedang disinkronkan',
     'failed' => 'Lokal · Sinkronisasi gagal',
     _ => 'Tersimpan lokal · Belum disinkronkan',
+  };
+
+  String _activityTypeLabel(RideActivityType type) => switch (type) {
+    RideActivityType.ride => 'Bersepeda',
+    RideActivityType.commute => 'Komuter',
+    RideActivityType.training => 'Latihan',
+    RideActivityType.race => 'Balapan',
   };
 
   Future<void> _exportSession(

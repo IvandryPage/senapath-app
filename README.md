@@ -65,6 +65,8 @@ Senapath menggunakan **tema terang** di seluruh aplikasi, terlepas dari pengatur
 
 Beranda dan tab Jelajah menampilkan basemap OpenStreetMap online. Peta aktivitas tidak menampilkan perpustakaan rute yang tersimpan; jalur baru muncul di peta sesi setelah dipilih saat mulai merekam. Tombol lokasi meminta izin hanya saat digunakan; tanpa izin, peta tetap dapat digeser dan diperbesar di sekitar Yogyakarta. Tile peta dimuat online dan tidak tersedia offline; file GPX tetap tersimpan lokal dan jalurnya tetap ditampilkan saat basemap gagal dimuat atau perangkat offline. Peta menyediakan status tile dan tombol muat ulang, serta atribusi OpenStreetMap. Izin lokasi dan layanan GPS perangkat diperlukan untuk posisi langsung.
 
+Rekaman sesi saat ini berjalan melalui stream lokasi aplikasi dan setiap titik yang diterima disimpan lokal. Jika aplikasi dibuka kembali ketika sesi masih aktif, status dipulihkan sebagai jeda untuk dikonfirmasi. **Perekaman saat layar mati, force-stop, atau proses OS dihentikan belum didukung maupun diverifikasi pada perangkat**, jadi jangan mengandalkan Senapath untuk merekam tanpa aplikasi tetap aktif. Background service, izin foreground service, konsumsi baterai, dan matriks uji perangkat masih menjadi backlog.
+
 ### Pencarian rute sepeda Google Maps
 
 Di **Jelajah**, ketik nama tempat/alamat lalu tekan cari. Aplikasi meminta izin dan posisi GPS sebagai titik awal; Supabase Edge Function `cycling-route` memanggil Google Directions API dengan mode bersepeda. Rute online divisualisasikan di Google Maps SDK, sedangkan GPX lokal tetap menggunakan OpenStreetMap. Rute online hanya sementara, tidak disimpan sebagai GPX, dan tidak menyediakan navigasi belokan demi belokan.
@@ -155,7 +157,9 @@ Jika sebuah key pernah dibagikan lewat chat, screenshot, log, atau commit, cabut
 
 Tanpa Directions key dan konfigurasi backend, pencarian rute tidak aktif. Tanpa SDK key platform, Google basemap untuk rute hasil pencarian tidak akan tampil dengan benar. Impor GPX lokal/OpenStreetMap tetap dapat digunakan secara terpisah.
 
-Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. Tab profil dan jelajah dapat dibuka langsung dari dashboard.
+Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. **Beranda → Lihat progres** menampilkan agregat mingguan (Senin–Senin) dan bulanan dengan jarak, jumlah sesi selesai, durasi aktif, serta daftar sesi sumber yang dapat dibuka kembali. Semua sesi selesai lokal digunakan, bukan hanya 50 terbaru. Target jarak, jumlah sesi, atau durasi dapat dibuat untuk periode mingguan/bulanan; target disimpan lokal di database preferensi dan tidak disinkronkan.
+
+Riwayat sesi menyimpan judul, jenis aktivitas (bersepeda, komuter, latihan, atau balapan), dan sumber pencatatan lokal. Judul dan jenis dapat diubah dari detail ringkasan tanpa mengubah titik GPS/telemetri. Aktivitas lama mendapat nilai bawaan saat migrasi database lokal versi 7. Metadata ini saat ini hanya lokal; payload sinkronisasi cloud tetap hanya memuat ringkasan yang dijelaskan pada bagian sinkronisasi. Dari **Profil → Riwayat sesi**, ekspor JSON dapat mencakup seluruh sesi selesai dan jejak GPS lokal. Aplikasi meminta konfirmasi sebelum ekspor karena koordinat merupakan data sensitif. Aktivitas selesai juga dapat dihapus dari perangkat; salinan yang pernah tersinkron ke cloud harus dikelola terpisah. Ekspor dan penghapusan seluruh data profil/rute/preferences maupun penghapusan akun/cloud belum tersedia.
 
 Impor GPX menerima file hingga 10 MB, memvalidasi titik track, dan mempertahankan nama/deskripsi yang tersedia. Jarak dan elevasi mengikuti sistem satuan yang dipilih di Profil. Bagian **Profil → Penyimpanan offline** menampilkan ukuran database dan direktori cache peta serta dapat menghapus cache peta tanpa menghapus sesi atau rute.
 

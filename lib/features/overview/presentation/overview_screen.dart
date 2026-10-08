@@ -123,6 +123,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   onPressed: () => context.go('/profile/sessions'),
                   child: const Text('Riwayat'),
                 ),
+                TextButton(
+                  onPressed: () => context.go('/progress'),
+                  child: const Text('Lihat progres'),
+                ),
               ],
             ),
             Row(

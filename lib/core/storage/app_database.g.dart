@@ -226,6 +226,38 @@ class $RideSessionsTable extends RideSessions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _activityTypeMeta = const VerificationMeta(
+    'activityType',
+  );
+  @override
+  late final GeneratedColumn<String> activityType = GeneratedColumn<String>(
+    'activity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ride'),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('recorded'),
+  );
   static const VerificationMeta _startedAtMeta = const VerificationMeta(
     'startedAt',
   );
@@ -331,6 +363,9 @@ class $RideSessionsTable extends RideSessions
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    title,
+    activityType,
+    source,
     startedAt,
     endedAt,
     pausedAt,
@@ -357,6 +392,27 @@ class $RideSessionsTable extends RideSessions
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('activity_type')) {
+      context.handle(
+        _activityTypeMeta,
+        activityType.isAcceptableOrUnknown(
+          data['activity_type']!,
+          _activityTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
     }
     if (data.containsKey('started_at')) {
       context.handle(
@@ -441,6 +497,18 @@ class $RideSessionsTable extends RideSessions
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      activityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}activity_type'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
       startedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}started_at'],
@@ -488,6 +556,9 @@ class $RideSessionsTable extends RideSessions
 
 class RideSession extends DataClass implements Insertable<RideSession> {
   final String id;
+  final String title;
+  final String activityType;
+  final String source;
   final DateTime startedAt;
   final DateTime? endedAt;
   final DateTime? pausedAt;
@@ -499,6 +570,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
   final double? gpsAccuracyMeters;
   const RideSession({
     required this.id,
+    required this.title,
+    required this.activityType,
+    required this.source,
     required this.startedAt,
     this.endedAt,
     this.pausedAt,
@@ -513,6 +587,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['activity_type'] = Variable<String>(activityType);
+    map['source'] = Variable<String>(source);
     map['started_at'] = Variable<DateTime>(startedAt);
     if (!nullToAbsent || endedAt != null) {
       map['ended_at'] = Variable<DateTime>(endedAt);
@@ -536,6 +613,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
   RideSessionsCompanion toCompanion(bool nullToAbsent) {
     return RideSessionsCompanion(
       id: Value(id),
+      title: Value(title),
+      activityType: Value(activityType),
+      source: Value(source),
       startedAt: Value(startedAt),
       endedAt: endedAt == null && nullToAbsent
           ? const Value.absent()
@@ -561,6 +641,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RideSession(
       id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      activityType: serializer.fromJson<String>(json['activityType']),
+      source: serializer.fromJson<String>(json['source']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
       pausedAt: serializer.fromJson<DateTime?>(json['pausedAt']),
@@ -583,6 +666,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'activityType': serializer.toJson<String>(activityType),
+      'source': serializer.toJson<String>(source),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'endedAt': serializer.toJson<DateTime?>(endedAt),
       'pausedAt': serializer.toJson<DateTime?>(pausedAt),
@@ -601,6 +687,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
 
   RideSession copyWith({
     String? id,
+    String? title,
+    String? activityType,
+    String? source,
     DateTime? startedAt,
     Value<DateTime?> endedAt = const Value.absent(),
     Value<DateTime?> pausedAt = const Value.absent(),
@@ -612,6 +701,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
     Value<double?> gpsAccuracyMeters = const Value.absent(),
   }) => RideSession(
     id: id ?? this.id,
+    title: title ?? this.title,
+    activityType: activityType ?? this.activityType,
+    source: source ?? this.source,
     startedAt: startedAt ?? this.startedAt,
     endedAt: endedAt.present ? endedAt.value : this.endedAt,
     pausedAt: pausedAt.present ? pausedAt.value : this.pausedAt,
@@ -629,6 +721,11 @@ class RideSession extends DataClass implements Insertable<RideSession> {
   RideSession copyWithCompanion(RideSessionsCompanion data) {
     return RideSession(
       id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      activityType: data.activityType.present
+          ? data.activityType.value
+          : this.activityType,
+      source: data.source.present ? data.source.value : this.source,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
       endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
       pausedAt: data.pausedAt.present ? data.pausedAt.value : this.pausedAt,
@@ -655,6 +752,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
   String toString() {
     return (StringBuffer('RideSession(')
           ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('activityType: $activityType, ')
+          ..write('source: $source, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('pausedAt: $pausedAt, ')
@@ -671,6 +771,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
   @override
   int get hashCode => Object.hash(
     id,
+    title,
+    activityType,
+    source,
     startedAt,
     endedAt,
     pausedAt,
@@ -686,6 +789,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
       identical(this, other) ||
       (other is RideSession &&
           other.id == this.id &&
+          other.title == this.title &&
+          other.activityType == this.activityType &&
+          other.source == this.source &&
           other.startedAt == this.startedAt &&
           other.endedAt == this.endedAt &&
           other.pausedAt == this.pausedAt &&
@@ -700,6 +806,9 @@ class RideSession extends DataClass implements Insertable<RideSession> {
 
 class RideSessionsCompanion extends UpdateCompanion<RideSession> {
   final Value<String> id;
+  final Value<String> title;
+  final Value<String> activityType;
+  final Value<String> source;
   final Value<DateTime> startedAt;
   final Value<DateTime?> endedAt;
   final Value<DateTime?> pausedAt;
@@ -712,6 +821,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
   final Value<int> rowid;
   const RideSessionsCompanion({
     this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.activityType = const Value.absent(),
+    this.source = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
     this.pausedAt = const Value.absent(),
@@ -725,6 +837,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
   });
   RideSessionsCompanion.insert({
     required String id,
+    this.title = const Value.absent(),
+    this.activityType = const Value.absent(),
+    this.source = const Value.absent(),
     required DateTime startedAt,
     this.endedAt = const Value.absent(),
     this.pausedAt = const Value.absent(),
@@ -740,6 +855,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
        status = Value(status);
   static Insertable<RideSession> custom({
     Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? activityType,
+    Expression<String>? source,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? endedAt,
     Expression<DateTime>? pausedAt,
@@ -753,6 +871,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (activityType != null) 'activity_type': activityType,
+      if (source != null) 'source': source,
       if (startedAt != null) 'started_at': startedAt,
       if (endedAt != null) 'ended_at': endedAt,
       if (pausedAt != null) 'paused_at': pausedAt,
@@ -770,6 +891,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
 
   RideSessionsCompanion copyWith({
     Value<String>? id,
+    Value<String>? title,
+    Value<String>? activityType,
+    Value<String>? source,
     Value<DateTime>? startedAt,
     Value<DateTime?>? endedAt,
     Value<DateTime?>? pausedAt,
@@ -783,6 +907,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
   }) {
     return RideSessionsCompanion(
       id: id ?? this.id,
+      title: title ?? this.title,
+      activityType: activityType ?? this.activityType,
+      source: source ?? this.source,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       pausedAt: pausedAt ?? this.pausedAt,
@@ -803,6 +930,15 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (activityType.present) {
+      map['activity_type'] = Variable<String>(activityType.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
     }
     if (startedAt.present) {
       map['started_at'] = Variable<DateTime>(startedAt.value);
@@ -845,6 +981,9 @@ class RideSessionsCompanion extends UpdateCompanion<RideSession> {
   String toString() {
     return (StringBuffer('RideSessionsCompanion(')
           ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('activityType: $activityType, ')
+          ..write('source: $source, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('pausedAt: $pausedAt, ')
@@ -2600,6 +2739,9 @@ typedef $$AppPreferencesTableProcessedTableManager =
 typedef $$RideSessionsTableCreateCompanionBuilder =
     RideSessionsCompanion Function({
       required String id,
+      Value<String> title,
+      Value<String> activityType,
+      Value<String> source,
       required DateTime startedAt,
       Value<DateTime?> endedAt,
       Value<DateTime?> pausedAt,
@@ -2614,6 +2756,9 @@ typedef $$RideSessionsTableCreateCompanionBuilder =
 typedef $$RideSessionsTableUpdateCompanionBuilder =
     RideSessionsCompanion Function({
       Value<String> id,
+      Value<String> title,
+      Value<String> activityType,
+      Value<String> source,
       Value<DateTime> startedAt,
       Value<DateTime?> endedAt,
       Value<DateTime?> pausedAt,
@@ -2662,6 +2807,21 @@ class $$RideSessionsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get activityType => $composableBuilder(
+    column: $table.activityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2750,6 +2910,21 @@ class $$RideSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get activityType => $composableBuilder(
+    column: $table.activityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startedAt => $composableBuilder(
     column: $table.startedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2807,6 +2982,17 @@ class $$RideSessionsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get activityType => $composableBuilder(
+    column: $table.activityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
 
   GeneratedColumn<DateTime> get startedAt =>
       $composableBuilder(column: $table.startedAt, builder: (column) => column);
@@ -2900,6 +3086,9 @@ class $$RideSessionsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> activityType = const Value.absent(),
+                Value<String> source = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<DateTime?> pausedAt = const Value.absent(),
@@ -2913,6 +3102,9 @@ class $$RideSessionsTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => RideSessionsCompanion(
                 id: id,
+                title: title,
+                activityType: activityType,
+                source: source,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 pausedAt: pausedAt,
@@ -2927,6 +3119,9 @@ class $$RideSessionsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String> title = const Value.absent(),
+                Value<String> activityType = const Value.absent(),
+                Value<String> source = const Value.absent(),
                 required DateTime startedAt,
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<DateTime?> pausedAt = const Value.absent(),
@@ -2940,6 +3135,9 @@ class $$RideSessionsTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => RideSessionsCompanion.insert(
                 id: id,
+                title: title,
+                activityType: activityType,
+                source: source,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 pausedAt: pausedAt,

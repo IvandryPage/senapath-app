@@ -38,6 +38,8 @@ import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
 import 'package:senapath/features/session/data/session_file_service.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
+import 'package:senapath/features/progress/data/activity_goals_repository.dart';
+import 'package:senapath/features/progress/presentation/activity_goals_cubit.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -116,6 +118,9 @@ void main() {
             ),
           ),
         ),
+        activityGoalsCubit: ActivityGoalsCubit(
+          ActivityGoalsRepository(database),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -125,16 +130,8 @@ void main() {
     expect(configuredApp.darkTheme, isNull);
     expect(configuredApp.theme?.brightness, Brightness.light);
 
-    print(
-      'SESSION CUBIT STATE: isInitialized=${sessionCubit.state.isInitialized}, isLoading=${sessionCubit.state.isLoading}, error=${sessionCubit.state.message}, sessions=${sessionCubit.state.completedSessions.length}',
-    );
     await tester.drag(find.text('Hai, siap gowes?'), const Offset(0, -600));
     await tester.pumpAndSettle();
-    for (final element in find.byType(Text).evaluate()) {
-      print(
-        'FOUND TEXT AFTER DRAG: ${(element.widget as Text).data ?? (element.widget as Text).textSpan?.toPlainText()}',
-      );
-    }
     expect(find.text('Belum ada sesi'), findsOneWidget);
 
     final leaderboardShortcut = find.byKey(
@@ -295,16 +292,23 @@ void main() {
     expect(find.text('Hotel'), findsNothing);
 
     await tester.tap(find.text('Profil').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+    expect(find.text('Perpustakaan rute'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
     expect(find.text('Akun online'), findsOneWidget);
-    await tester.ensureVisible(find.text('Tema terang'));
+    await tester.tap(find.text('Pengaturan'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Tema terang'), findsOneWidget);
     expect(find.text('Gelap'), findsNothing);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.light);
     expect(app.darkTheme, isNull);
     expect(app.theme?.brightness, Brightness.light);
+    await tester.tap(find.byType(BackButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.ensureVisible(find.text('Akun online'));
     await tester.tap(find.text('Akun online'));
     await tester.pump();
@@ -314,6 +318,17 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Beranda').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Kontak darurat'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Kontak darurat'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Tambah kontak darurat'));

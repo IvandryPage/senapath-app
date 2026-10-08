@@ -59,7 +59,10 @@ Status yang perlu diverifikasi lagi sebelum planning:
 - Basemap OpenStreetMap online ditampilkan di Beranda/Jelajah dan pada preview/panduan GPX; pusat awal peta saat ini Yogyakarta. Tile perlu internet; geocoding, pencarian rute online, turn-by-turn, dan provider tile produksi belum tersedia/diputuskan.
 - Konversi waktu kini memakai database zona waktu IANA lokal yang dapat dicari, termasuk penanganan waktu DST hilang/berulang; konversi kurs tetap hanya referensi harian/manual, bukan kurs live.
 - Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.
-- Feed aktivitas, peta Beranda/Jelajah, dan mini-game strategi lokal telah memiliki UI; hal itu tidak membuktikan kualitas produksi, akurasi ride capture background, insight progres, integrasi push, AI analitik, atau proof blockchain.
+- Progres aktivitas lokal sekarang menghitung frekuensi, jarak, dan durasi aktif untuk minggu/bulan berjalan, membandingkan periode kalender sebelumnya, dan menautkan agregat ke sesi selesai sumber. Target sesi/jarak/durasi mingguan/bulanan disimpan lokal. Elevasi agregat, metrik progres tambahan, serta validasi lengkap zona waktu/perangkat belum selesai.
+- Sesi lokal kini memiliki judul, jenis, sumber pencatatan, migrasi Drift versi 7, edit metadata, ekspor arsip JSON seluruh sesi selesai beserta GPS, dan penghapusan sesi lokal. Ini bukan ekspor/penghapusan seluruh akun: profil, rute, preferensi, dan salinan cloud belum dicakup oleh lifecycle penuh.
+- Feed aktivitas, peta Beranda/Jelajah, dan mini-game strategi lokal telah memiliki UI; hal itu tidak membuktikan kualitas produksi, akurasi ride capture background, workout interval, integrasi push, AI analitik, atau proof blockchain.
+- Recovery yang ada mengubah sesi `recording` tersimpan menjadi `paused` saat startup; itu tidak membuktikan rekaman saat layar mati, force-stop, atau proses OS dihentikan. Background service dan validasi perangkat belum tersedia.
 - Build distribusi, perangkat sasaran, pemantauan, pemulihan, serta dukungan rilis perlu memiliki bukti yang dapat diulang.
 
 Perbarui baseline ini hanya berdasarkan demonstrasi, konfigurasi yang aman, hasil tes, dan bukti deployment. Jangan menandai item selesai hanya karena UI, dependency, mock, atau fungsi lokal tersedia.

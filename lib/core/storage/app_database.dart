@@ -13,6 +13,10 @@ class AppPreferences extends Table {
 
 class RideSessions extends Table {
   TextColumn get id => text()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get activityType =>
+      text().withDefault(const Constant('ride'))();
+  TextColumn get source => text().withDefault(const Constant('recorded'))();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
   DateTimeColumn get pausedAt => dateTime().nullable()();
@@ -88,7 +92,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,6 +113,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await migrator.createTable(strategyGameResults);
+      }
+      if (from < 7) {
+        await migrator.addColumn(rideSessions, rideSessions.title);
+        await migrator.addColumn(rideSessions, rideSessions.activityType);
+        await migrator.addColumn(rideSessions, rideSessions.source);
       }
     },
   );

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/features/session/data/session_file_service.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
@@ -39,6 +41,43 @@ void main() {
     expect(output, contains('senapath.session'));
     expect(output, contains('session-1'));
     expect(output, contains('latitude'));
+    expect(output, contains('"title": ""'));
+    expect(output, contains('"activityType": "ride"'));
+    expect(output, contains('"source": "recorded"'));
+  });
+
+  test('activity archive contains all sessions and traceable GPS samples', () {
+    final secondSession = RideSessionSnapshot(
+      id: 'session-2',
+      title: 'Gowes sore',
+      activityType: RideActivityType.commute,
+      startedAt: DateTime.utc(2026, 10, 2, 8),
+      endedAt: DateTime.utc(2026, 10, 2, 9),
+      status: RideSessionStatus.completed,
+      totalPausedMilliseconds: 0,
+      distanceMeters: 2500,
+      currentSpeedMetersPerSecond: 4,
+    );
+    final archive = jsonDecode(
+      service.toJsonArchive(
+        activities: [
+          (session: session, locations: locations),
+          (session: secondSession, locations: locations.take(1).toList()),
+        ],
+      ),
+    ) as Map<String, dynamic>;
+    final activities = archive['activities'] as List<dynamic>;
+
+    expect(archive['type'], 'senapath.activity-export');
+    expect(activities, hasLength(2));
+    expect(
+      (activities[1] as Map<String, dynamic>)['session']['title'],
+      'Gowes sore',
+    );
+    expect(
+      (activities[1] as Map<String, dynamic>)['track'],
+      hasLength(1),
+    );
   });
 
   test('GPX export can be parsed back into route points', () {

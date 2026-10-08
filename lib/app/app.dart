@@ -12,6 +12,7 @@ import '../features/logistics/presentation/logistics_cubit.dart';
 import '../features/strategy_game/presentation/strategy_game_cubit.dart';
 import '../features/feedback/presentation/feedback_cubit.dart';
 import '../features/leaderboard/presentation/leaderboard_cubit.dart';
+import '../features/progress/presentation/activity_goals_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -28,6 +29,7 @@ class SenapathApp extends StatelessWidget {
     required this.aiChatCubit,
     required this.feedbackCubit,
     required this.leaderboardCubit,
+    required this.activityGoalsCubit,
     super.key,
   });
 
@@ -42,6 +44,7 @@ class SenapathApp extends StatelessWidget {
   final AiChatCubit aiChatCubit;
   final FeedbackCubit feedbackCubit;
   final LeaderboardCubit leaderboardCubit;
+  final ActivityGoalsCubit activityGoalsCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +61,7 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: aiChatCubit),
         BlocProvider.value(value: feedbackCubit),
         BlocProvider.value(value: leaderboardCubit),
+        BlocProvider.value(value: activityGoalsCubit),
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) =>

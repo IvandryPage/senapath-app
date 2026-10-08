@@ -336,6 +336,50 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  Future<void> updateActivityMetadata({
+    required String sessionId,
+    required String title,
+    required RideActivityType activityType,
+  }) async {
+    try {
+      final updated = await repository.updateActivityMetadata(
+        sessionId: sessionId,
+        title: title,
+        activityType: activityType,
+      );
+      final history = [
+        for (final session in state.completedSessions)
+          if (session.id == sessionId) updated else session,
+      ];
+      final summary = state.summary?.session.id == sessionId
+          ? state.summary!.copyWith(session: updated)
+          : state.summary;
+      emit(state.copyWith(completedSessions: history, summary: summary));
+    } catch (_) {
+      _setMessage('Nama atau jenis aktivitas tidak dapat disimpan.');
+    }
+  }
+
+  Future<void> deleteCompletedSession(String sessionId) async {
+    try {
+      await repository.deleteCompletedSession(sessionId);
+      final history = state.completedSessions
+          .where((session) => session.id != sessionId)
+          .toList(growable: false);
+      final clearSummary = state.summary?.session.id == sessionId;
+      emit(
+        state.copyWith(
+          completedSessions: history,
+          clearSummary: clearSummary,
+          message:
+              'Aktivitas lokal dihapus. Salinan cloud, jika ada, tidak ikut dihapus.',
+        ),
+      );
+    } catch (_) {
+      _setMessage('Aktivitas lokal tidak dapat dihapus.');
+    }
+  }
+
   Future<void> syncSummary(String sessionId, {required bool consented}) async {
     final coordinator = syncCoordinator;
     if (coordinator == null) {

@@ -107,6 +107,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const Divider(height: 1),
         ListTile(
+          leading: const Icon(Icons.insights_outlined),
+          title: const Text('Progres dan target'),
+          subtitle: const Text('Statistik aktivitas mingguan dan bulanan'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/progress'),
+        ),
+        const Divider(height: 1),
+        ListTile(
           leading: const Icon(Icons.route_outlined),
           title: const Text('Rute tersimpan'),
           subtitle: const Text('Kelola GPX untuk perjalanan berikutnya'),

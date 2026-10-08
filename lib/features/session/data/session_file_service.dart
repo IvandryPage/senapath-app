@@ -30,6 +30,9 @@ class SessionFileService {
       'type': 'senapath.session',
       'session': {
         'id': session.id,
+        'title': session.title,
+        'activityType': session.activityType.name,
+        'source': session.source,
         'startedAt': session.startedAt.toUtc().toIso8601String(),
         'endedAt': session.endedAt?.toUtc().toIso8601String(),
         'distanceMeters': session.distanceMeters,
@@ -37,6 +40,29 @@ class SessionFileService {
         'syncStatus': session.syncStatus,
       },
       'track': locations.map(_locationJson).toList(growable: false),
+    };
+    return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
+  String toJsonArchive({
+    required List<
+      ({RideSessionSnapshot session, List<TelemetryLocation> locations})
+    >
+    activities,
+  }) {
+    final payload = {
+      'schemaVersion': 1,
+      'type': 'senapath.activity-export',
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'activities': [
+        for (final activity in activities)
+          jsonDecode(
+            toJson(
+              session: activity.session,
+              locations: activity.locations,
+            ),
+          ),
+      ],
     };
     return const JsonEncoder.withIndent('  ').convert(payload);
   }

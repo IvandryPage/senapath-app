@@ -116,6 +116,66 @@ void main() {
     expect(summary.elevationSource, 'Tidak tersedia');
     expect(summary.hasSpeedGraph, isFalse);
   });
+
+  test(
+    'updates activity metadata without changing recorded telemetry',
+    () async {
+      final startedAt = DateTime.utc(2026, 9, 30, 15);
+      final session = await repository.start(startedAt);
+      await repository.recordLocation(
+        sessionId: session.id,
+        location: TelemetryLocation(
+          recordedAt: startedAt,
+          latitude: -6.2,
+          longitude: 106.8,
+          accuracyMeters: 5,
+          altitudeMeters: 20,
+          speedMetersPerSecond: 2,
+        ),
+        addedDistanceMeters: 0,
+      );
+      final before = await repository.loadTelemetryLocations(session.id);
+
+      final updated = await repository.updateActivityMetadata(
+        sessionId: session.id,
+        title: '  Gowes pagi  ',
+        activityType: RideActivityType.training,
+      );
+      final restored = await repository.loadSummary(session.id);
+      final after = await repository.loadTelemetryLocations(session.id);
+
+      expect(updated.title, 'Gowes pagi');
+      expect(updated.activityType, RideActivityType.training);
+      expect(updated.source, 'recorded');
+      expect(restored.session.title, 'Gowes pagi');
+      expect(
+        after.map((point) => point.toJson()).toList(),
+        before.map((point) => point.toJson()).toList(),
+      );
+    },
+  );
+
+  test('deletes completed session and its telemetry atomically', () async {
+    final session = await repository.start(DateTime.utc(2026, 9, 30, 16));
+    await repository.recordLocation(
+      sessionId: session.id,
+      location: TelemetryLocation(
+        recordedAt: DateTime.utc(2026, 9, 30, 16),
+        latitude: -6.2,
+        longitude: 106.8,
+        accuracyMeters: 5,
+        altitudeMeters: 20,
+        speedMetersPerSecond: 2,
+      ),
+      addedDistanceMeters: 0,
+    );
+    await repository.finish(session.id, DateTime.utc(2026, 9, 30, 17));
+
+    await repository.deleteCompletedSession(session.id);
+
+    expect(await repository.loadCompletedSessions(), isEmpty);
+    expect(await repository.loadTelemetryLocations(session.id), isEmpty);
+  });
 }
 
 class _MemorySecureVault implements SecureVault {

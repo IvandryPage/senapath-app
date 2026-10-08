@@ -25,7 +25,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Waktu dunia'));
+    await tester.ensureVisible(find.text('Waktu acara'));
+    await tester.tap(find.text('Waktu acara'));
     await tester.pumpAndSettle();
 
     final scrollable = find.byType(Scrollable).first;

@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 
 import '../../session/data/session_file_service.dart';
+
 class RouteFileExchange {
   const RouteFileExchange(this.fileService);
 
@@ -36,7 +38,7 @@ class RouteFileExchange {
     );
     if (location == null) return false;
     await XFile.fromData(
-      Uint8List.fromList(content.codeUnits),
+      Uint8List.fromList(utf8.encode(content)),
       name: suggestedName,
       mimeType: mimeType,
     ).saveTo(location.path);
