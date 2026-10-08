@@ -23,11 +23,6 @@ const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
   (label: 'Jelajah', icon: Icons.map_outlined, selectedIcon: Icons.map),
   (
-    label: 'Sesi',
-    icon: Icons.directions_bike_outlined,
-    selectedIcon: Icons.directions_bike,
-  ),
-  (
     label: 'Logistik',
     icon: Icons.currency_exchange_outlined,
     selectedIcon: Icons.currency_exchange,
@@ -43,6 +38,7 @@ final appRouter = GoRouter(
       builder: (context, state) =>
           PasswordResetScreen(token: state.uri.queryParameters['token'] ?? ''),
     ),
+    GoRoute(path: '/session', redirect: (context, state) => '/routes'),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           _AppShell(navigationShell: navigationShell, location: state.uri.path),
@@ -97,14 +93,6 @@ final appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/session',
-              builder: (context, state) => const SessionScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
               path: '/logistics',
               builder: (context, state) => const LogisticsScreen(),
             ),
@@ -116,6 +104,11 @@ final appRouter = GoRouter(
               path: '/profile',
               builder: (context, state) => const ProfileScreen(),
               routes: [
+                GoRoute(
+                  path: 'sessions',
+                  builder: (context, state) =>
+                      const SessionScreen(showMap: false, historyOnly: true),
+                ),
                 GoRoute(
                   path: 'settings',
                   builder: (context, state) => const ProfileSettingsScreen(),
@@ -155,13 +148,21 @@ class _AppShellState extends State<_AppShell> {
       '/leaderboard' => 'Papan Peringkat',
       '/account' => 'Akun online',
       '/profile/settings' => 'Pengaturan',
+      '/profile/sessions' => 'Riwayat sesi',
       '/routes/navigation' => 'Panduan Rute',
       _ => _destinations[widget.navigationShell.currentIndex].label,
+    };
+    final isSubmenu = switch (widget.location) {
+      '/' || '/routes' || '/logistics' || '/profile' => false,
+      _ => true,
     };
 
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
+        leading: isSubmenu
+            ? BackButton(onPressed: () => context.pop())
+            : null,
       ),
       body: SafeArea(top: false, child: widget.navigationShell),
       bottomNavigationBar: NavigationBar(

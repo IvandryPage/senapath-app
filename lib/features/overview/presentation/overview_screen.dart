@@ -83,7 +83,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
             const SizedBox(height: 16),
             _WelcomeCard(
               onExplore: () => context.go('/routes'),
-              onStart: () => context.go('/session'),
+              onStart: () => context.go('/routes'),
             ),
             const SizedBox(height: 20),
             Row(
@@ -114,7 +114,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => context.go('/session'),
+                  onPressed: () => context.go('/profile/sessions'),
                   child: const Text('Riwayat'),
                 ),
               ],
@@ -150,7 +150,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ),
                 if (sessions.isNotEmpty)
                   TextButton(
-                    onPressed: () => context.go('/session'),
+                    onPressed: () => context.go('/profile/sessions'),
                     child: const Text('Lihat semua'),
                   ),
               ],
@@ -166,7 +166,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
               for (final session in sessions.take(3))
                 _ActivityCard(
                   session: session,
-                  onTap: () => context.go('/session'),
+                  onTap: () => context.go('/profile/sessions'),
                 ),
             const SizedBox(height: 18),
             Text(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/core/units/unit_settings_cubit.dart';
@@ -14,7 +15,10 @@ import 'package:senapath/features/routes/presentation/explore_map.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/routes/presentation/routes_screen.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
+import 'package:senapath/features/session/data/readiness_checker.dart';
+import 'package:senapath/features/session/data/ride_session_repository.dart';
 import 'package:senapath/features/session/data/session_file_service.dart';
+import 'package:senapath/features/session/presentation/session_cubit.dart';
 
 void main() {
   testWidgets('opens an imported route over an OpenStreetMap basemap', (
@@ -39,17 +43,22 @@ void main() {
     );
     await cubit.load();
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = _createSessionCubit(database);
     await unitCubit.load();
     addTearDown(cubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
     await tester.pumpWidget(
       BlocProvider.value(
-        value: cubit,
+        value: sessionCubit,
         child: BlocProvider.value(
-          value: unitCubit,
-          child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+          value: cubit,
+          child: BlocProvider.value(
+            value: unitCubit,
+            child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+          ),
         ),
       ),
     );
@@ -91,19 +100,24 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = _createSessionCubit(database);
     await routeCubit.load();
     await unitCubit.load();
     await unitCubit.select(UnitSystem.imperial);
     addTearDown(routeCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
     await tester.pumpWidget(
       BlocProvider.value(
-        value: routeCubit,
+        value: sessionCubit,
         child: BlocProvider.value(
-          value: unitCubit,
-          child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+          value: routeCubit,
+          child: BlocProvider.value(
+            value: unitCubit,
+            child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+          ),
         ),
       ),
     );
@@ -133,18 +147,23 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = _createSessionCubit(database);
     await routesCubit.load();
     await unitCubit.load();
     addTearDown(routesCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
     await tester.pumpWidget(
       BlocProvider.value(
-        value: routesCubit,
+        value: sessionCubit,
         child: BlocProvider.value(
-          value: unitCubit,
-          child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+          value: routesCubit,
+          child: BlocProvider.value(
+            value: unitCubit,
+            child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+          ),
         ),
       ),
     );
@@ -160,6 +179,43 @@ void main() {
     expect(find.text('Belum ada rute tersimpan'), findsOneWidget);
     expect(await repository.search(''), isEmpty);
   });
+}
+
+RideSessionCubit _createSessionCubit(AppDatabase database) => RideSessionCubit(
+  repository: DriftRideSessionRepository(
+    database: database,
+    telemetryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+  ),
+  readinessChecker: _TestReadinessChecker(),
+  locationSource: _EmptyLocationSource(),
+);
+
+class _TestReadinessChecker implements ReadinessChecker {
+  @override
+  Future<ReadinessReport> check({
+    bool requestLocationPermission = false,
+    bool requestNotificationPermission = false,
+  }) async => const ReadinessReport(
+    locationPermissionGranted: false,
+    locationPermanentlyDenied: false,
+    locationServicesEnabled: false,
+    gpsFixAvailable: false,
+    accelerometerAvailable: false,
+    gyroscopeAvailable: false,
+    notificationsGranted: false,
+    notificationsPermanentlyDenied: false,
+  );
+
+  @override
+  Future<bool> openLocationSettings() async => false;
+
+  @override
+  Future<bool> openNotificationSettings() async => false;
+}
+
+class _EmptyLocationSource implements LocationSource {
+  @override
+  Stream<Position> get positions => const Stream.empty();
 }
 
 class _MemorySecureVault implements SecureVault {

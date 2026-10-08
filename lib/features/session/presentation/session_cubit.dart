@@ -17,6 +17,7 @@ class RideSessionState {
     this.isCheckingReadiness = false,
     this.readiness,
     this.session,
+    this.recordedLocations = const [],
     this.completedSessions = const [],
     this.summary,
     this.isLoadingSummary = false,
@@ -30,6 +31,7 @@ class RideSessionState {
   final bool isCheckingReadiness;
   final ReadinessReport? readiness;
   final RideSessionSnapshot? session;
+  final List<TelemetryLocation> recordedLocations;
   final List<RideSessionSnapshot> completedSessions;
   final RideSessionSummary? summary;
   final bool isLoadingSummary;
@@ -43,6 +45,7 @@ class RideSessionState {
     bool? isCheckingReadiness,
     ReadinessReport? readiness,
     RideSessionSnapshot? session,
+    List<TelemetryLocation>? recordedLocations,
     List<RideSessionSnapshot>? completedSessions,
     RideSessionSummary? summary,
     bool? isLoadingSummary,
@@ -58,6 +61,7 @@ class RideSessionState {
     isCheckingReadiness: isCheckingReadiness ?? this.isCheckingReadiness,
     readiness: readiness ?? this.readiness,
     session: session ?? this.session,
+    recordedLocations: recordedLocations ?? this.recordedLocations,
     completedSessions: completedSessions ?? this.completedSessions,
     summary: clearSummary ? null : summary ?? this.summary,
     isLoadingSummary: isLoadingSummary ?? this.isLoadingSummary,
@@ -120,14 +124,27 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       final readiness = results[0] as ReadinessReport;
       final session = results[1] as RideSessionSnapshot?;
       final completedSessions = results[2] as List<RideSessionSnapshot>;
+      var recordedLocations = const <TelemetryLocation>[];
+      String? locationMessage;
+      if (session != null) {
+        try {
+          recordedLocations = await repository.loadTelemetryLocations(
+            session.id,
+          );
+        } catch (_) {
+          locationMessage = 'Jejak sesi lokal tidak dapat dibuka.';
+        }
+      }
       emit(
         state.copyWith(
           isInitialized: true,
           isLoading: false,
           readiness: readiness,
           session: session,
+          recordedLocations: recordedLocations,
           completedSessions: completedSessions,
           now: _clock().toUtc(),
+          message: locationMessage,
         ),
       );
       if (session?.status == RideSessionStatus.recording) {
@@ -203,7 +220,13 @@ class RideSessionCubit extends Cubit<RideSessionState> {
 
     try {
       final session = await repository.start(_clock().toUtc());
-      emit(state.copyWith(session: session, now: _clock().toUtc()));
+      emit(
+        state.copyWith(
+          session: session,
+          recordedLocations: const [],
+          now: _clock().toUtc(),
+        ),
+      );
       _startLocationStream(session.id);
       _startBarometerStream();
       _startMotionSensorStreams();
@@ -378,24 +401,31 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       }
     }
 
+    final location = TelemetryLocation(
+      recordedAt: recordedAt,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      accuracyMeters: position.accuracy,
+      altitudeMeters: position.altitude,
+      altitudeAccuracyMeters: position.altitudeAccuracy,
+      barometricPressureHpa: _barometricPressureHpa,
+      accelerationMagnitudeMetersPerSecondSquared: _accelerationMagnitude,
+      rotationRateMagnitudeRadiansPerSecond: _rotationRateMagnitude,
+      speedMetersPerSecond: position.speed.isFinite ? position.speed : 0,
+    );
     final updated = await repository.recordLocation(
       sessionId: sessionId,
-      location: TelemetryLocation(
-        recordedAt: recordedAt,
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracyMeters: position.accuracy,
-        altitudeMeters: position.altitude,
-        altitudeAccuracyMeters: position.altitudeAccuracy,
-        barometricPressureHpa: _barometricPressureHpa,
-        accelerationMagnitudeMetersPerSecondSquared: _accelerationMagnitude,
-        rotationRateMagnitudeRadiansPerSecond: _rotationRateMagnitude,
-        speedMetersPerSecond: position.speed.isFinite ? position.speed : 0,
-      ),
+      location: location,
       addedDistanceMeters: addedDistanceMeters,
     );
     if (updated != null && state.session?.id == sessionId) {
-      emit(state.copyWith(session: updated, now: _clock().toUtc()));
+      emit(
+        state.copyWith(
+          session: updated,
+          recordedLocations: [...state.recordedLocations, location],
+          now: _clock().toUtc(),
+        ),
+      );
     }
   }
 

@@ -98,6 +98,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     child: Column(
       children: [
         ListTile(
+          leading: const Icon(Icons.history),
+          title: const Text('Riwayat sesi'),
+          subtitle: const Text('Aktivitas dan ringkasan perjalanan'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/profile/sessions'),
+        ),
+        const Divider(height: 1),
+        ListTile(
           leading: const Icon(Icons.settings_outlined),
           title: const Text('Pengaturan'),
           subtitle: const Text('Satuan, tema, dan penyimpanan'),

@@ -15,6 +15,9 @@ import '../domain/saved_route.dart';
 import 'google_directions_map.dart';
 import 'routes_cubit.dart';
 import 'explore_map.dart';
+import '../../session/domain/ride_session.dart';
+import '../../session/presentation/session_cubit.dart';
+import '../../session/presentation/session_screen.dart';
 
 class RoutesScreen extends StatefulWidget {
   const RoutesScreen({super.key});
@@ -56,53 +59,103 @@ class _RoutesScreenState extends State<RoutesScreen> {
       },
       child: BlocBuilder<RoutesCubit, RoutesState>(
         builder: (context, state) {
-          final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final displayedRoutes = [
-                ...state.routes,
-                if (state.plannedRoute != null) state.plannedRoute!,
+          final unitSystem = context
+              .watch<UnitSettingsCubit>()
+              .state
+              .unitSystem;
+          return BlocBuilder<RideSessionCubit, RideSessionState>(
+            builder: (context, sessionState) {
+              final trackPoints = [
+                for (final location in sessionState.recordedLocations)
+                  LatLng(location.latitude, location.longitude),
               ];
-              final plannedGoogleRoute = state.plannedRoute;
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (plannedGoogleRoute != null)
-                    GoogleDirectionsMap(
-                      route: plannedGoogleRoute,
-                      height: constraints.maxHeight,
-                    )
-                  else
-                    ExploreMap(
-                      routes: state.routes,
-                      height: constraints.maxHeight,
-                    ),
-                  Positioned(
-                    top: 12,
-                    left: 16,
-                    right: 16,
-                    child: _buildMapSearch(state),
-                  ),
-                  if (displayedRoutes.isNotEmpty || state.isLoading)
-                    Positioned(
-                      left: 12,
-                      right: 12,
-                      bottom: 12,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: constraints.maxHeight * 0.38,
+              final currentLocation = sessionState.recordedLocations.isEmpty
+                  ? null
+                  : sessionState.recordedLocations.last;
+              final currentRoutePoint = currentLocation == null
+                  ? null
+                  : RoutePoint(
+                      latitude: currentLocation.latitude,
+                      longitude: currentLocation.longitude,
+                      elevationMeters: currentLocation.altitudeMeters,
+                    );
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final displayedRoutes = [
+                    ...state.routes,
+                    if (state.plannedRoute != null) state.plannedRoute!,
+                  ];
+                  final plannedGoogleRoute = state.plannedRoute;
+                  final isRecording =
+                      sessionState.session?.status ==
+                      RideSessionStatus.recording;
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (plannedGoogleRoute != null)
+                        GoogleDirectionsMap(
+                          route: plannedGoogleRoute,
+                          currentPosition: currentRoutePoint,
+                          trackPoints: trackPoints,
+                          followCurrentPosition:
+                              sessionState.session?.status ==
+                              RideSessionStatus.recording,
+                          height: constraints.maxHeight,
+                        )
+                      else
+                        ExploreMap(
+                          routes: state.routes,
+                          height: constraints.maxHeight,
+                          trackPoints: trackPoints,
+                          currentLocation: currentLocation == null
+                              ? null
+                              : LatLng(
+                                  currentLocation.latitude,
+                                  currentLocation.longitude,
+                                ),
+                          followLocation:
+                              sessionState.session?.status ==
+                              RideSessionStatus.recording,
                         ),
-                        child: _buildResults(state, unitSystem),
+                      const Positioned.fill(
+                        child: SessionScreen(
+                          showMap: false,
+                          showHistory: false,
+                          showSummary: false,
+                          initialPanelSize: 0.42,
+                          compactControls: true,
+                        ),
                       ),
-                    )
-                  else
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 20,
-                      child: _buildEmptyMapCard(),
-                    ),
-                ],
+                      if (!isRecording) ...[
+                        Positioned(
+                          top: 12,
+                          left: 16,
+                          right: 16,
+                          child: _buildMapSearch(state),
+                        ),
+                        if (displayedRoutes.isNotEmpty || state.isLoading)
+                          Positioned(
+                            left: 12,
+                            right: 12,
+                            top: 150,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: constraints.maxHeight * 0.38,
+                              ),
+                              child: _buildResults(state, unitSystem),
+                            ),
+                          )
+                        else
+                          Positioned(
+                            left: 20,
+                            right: 20,
+                            top: 150,
+                            child: _buildEmptyMapCard(),
+                          ),
+                      ],
+                    ],
+                  );
+                },
               );
             },
           );
@@ -225,7 +278,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
     }
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        _showMessage('Aktifkan layanan lokasi untuk mencari rute dari lokasimu.');
+        _showMessage(
+          'Aktifkan layanan lokasi untuk mencari rute dari lokasimu.',
+        );
         return;
       }
       var permission = await Geolocator.checkPermission();
@@ -235,7 +290,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
       if (!mounted) return;
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        _showMessage('Izin lokasi diperlukan untuk menentukan titik awal rute.');
+        _showMessage(
+          'Izin lokasi diperlukan untuk menentukan titik awal rute.',
+        );
         return;
       }
       final position = await Geolocator.getCurrentPosition(
@@ -252,7 +309,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
       );
     } catch (_) {
       if (mounted) {
-        _showMessage('Lokasi tidak dapat diperoleh. Coba lagi di area terbuka.');
+        _showMessage(
+          'Lokasi tidak dapat diperoleh. Coba lagi di area terbuka.',
+        );
       }
     }
   }
@@ -314,9 +373,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     state.plannedRoute == null
                         ? 'Rute tersimpan'
                         : 'Rute ditemukan',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 IconButton(
@@ -330,9 +388,13 @@ class _RoutesScreenState extends State<RoutesScreen> {
             ),
           ),
           if (state.isLoading)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: FeatureStateView.loading(),
+            const Flexible(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: FeatureStateView.loading(),
+                ),
+              ),
             )
           else if (routes.isEmpty)
             const Padding(
@@ -347,10 +409,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 itemCount: routes.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 4),
-                itemBuilder: (context, index) => _RouteTile(
-                  route: routes[index],
-                  unitSystem: unitSystem,
-                ),
+                itemBuilder: (context, index) =>
+                    _RouteTile(route: routes[index], unitSystem: unitSystem),
               ),
             ),
         ],
@@ -448,10 +508,7 @@ class _RouteTile extends StatelessWidget {
           );
     final elevation = route.elevationGainMeters == null
         ? 'Elevasi tidak tersedia'
-        : '+${_formatElevation(
-            route.elevationGainMeters!,
-            context.read<UnitSettingsCubit>().state.unitSystem,
-          )}';
+        : '+${_formatElevation(route.elevationGainMeters!, context.read<UnitSettingsCubit>().state.unitSystem)}';
     final poi = route.poiSummary.isEmpty
         ? 'POI belum tersedia'
         : route.poiSummary;

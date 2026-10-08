@@ -23,7 +23,6 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   List<EventTimeZone> _destinationZones = [...EventTimeZone.destinations];
   int? _selectedOccurrence;
   bool _requestedLoad = false;
-  bool _showWorldTime = false;
 
   @override
   void dispose() {

@@ -9,14 +9,24 @@ import '../domain/saved_route.dart';
 class ExploreMap extends StatefulWidget {
   const ExploreMap({
     this.routes = const [],
+    this.trackPoints = const [],
+    this.currentLocation,
+    this.followLocation = false,
     this.height = 280,
+    this.borderRadius = 20,
     this.showLocationButton = true,
+    this.showEmptyMessage = true,
     super.key,
   });
 
   final List<RouteRecord> routes;
+  final List<LatLng> trackPoints;
+  final LatLng? currentLocation;
+  final bool followLocation;
   final double height;
+  final double borderRadius;
   final bool showLocationButton;
+  final bool showEmptyMessage;
 
   @override
   State<ExploreMap> createState() => _ExploreMapState();
@@ -28,6 +38,7 @@ class _ExploreMapState extends State<ExploreMap> {
   LatLng? _currentLocation;
   bool _isLocating = false;
   bool _hasTileError = false;
+  bool _mapReady = false;
   int _mapKey = 0;
   String? _locationMessage;
 
@@ -51,6 +62,12 @@ class _ExploreMapState extends State<ExploreMap> {
     if (oldWidget.routes != widget.routes && _currentLocation == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitRoutes());
     }
+    if (oldWidget.currentLocation != widget.currentLocation &&
+        widget.followLocation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _followCurrentLocation();
+      });
+    }
   }
 
   @override
@@ -58,12 +75,14 @@ class _ExploreMapState extends State<ExploreMap> {
     final colors = Theme.of(context).colorScheme;
     final routePoints = _routePoints;
     final hasRoute = routePoints.length >= 2;
-    final center = _currentLocation ?? _defaultCenter;
+    final currentLocation = widget.currentLocation ?? _currentLocation;
+    final center = currentLocation ?? _defaultCenter;
+    final hasTrack = widget.trackPoints.length >= 2;
 
     return Semantics(
       label: 'Peta OpenStreetMap untuk eksplorasi dan rute tersimpan',
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         child: SizedBox(
           height: widget.height,
           child: Stack(
@@ -79,11 +98,17 @@ class _ExploreMapState extends State<ExploreMap> {
                           padding: const EdgeInsets.all(44),
                         )
                       : null,
-                  initialZoom: 12,
+                  initialZoom: widget.followLocation && currentLocation != null
+                      ? 16
+                      : 12,
                   minZoom: 3,
                   maxZoom: 18,
                   backgroundColor: colors.surfaceContainerHighest,
-                  onMapReady: _fitRoutes,
+                  onMapReady: () {
+                    _mapReady = true;
+                    _fitRoutes();
+                    _followCurrentLocation();
+                  },
                 ),
                 mapController: _mapController,
                 children: [
@@ -107,6 +132,16 @@ class _ExploreMapState extends State<ExploreMap> {
                             strokeWidth: 5,
                             color: colors.primary,
                           ),
+                      ],
+                    ),
+                  if (hasTrack)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: widget.trackPoints,
+                          strokeWidth: 6,
+                          color: colors.tertiary,
+                        ),
                       ],
                     ),
                   MarkerLayer(
@@ -133,7 +168,7 @@ class _ExploreMapState extends State<ExploreMap> {
                             size: 30,
                           ),
                         ),
-                      if (_currentLocation case final location?)
+                      if (currentLocation case final location?)
                         Marker(
                           point: location,
                           width: 38,
@@ -205,7 +240,10 @@ class _ExploreMapState extends State<ExploreMap> {
                     ),
                   ),
                 ),
-              if (!hasRoute && _currentLocation == null)
+              if (widget.showEmptyMessage &&
+                  !hasRoute &&
+                  !hasTrack &&
+                  currentLocation == null)
                 Positioned(
                   left: 12,
                   right: 12,
@@ -335,6 +373,12 @@ class _ExploreMapState extends State<ExploreMap> {
         padding: const EdgeInsets.all(48),
       ),
     );
+  }
+
+  void _followCurrentLocation() {
+    final location = widget.currentLocation ?? _currentLocation;
+    if (!_mapReady || !widget.followLocation || location == null) return;
+    _mapController.move(location, 16);
   }
 }
 

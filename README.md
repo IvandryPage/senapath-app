@@ -66,24 +66,93 @@ Beranda dan tab Jelajah menampilkan basemap OpenStreetMap online, dengan jalur G
 
 ### Pencarian rute sepeda Google Maps
 
-Di **Jelajah**, cari nama tempat/alamat atau gunakan tombol **+ → Cari rute dari lokasiku**. Aplikasi mengambil posisi GPS saat ini, lalu backend `cycling-route` meminta Directions API dengan mode bersepeda. Rute online divisualisasikan di Google Maps SDK (bukan OpenStreetMap); GPX tetap ditampilkan di OpenStreetMap. Rute online hanya sementara dan tidak disimpan sebagai GPX. Fitur ini menghitung jalur, bukan navigasi belokan demi belokan.
+Di **Jelajah**, ketik nama tempat/alamat lalu tekan cari. Aplikasi meminta izin dan posisi GPS sebagai titik awal; Supabase Edge Function `cycling-route` memanggil Google Directions API dengan mode bersepeda. Rute online divisualisasikan di Google Maps SDK, sedangkan GPX lokal tetap menggunakan OpenStreetMap. Rute online hanya sementara, tidak disimpan sebagai GPX, dan tidak menyediakan navigasi belokan demi belokan.
 
-Konfigurasi yang diperlukan sebelum pencarian rute aktif:
+Ada **dua konfigurasi Google yang terpisah**:
 
-1. Aktifkan **Directions API** dan **Maps SDK for Android/iOS** serta billing pada Google Cloud project. Siapkan dua API key terpisah: key Directions server-side dan key SDK aplikasi yang dibatasi untuk API/package/bundle ID platform masing-masing.
-2. Atur `GOOGLE_MAPS_API_KEY` sebagai secret Supabase untuk Directions API, lalu deploy Edge Function:
+| Kebutuhan | Lokasi pemakaian | API key |
+| --- | --- | --- |
+| Menghitung rute bersepeda | Supabase Edge Function `cycling-route` | Server-side Directions API key |
+| Menampilkan basemap Google untuk rute hasil pencarian | Aplikasi Android/iOS | SDK key yang dibatasi per platform |
+
+Jangan gunakan atau salin server-side key ke aplikasi. API key Android/iOS dikemas di aplikasi dan dapat diekstrak, jadi pembatasan key di Google Cloud wajib dilakukan.
+Jika sebuah key pernah dibagikan lewat chat, screenshot, log, atau commit, cabut key tersebut di Google Cloud dan buat pengganti sebelum digunakan.
+
+#### A. Siapkan Google Cloud
+
+1. Pilih atau buat Google Cloud project dan tautkan akun billing yang aktif.
+2. Buka **APIs & Services → Library**, aktifkan **Directions API** serta **Maps SDK for Android** dan/atau **Maps SDK for iOS** sesuai target. Search menggunakan Directions API di server; SDK Android/iOS hanya merender peta.
+3. Buka **APIs & Services → Credentials** dan buat key yang berbeda:
+   - **Server Directions key:** batasi API key ke Directions API. Jika Google Cloud mendukung application restriction untuk server deployment-mu, batasi juga sesuai lingkungan server; jangan menanam key ini dalam app.
+   - **Android Maps SDK key:** batasi application restriction ke Android apps, dengan package ID `com.example.senapath` dan SHA-1 certificate yang benar untuk build yang diuji. Batasi API key ke Maps SDK for Android.
+   - **iOS Maps SDK key:** batasi application restriction ke iOS apps dengan bundle ID dari Xcode project, dan batasi API key ke Maps SDK for iOS.
+4. Mulai dengan batas kuota/budget dan alert billing yang sesuai. Restriction API, application, serta billing harus cocok dengan konfigurasi aktual; nama API yang tidak aktif atau key yang dibatasi untuk platform/key yang salah dapat menghasilkan `REQUEST_DENIED`.
+
+#### B. Siapkan Supabase backend
+
+1. Pastikan project Supabase terhubung ke direktori `supabase` repository:
+
+   ```sh
+   supabase login
+   supabase link --project-ref "<project-ref>"
+   ```
+
+2. Siapkan custom authentication lebih dahulu sesuai bagian **Autentikasi custom Senapath**. Secara khusus, `APP_AUTH_JWT_SECRET` harus sama dengan secret HS256 yang dipercaya konfigurasi JWT project Supabase. Function mengharapkan custom JWT Senapath; publishable/anon key saja bukan sesi pengguna.
+3. Set server Directions key sebagai Edge Function secret, lalu deploy function:
 
    ```sh
    supabase secrets set GOOGLE_MAPS_API_KEY="<server-side Directions API key>"
    supabase functions deploy cycling-route
    ```
 
-   Function memverifikasi custom JWT, membatasi setiap akun hingga 30 pencarian per hari, dan tidak menyimpan geometri Google.
-3. Untuk Android, tambahkan `GOOGLE_MAPS_API_KEY=<Android SDK key>` ke `android/local.properties` (file lokal, jangan commit), atau set variabel lingkungan `GOOGLE_MAPS_API_KEY` saat build. Batasi key dengan package ID aplikasi dan SHA-1 signing certificate.
-4. Untuk iOS, buat `ios/Flutter/Local.xcconfig` dari lokal dan isi `GOOGLE_MAPS_API_KEY = <iOS SDK key>`. File tersebut diabaikan Git. Batasi key dengan bundle ID aplikasi.
-5. Jalankan ulang build aplikasi setelah mengatur SDK key. Jangan gunakan server-side key sebagai key aplikasi dan jangan commit key.
+   Jangan set SDK key sebagai `GOOGLE_MAPS_API_KEY` server. Edge Function memeriksa custom JWT, membatasi akun hingga 30 pencarian per hari, dan tidak menyimpan geometri Google. `SUPABASE_URL` serta `SUPABASE_SERVICE_ROLE_KEY` tersedia untuk Edge Functions dari konfigurasi project Supabase; jangan memasukkan service-role key ke aplikasi.
+4. Setelah secret diganti, deploy ulang function seperti di atas dan periksa log function di Supabase Dashboard bila request masih gagal. Jangan menaruh server key, signing secret, atau service-role key di `.env` aplikasi, asset Flutter, Git, screenshot, atau chat.
 
-Tanpa kedua konfigurasi key dan billing yang valid, peta Google tidak dapat memuat tile atau backend tidak dapat menghitung rute; GPX lokal tetap dapat digunakan.
+#### C. Siapkan aplikasi lokal
+
+1. Isi `.env` lokal hanya dengan konfigurasi client Supabase yang memang dibutuhkan runner:
+
+   ```dotenv
+   SUPABASE_URL=https://<project-ref>.supabase.co
+   SUPABASE_PUBLISHABLE_KEY=<publishable-key>
+   ```
+
+   `scripts/flutter_with_env.ps1` hanya menyalin dua nilai ini ke asset client Flutter. **Jangan** menambahkan `GOOGLE_MAPS_API_KEY`, `APP_AUTH_JWT_SECRET`, service-role key, atau password pengguna ke file tersebut.
+2. Untuk Android, tambahkan baris berikut ke `android/local.properties` (file lokal, jangan commit), atau sediakan environment variable saat build:
+
+   ```properties
+   GOOGLE_MAPS_API_KEY=<Android Maps SDK key>
+   ```
+
+   Gradle membaca environment variable `GOOGLE_MAPS_API_KEY` lebih dahulu, lalu `android/local.properties`.
+3. Untuk iOS, buat `ios/Flutter/Local.xcconfig` yang diabaikan Git dan isi:
+
+   ```xcconfig
+   GOOGLE_MAPS_API_KEY = <iOS Maps SDK key>
+   ```
+
+   `Debug.xcconfig` dan `Release.xcconfig` memuat file ini secara opsional. Pastikan bundle ID di restriction Google cocok dengan target Xcode.
+4. Jalankan aplikasi melalui script agar konfigurasi client Supabase disiapkan:
+
+   ```powershell
+   .\scripts\flutter_with_env.ps1 run
+   ```
+
+   Jika menggunakan Android/iOS SDK key baru, hentikan aplikasi lalu build dan jalankan ulang; hot reload tidak memperbarui native manifest/config.
+5. Di aplikasi, masuk melalui **Profil → Akun online**, izinkan lokasi, aktifkan layanan lokasi, lalu coba tujuan yang valid seperti nama tempat umum di area dengan cakupan rute sepeda Google Maps.
+
+#### Diagnosis cepat
+
+- **Pencarian rute belum dikonfigurasi di backend:** client Supabase tidak termuat, `cycling-route` belum ter-deploy, atau `RoutesCubit` belum menerima planner. Jalankan melalui script di atas dan pastikan deploy ke project Supabase yang sama dengan `SUPABASE_URL`.
+- **Masuk ke akun online / sesi tidak valid (401/403):** login ulang, periksa konfigurasi custom JWT (`APP_AUTH_JWT_SECRET` dan JWT signing project), serta deploy function dengan konfigurasi `verify_jwt` repository.
+- **Layanan rute belum dikonfigurasi (503):** periksa `GOOGLE_MAPS_API_KEY` dan Supabase secrets backend, lalu deploy ulang function. Jangan mencari secret ini dalam asset app.
+- **Google Maps ditolak (`REQUEST_DENIED`):** verifikasi billing, Directions API enablement, key yang dipakai server, dan restriction API key. Periksa Supabase Function logs untuk status Google tanpa menyalin/menampilkan nilai key.
+- **Peta Google kosong atau bertuliskan `For development purposes only`:** ini masalah Maps SDK key pada platform, bukan pencarian Directions. Periksa restriction package ID + SHA-1 Android atau bundle ID iOS, Maps SDK yang diaktifkan, billing, lalu rebuild native app.
+- **Lokasi atau titik awal gagal:** izinkan lokasi dan aktifkan layanan lokasi perangkat; endpoint ini memakai posisi GPS perangkat sebagai origin.
+- **Rute tidak ditemukan / ZERO_RESULTS:** coba tujuan lain. Coverage rute bersepeda bergantung pada data Google untuk area tersebut; function tidak membuat rute garis lurus sebagai fallback.
+- **HTTP 429:** akun telah mencapai batas 30 pencarian dalam 24 jam.
+
+Tanpa Directions key dan konfigurasi backend, pencarian rute tidak aktif. Tanpa SDK key platform, Google basemap untuk rute hasil pencarian tidak akan tampil dengan benar. Impor GPX lokal/OpenStreetMap tetap dapat digunakan secara terpisah.
 
 Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. Tab profil dan jelajah dapat dibuka langsung dari dashboard.
 

@@ -7,10 +7,9 @@ import '../../../core/storage/secure_vault.dart';
 
 class CustomAuthSessionManager {
   CustomAuthSessionManager({
-    required SupabaseClient? client,
-    required SecureVault secureVault,
-  }) : _client = client,
-       _secureVault = secureVault;
+    required this._client,
+    required this._secureVault,
+  });
 
   static const _storageKey = 'custom_auth_session';
   final SupabaseClient? _client;

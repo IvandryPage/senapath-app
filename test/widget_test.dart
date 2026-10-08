@@ -159,7 +159,8 @@ void main() {
       find.textContaining('Chat akan aktif setelah backend Supabase'),
       findsOneWidget,
     );
-    await tester.binding.handlePopRoute();
+    expect(find.byType(BackButton), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(find.text('Saran & kesan'), 400);
@@ -217,10 +218,23 @@ void main() {
     expect(find.byType(ExploreMap), findsOneWidget);
     expect(find.text('OpenStreetMap'), findsOneWidget);
 
-    await tester.tap(find.text('Sesi').last);
+    expect(find.byType(ExploreMap), findsOneWidget);
+    expect(find.text('Cari tujuan atau alamat'), findsOneWidget);
+    expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
+    expect(find.text('Detail kesiapan & izin'), findsOneWidget);
+    await tester.ensureVisible(find.text('Detail kesiapan & izin'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Detail kesiapan & izin'));
     await tester.pumpAndSettle();
     expect(find.text('Pemeriksaan pra-balapan'), findsOneWidget);
     expect(find.text('Izinkan notifikasi'), findsOneWidget);
+    await tester.drag(
+      find.text('Pemeriksaan pra-balapan'),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Izinkan notifikasi'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Izinkan notifikasi'));
     await tester.pumpAndSettle();
     expect(sessionCubit.state.readiness?.notificationsGranted, isTrue);

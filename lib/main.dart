@@ -20,6 +20,7 @@ import 'features/profile/data/user_profile_repository.dart';
 import 'features/profile/presentation/profile_cubit.dart';
 import 'features/routes/data/saved_route_repository.dart';
 import 'features/routes/data/route_file_exchange.dart';
+import 'features/routes/data/route_planner_gateway.dart';
 import 'features/routes/presentation/routes_cubit.dart';
 import 'features/session/data/session_file_service.dart';
 import 'features/session/data/encrypted_telemetry_codec.dart';
@@ -95,6 +96,10 @@ Future<void> main() async {
       routesCubit: RoutesCubit(
         SavedRouteRepository(database, geometryCodec: telemetryCodec),
         const RouteFileExchange(SessionFileService()),
+        routePlanner: GoogleMapsRoutePlannerGateway(
+          client: supabaseClient,
+          sessionManager: authSessionManager,
+        ),
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
