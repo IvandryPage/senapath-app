@@ -94,6 +94,9 @@ void main() {
     expect(find.byType(TextFormField), findsOneWidget);
     expect(find.text('Tim (opsional)'), findsNothing);
     expect(find.text('Ubah foto'), findsOneWidget);
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Isi nama.'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField), 'Rider Baru');
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
