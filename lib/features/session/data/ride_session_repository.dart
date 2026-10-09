@@ -181,13 +181,13 @@ class DriftRideSessionRepository implements RideSessionRepository {
       throw ArgumentError.value(status, 'status', 'Unsupported sync status.');
     }
 
-    final updated = await (database.update(database.rideSessions)
-          ..where(
-            (session) =>
-                session.id.equals(sessionId) &
-                session.status.equals(RideSessionStatus.completed.name),
-          ))
-        .write(RideSessionsCompanion(syncStatus: Value(status)));
+    final updated =
+        await (database.update(database.rideSessions)..where(
+              (session) =>
+                  session.id.equals(sessionId) &
+                  session.status.equals(RideSessionStatus.completed.name),
+            ))
+            .write(RideSessionsCompanion(syncStatus: Value(status)));
     if (updated != 1) {
       throw StateError('Only a completed local session can be synchronized.');
     }

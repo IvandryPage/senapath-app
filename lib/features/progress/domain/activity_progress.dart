@@ -126,7 +126,8 @@ class ActivityProgressCalculator {
       activeSeconds: included.fold<int>(
         0,
         (total, session) =>
-            total + session.durationAt(session.endedAt ?? session.startedAt).inSeconds,
+            total +
+            session.durationAt(session.endedAt ?? session.startedAt).inSeconds,
       ),
     );
   }

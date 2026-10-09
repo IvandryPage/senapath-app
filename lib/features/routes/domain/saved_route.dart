@@ -10,6 +10,18 @@ class RoutePoint {
   final double elevationMeters;
 }
 
+class RouteCheckpoint {
+  const RouteCheckpoint({
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String name;
+  final double latitude;
+  final double longitude;
+}
+
 class RouteRecord {
   const RouteRecord({
     required this.id,
@@ -22,6 +34,7 @@ class RouteRecord {
     this.elevationGainMeters,
     this.poiSummary = '',
     this.points = const [],
+    this.checkpoints = const [],
   });
 
   final String id;
@@ -34,4 +47,5 @@ class RouteRecord {
   final double? elevationGainMeters;
   final String poiSummary;
   final List<RoutePoint> points;
+  final List<RouteCheckpoint> checkpoints;
 }

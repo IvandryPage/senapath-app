@@ -60,11 +60,7 @@ class CloudAccountState {
 }
 
 class CloudAccountCubit extends Cubit<CloudAccountState> {
-  CloudAccountCubit(
-    this._gateway, {
-    this.authenticator,
-    this.biometricSettings,
-  })
+  CloudAccountCubit(this._gateway, {this.authenticator, this.biometricSettings})
     : super(
         CloudAccountState(
           isConfigured: _gateway.isConfigured,
@@ -163,7 +159,8 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       if (!state.isSignedIn) {
         emit(
           state.copyWith(
-            error: 'Masuk ke akun terlebih dahulu untuk mengaktifkan biometrik.',
+            error:
+                'Masuk ke akun terlebih dahulu untuk mengaktifkan biometrik.',
             clearStatus: true,
           ),
         );
@@ -327,8 +324,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     if (authenticator == null || !state.canUseBiometrics) {
       emit(
         state.copyWith(
-          error:
-              'Login biometrik belum tersedia. Masuk dengan email dan password terlebih dahulu.',
+          error: 'Login biometrik belum tersedia. Masuk dengan email dan password terlebih dahulu.',
           clearStatus: true,
         ),
       );
@@ -415,8 +411,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     if (token.isEmpty || password.length < 8 || password.length > 128) {
       emit(
         state.copyWith(
-          error:
-              'Tautan reset tidak valid atau password tidak memenuhi batas 8-128 karakter.',
+          error: 'Tautan reset tidak valid atau password tidak memenuhi batas 8-128 karakter.',
           clearStatus: true,
         ),
       );

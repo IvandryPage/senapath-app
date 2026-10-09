@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/saved_route_repository.dart';
@@ -41,13 +43,24 @@ class RoutesState {
 }
 
 class RoutesCubit extends Cubit<RoutesState> {
-  RoutesCubit(this.repository, this.fileExchange)
-    : super(const RoutesState());
+  RoutesCubit(this.repository, this.fileExchange) : super(const RoutesState());
 
   final SavedRouteRepository repository;
   final RouteFileExchange fileExchange;
 
-  Future<void> load() => search('');
+  Future<void> load() async {
+    await search('');
+    try {
+      final route = await repository.loadSelectedSessionRoute();
+      if (route != null) {
+        emit(state.copyWith(sessionRoute: route, sessionRouteSelected: true));
+      }
+    } catch (_) {
+      emit(
+        state.copyWith(message: 'Rute GPX terakhir tidak dapat dipulihkan.'),
+      );
+    }
+  }
 
   Future<void> search(String query) async {
     emit(state.copyWith(query: query, isLoading: true, clearMessage: true));
@@ -71,6 +84,7 @@ class RoutesCubit extends Cubit<RoutesState> {
       await repository.saveImportedRoute(
         name: imported.name ?? 'Rute GPX impor',
         description: imported.description ?? '',
+        checkpoints: imported.checkpoints,
         points: [
           for (final point in imported.locations)
             (
@@ -99,22 +113,27 @@ class RoutesCubit extends Cubit<RoutesState> {
         ),
       );
     } catch (error) {
-      emit(
-        state.copyWith(
-          message: 'Rute GPX tidak dapat dihapus: $error',
-        ),
-      );
+      emit(state.copyWith(message: 'Rute GPX tidak dapat dihapus: $error'));
     }
   }
 
-  void selectSessionRoute(RouteRecord? route) => emit(
-    state.copyWith(
-      sessionRoute: route,
-      clearSessionRoute: route == null,
-      sessionRouteSelected: true,
-      clearMessage: true,
-    ),
-  );
+  void selectSessionRoute(RouteRecord? route) {
+    emit(
+      state.copyWith(
+        sessionRoute: route,
+        clearSessionRoute: route == null,
+        sessionRouteSelected: true,
+        clearMessage: true,
+      ),
+    );
+    unawaited(
+      repository.saveSelectedSessionRoute(route?.id).catchError((Object error) {
+        emit(
+          state.copyWith(message: 'Pilihan rute tidak dapat disimpan: $error'),
+        );
+      }),
+    );
+  }
 
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 }

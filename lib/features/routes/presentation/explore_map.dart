@@ -190,6 +190,24 @@ class _ExploreMapState extends State<ExploreMap> {
                             size: 30,
                           ),
                         ),
+                      for (final route in widget.routes)
+                        for (final checkpoint in route.checkpoints)
+                          Marker(
+                            point: LatLng(
+                              checkpoint.latitude,
+                              checkpoint.longitude,
+                            ),
+                            width: 42,
+                            height: 46,
+                            child: Tooltip(
+                              message: checkpoint.name,
+                              child: const Icon(
+                                Icons.flag_circle,
+                                color: SenapathColors.violet,
+                                size: 34,
+                              ),
+                            ),
+                          ),
                       if (currentLocation case final location?)
                         Marker(
                           point: location,

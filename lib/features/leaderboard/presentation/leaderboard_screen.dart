@@ -56,7 +56,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           final cubit = context.read<LeaderboardCubit>();
           final settings = state.settings;
           final summary = widget.summary;
-          final canSubmit = summary != null &&
+          final canSubmit =
+              summary != null &&
               summary.session.status == RideSessionStatus.completed &&
               summary.session.syncStatus == 'synced' &&
               settings?.isOptedIn == true &&
@@ -96,9 +97,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       Text(
                         settings?.isOptedIn == true
                             ? 'Partisipasi aktif. Alias Anda terlihat pada '
-                                'peringkat mingguan.'
+                                  'peringkat mingguan.'
                             : 'Leaderboard bersifat opsional. Anda dapat '
-                                'menarik partisipasi dan menghapus skor kapan saja.',
+                                  'menarik partisipasi dan menghapus skor kapan saja.',
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -154,9 +155,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         Text(
                           summary.session.syncStatus == 'synced'
                               ? 'Ringkasan tersinkron; hanya durasi dan jarak '
-                                  'akan dipakai.'
+                                    'akan dipakai.'
                               : 'Sinkronkan ringkasan sesi terlebih dahulu. '
-                                  'Koordinat dan telemetri tidak dikirim ke leaderboard.',
+                                    'Koordinat dan telemetri tidak dikirim ke leaderboard.',
                         ),
                         const SizedBox(height: 8),
                         FilledButton.tonalIcon(
@@ -237,8 +238,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final seconds = entry.score.round();
     final hours = seconds ~/ 3600;
     final minutes = seconds % 3600 ~/ 60;
-    return hours > 0
-        ? '${hours}j ${minutes}m'
-        : '${minutes}m ${seconds % 60}d';
+    return hours > 0 ? '${hours}j ${minutes}m' : '${minutes}m ${seconds % 60}d';
   }
 }

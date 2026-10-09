@@ -26,7 +26,8 @@ class LocalDeviceAuthenticator implements DeviceAuthenticator {
   @override
   Future<bool> authenticate({required bool biometricOnly}) =>
       _authentication.authenticate(
-        localizedReason: 'Masuk ke akun Senapath yang tersimpan di perangkat ini.',
+        localizedReason:
+            'Masuk ke akun Senapath yang tersimpan di perangkat ini.',
         biometricOnly: biometricOnly,
         persistAcrossBackgrounding: false,
       );

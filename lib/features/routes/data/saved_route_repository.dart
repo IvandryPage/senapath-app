@@ -13,6 +13,35 @@ class SavedRouteRepository {
   final AppDatabase database;
   final EncryptedTelemetryCodec geometryCodec;
 
+  static const _selectedSessionRouteKey = 'selected_session_route_id';
+
+  Future<RouteRecord?> loadSelectedSessionRoute() async {
+    final preference =
+        await (database.select(database.appPreferences)
+              ..where((item) => item.key.equals(_selectedSessionRouteKey)))
+            .getSingleOrNull();
+    final routeId = preference?.value;
+    if (routeId == null || routeId.isEmpty) return null;
+    final row =
+        await (database.select(database.savedRoutes)..where(
+              (route) =>
+                  route.id.equals(routeId) & route.source.equals('GPX lokal'),
+            ))
+            .getSingleOrNull();
+    return row == null ? null : _map(row);
+  }
+
+  Future<void> saveSelectedSessionRoute(String? routeId) async {
+    await database
+        .into(database.appPreferences)
+        .insertOnConflictUpdate(
+          AppPreferencesCompanion.insert(
+            key: _selectedSessionRouteKey,
+            value: routeId ?? '',
+          ),
+        );
+  }
+
   Future<List<RouteRecord>> search(String query) async {
     final normalized = query.trim();
     final rows =
@@ -32,6 +61,7 @@ class SavedRouteRepository {
     String description = '',
     required List<({double latitude, double longitude, double elevation})>
     points,
+    List<RouteCheckpoint> checkpoints = const [],
   }) async {
     if (points.length < 2) {
       throw const FormatException('Rute membutuhkan minimal dua titik.');
@@ -65,14 +95,24 @@ class SavedRouteRepository {
     final routeId = 'gpx-${DateTime.now().microsecondsSinceEpoch}';
     final encryptedGeometry = await geometryCodec.encryptBytes(
       utf8.encode(
-        jsonEncode([
-          for (final point in points)
-            {
-              'latitude': point.latitude,
-              'longitude': point.longitude,
-              'elevationMeters': point.elevation,
-            },
-        ]),
+        jsonEncode({
+          'track': [
+            for (final point in points)
+              {
+                'latitude': point.latitude,
+                'longitude': point.longitude,
+                'elevationMeters': point.elevation,
+              },
+          ],
+          'checkpoints': [
+            for (final checkpoint in checkpoints)
+              {
+                'name': checkpoint.name,
+                'latitude': checkpoint.latitude,
+                'longitude': checkpoint.longitude,
+              },
+          ],
+        }),
       ),
     );
     await database
@@ -98,47 +138,90 @@ class SavedRouteRepository {
 
   Future<void> deleteImportedRoute(String routeId) async {
     final deleted =
-        await (database.delete(database.savedRoutes)
-              ..where(
-                (route) =>
-                    route.id.equals(routeId) &
-                    route.source.equals('GPX lokal'),
-              ))
+        await (database.delete(database.savedRoutes)..where(
+              (route) =>
+                  route.id.equals(routeId) & route.source.equals('GPX lokal'),
+            ))
             .go();
     if (deleted == 0) {
       throw StateError('Rute GPX tidak ditemukan atau bukan rute impor.');
     }
   }
 
-  Future<RouteRecord> _map(SavedRoute row) async => RouteRecord(
-    id: row.id,
-    name: row.name,
-    source: row.source,
-    updatedAt: row.updatedAt,
-    availability: row.availability,
-    description: row.description,
-    distanceMeters: row.distanceMeters,
-    elevationGainMeters: row.elevationGainMeters,
-    poiSummary: row.poiSummary,
-    points: row.encryptedGeometry == null
-        ? const []
-        : await _decodeGeometry(row.encryptedGeometry!),
-  );
+  Future<RouteRecord> _map(SavedRoute row) async {
+    final geometry = row.encryptedGeometry == null
+        ? (points: const <RoutePoint>[], checkpoints: const <RouteCheckpoint>[])
+        : await _decodeGeometry(row.encryptedGeometry!);
+    return RouteRecord(
+      id: row.id,
+      name: row.name,
+      source: row.source,
+      updatedAt: row.updatedAt,
+      availability: row.availability,
+      description: row.description,
+      distanceMeters: row.distanceMeters,
+      elevationGainMeters: row.elevationGainMeters,
+      poiSummary: row.poiSummary,
+      points: geometry.points,
+      checkpoints: geometry.checkpoints,
+    );
+  }
 
-  Future<List<RoutePoint>> _decodeGeometry(Uint8List encrypted) async {
+  Future<({List<RoutePoint> points, List<RouteCheckpoint> checkpoints})>
+  _decodeGeometry(Uint8List encrypted) async {
     final decoded = jsonDecode(
       utf8.decode(await geometryCodec.decryptBytes(encrypted)),
     );
-    if (decoded is! List || decoded.length < 2) {
+    final rawPoints = decoded is List
+        ? decoded
+        : decoded is Map
+        ? decoded['track']
+        : null;
+    final rawCheckpoints = decoded is Map ? decoded['checkpoints'] : const [];
+    if (rawPoints is! List || rawPoints.length < 2) {
       throw const FormatException('Geometri rute tersimpan tidak valid.');
     }
-    return [
-      for (final item in decoded)
+    final points = [
+      for (final item in rawPoints)
         if (item is Map)
           _decodePoint(Map<String, Object?>.from(item))
         else
           throw const FormatException('Titik rute tersimpan tidak valid.'),
     ];
+    if (rawCheckpoints is! List) {
+      throw const FormatException('Checkpoint rute tersimpan tidak valid.');
+    }
+    final checkpoints = [
+      for (final item in rawCheckpoints)
+        if (item is Map)
+          _decodeCheckpoint(Map<String, Object?>.from(item))
+        else
+          throw const FormatException('Checkpoint rute tersimpan tidak valid.'),
+    ];
+    return (points: points, checkpoints: checkpoints);
+  }
+
+  RouteCheckpoint _decodeCheckpoint(Map<String, Object?> json) {
+    final name = json['name'];
+    final latitude = (json['latitude'] as num?)?.toDouble();
+    final longitude = (json['longitude'] as num?)?.toDouble();
+    if (name is! String ||
+        name.trim().isEmpty ||
+        latitude == null ||
+        longitude == null ||
+        !latitude.isFinite ||
+        latitude < -90 ||
+        latitude > 90 ||
+        !longitude.isFinite ||
+        longitude < -180 ||
+        longitude > 180) {
+      throw const FormatException('Checkpoint rute tersimpan tidak valid.');
+    }
+    return RouteCheckpoint(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+    );
   }
 
   RoutePoint _decodePoint(Map<String, Object?> json) {

@@ -10,10 +10,9 @@ class ActivityGoalsRepository {
   final AppDatabase _database;
 
   Future<List<ActivityGoal>> load() async {
-    final row =
-        await (_database.select(_database.appPreferences)
-              ..where((item) => item.key.equals(_preferenceKey)))
-            .getSingleOrNull();
+    final row = await (_database.select(
+      _database.appPreferences,
+    )..where((item) => item.key.equals(_preferenceKey))).getSingleOrNull();
     if (row == null) return const [];
     final decoded = jsonDecode(row.value);
     if (decoded is! List) {

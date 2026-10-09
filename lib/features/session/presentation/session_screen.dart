@@ -11,6 +11,7 @@ import '../../../core/units/unit_system.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../routes/data/route_file_exchange.dart';
 import '../../routes/presentation/explore_map.dart';
+import '../../routes/presentation/routes_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
@@ -148,23 +149,16 @@ class _SessionScreenState extends State<SessionScreen>
                       textAlign: TextAlign.center,
                     ),
                   )
-                else
-                  ...[
-                    OutlinedButton.icon(
-                      onPressed: () => _exportAllSessions(
-                        context,
-                        state.completedSessions,
-                      ),
-                      icon: const Icon(Icons.download_outlined),
-                      label: const Text('Ekspor semua sesi dan jejak GPS'),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildHistory(
-                      context,
-                      state.completedSessions,
-                      unitSystem,
-                    ),
-                  ],
+                else ...[
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        _exportAllSessions(context, state.completedSessions),
+                    icon: const Icon(Icons.download_outlined),
+                    label: const Text('Ekspor semua sesi dan jejak GPS'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHistory(context, state.completedSessions, unitSystem),
+                ],
               ],
             );
           }
@@ -245,8 +239,8 @@ class _SessionScreenState extends State<SessionScreen>
                             ],
                             if (!widget.hideReadinessDetails &&
                                 (session == null ||
-                                session.status ==
-                                    RideSessionStatus.completed)) ...[
+                                    session.status ==
+                                        RideSessionStatus.completed)) ...[
                               const SizedBox(height: 8),
                               Theme(
                                 data: Theme.of(context)
@@ -649,9 +643,8 @@ class _SessionScreenState extends State<SessionScreen>
       children: [
         Text(
           'Performa sesi',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         _SummaryMetricCard(
@@ -720,12 +713,10 @@ class _SessionScreenState extends State<SessionScreen>
               Text(
                 switch (session?.status) {
                   null => 'Periksa perangkat sebelum merekam.',
-                  RideSessionStatus.recording =>
-                    'Tersimpan lokal. Perekaman saat layar mati belum didukung atau diverifikasi.',
+                  RideSessionStatus.recording => 'Tersimpan lokal. Perekaman saat layar mati belum didukung atau diverifikasi.',
                   RideSessionStatus.paused =>
                     'Sesi tersimpan lokal dan menunggu dilanjutkan.',
-                  RideSessionStatus.completed =>
-                    'Data sesi tersimpan lokal.',
+                  RideSessionStatus.completed => 'Data sesi tersimpan lokal.',
                 },
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -859,9 +850,8 @@ class _SessionScreenState extends State<SessionScreen>
             !readiness.locationServicesEnabled) ...[
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () => context
-                .read<RideSessionCubit>()
-                .openLocationServiceSettings(),
+            onPressed: () =>
+                context.read<RideSessionCubit>().openLocationServiceSettings(),
             icon: const Icon(Icons.location_on_outlined),
             label: const Text('Buka pengaturan lokasi perangkat'),
           ),
@@ -959,7 +949,9 @@ class _SessionScreenState extends State<SessionScreen>
   Widget _buildStartControl(BuildContext context, RideSessionState state) {
     return SenapathButton(
       onPressed: state.canStart
-          ? () => context.read<RideSessionCubit>().start()
+          ? () => context.read<RideSessionCubit>().start(
+              route: context.read<RoutesCubit>().state.sessionRoute,
+            )
           : null,
       icon: Icons.play_arrow,
       label: 'Mulai sesi',
@@ -973,7 +965,9 @@ class _SessionScreenState extends State<SessionScreen>
         children: [
           SenapathButton(
             onPressed: state.canStart
-                ? () => context.read<RideSessionCubit>().start()
+                ? () => context.read<RideSessionCubit>().start(
+                    route: context.read<RoutesCubit>().state.sessionRoute,
+                  )
                 : null,
             icon: Icons.add,
             label: 'Mulai sesi baru',
@@ -994,7 +988,9 @@ class _SessionScreenState extends State<SessionScreen>
           Expanded(
             child: FilledButton.icon(
               onPressed: state.canStart
-                  ? () => context.read<RideSessionCubit>().resume()
+                  ? () => context.read<RideSessionCubit>().resume(
+                      route: context.read<RoutesCubit>().state.sessionRoute,
+                    )
                   : null,
               icon: const Icon(Icons.play_arrow),
               label: const Text('Lanjutkan'),
@@ -1051,7 +1047,9 @@ class _SessionScreenState extends State<SessionScreen>
       }
       return;
     }
-    await sessionCubit.start();
+    await sessionCubit.start(
+      route: context.read<RoutesCubit>().state.sessionRoute,
+    );
   }
 
   Widget _buildHistory(
@@ -1088,7 +1086,8 @@ class _SessionScreenState extends State<SessionScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  tooltip: 'Hapus ${session.title.isEmpty ? 'sesi' : session.title}',
+                  tooltip:
+                      'Hapus ${session.title.isEmpty ? 'sesi' : session.title}',
                   onPressed: () => _confirmDeleteSession(context, session),
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -1159,10 +1158,10 @@ class _SessionScreenState extends State<SessionScreen>
 
     try {
       final repository = context.read<RideSessionCubit>().repository;
-      final activities = <({
-        RideSessionSnapshot session,
-        List<TelemetryLocation> locations,
-      })>[];
+      final activities =
+          <
+            ({RideSessionSnapshot session, List<TelemetryLocation> locations})
+          >[];
       for (final session in sessions) {
         activities.add((
           session: session,
@@ -1188,9 +1187,9 @@ class _SessionScreenState extends State<SessionScreen>
       );
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ekspor aktivitas gagal.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ekspor aktivitas gagal.')));
     }
   }
 
@@ -1478,10 +1477,10 @@ class _SessionScreenState extends State<SessionScreen>
               child: const Text('Batal'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                (titleController.text, activityType),
-              ),
+              onPressed: () => Navigator.pop(dialogContext, (
+                titleController.text,
+                activityType,
+              )),
               child: const Text('Simpan'),
             ),
           ],
@@ -1724,7 +1723,6 @@ class _SessionScreenState extends State<SessionScreen>
   }
 }
 
-
 class _ReadinessLine extends StatelessWidget {
   const _ReadinessLine({
     required this.label,
@@ -1857,11 +1855,7 @@ class _MetricValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SenapathMetric(
-      label: label,
-      value: value,
-      unit: unit,
-    );
+    return SenapathMetric(label: label, value: value, unit: unit);
   }
 }
 

@@ -6,10 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/storage/secure_vault.dart';
 
 class CustomAuthSessionManager {
-  CustomAuthSessionManager({
-    required this._client,
-    required this._secureVault,
-  });
+  CustomAuthSessionManager({required this._client, required this._secureVault});
 
   static const _storageKey = 'custom_auth_session';
   final SupabaseClient? _client;
@@ -131,9 +128,10 @@ class CustomAuthSessionManager {
       throw StateError('Masuk ke akun online untuk melanjutkan.');
     }
     try {
-      await authenticate('refresh', values: {
-        'refreshToken': session.refreshToken,
-      });
+      await authenticate(
+        'refresh',
+        values: {'refreshToken': session.refreshToken},
+      );
     } on CustomAuthException catch (error) {
       if (error.status == 401) await _clearSession();
       rethrow;
@@ -162,15 +160,15 @@ class CustomAuthSessionManager {
       if (error.status == 404) {
         throw const CustomAuthException(
           status: 404,
-          message:
-              'Edge Function app-auth belum tersedia. Deploy dengan `supabase functions deploy app-auth`.',
+          message: 'Edge Function app-auth belum tersedia. Deploy dengan `supabase functions deploy app-auth`.',
         );
       }
       throw CustomAuthException(
         status: error.status,
         message: switch (message) {
           String value when value.isNotEmpty => value,
-          _ => 'Autentikasi gagal (HTTP ${error.status}). Periksa konfigurasi Supabase Edge Function.',
+          _ =>
+            'Autentikasi gagal (HTTP ${error.status}). Periksa konfigurasi Supabase Edge Function.',
         },
       );
     }

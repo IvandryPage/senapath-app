@@ -4,5 +4,8 @@ verify_jwt = false
 [functions.rider-assistant]
 verify_jwt = true
 
+[functions.rider-coach]
+verify_jwt = false
+
 [functions.submit-feedback]
 verify_jwt = true

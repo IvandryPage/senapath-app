@@ -97,6 +97,8 @@ class _FailingAiChatGateway implements AiChatGateway {
     required List<AiChatMessage> messages,
     required Map<String, Object?> context,
   }) async {
-    throw StateError('Gemini menolak API key. Periksa GEMINI_API_KEY di Supabase.');
+    throw StateError(
+      'Gemini menolak API key. Periksa GEMINI_API_KEY di Supabase.',
+    );
   }
 }

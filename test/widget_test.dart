@@ -38,6 +38,15 @@ import 'package:senapath/features/progress/data/activity_goals_repository.dart';
 import 'package:senapath/features/progress/presentation/activity_goals_cubit.dart';
 import 'package:senapath/features/teams/data/cycling_team_repository.dart';
 import 'package:senapath/features/teams/presentation/cycling_team_cubit.dart';
+import 'package:senapath/features/notifications/data/notification_settings_repository.dart';
+import 'package:senapath/features/notifications/data/ride_notification_service.dart';
+import 'package:senapath/features/notifications/presentation/notification_settings_cubit.dart';
+import 'package:senapath/features/gamification/data/rider_profile_repository.dart';
+import 'package:senapath/features/gamification/presentation/rider_gamification_cubit.dart';
+import 'package:senapath/features/ledger/data/ride_ledger_repository.dart';
+import 'package:senapath/features/ledger/presentation/ride_ledger_cubit.dart';
+import 'package:senapath/features/ride_coach/presentation/ride_coach_cubit.dart';
+import 'package:senapath/features/ride_coach/data/ride_coach_gateway.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -114,6 +123,15 @@ void main() {
             ),
           ),
         ),
+        notificationSettingsCubit: NotificationSettingsCubit(
+          NotificationSettingsRepository(database),
+          _FakeRideNotificationService(),
+        ),
+        riderGamificationCubit: RiderGamificationCubit(
+          RiderProfileRepository(database),
+        ),
+        rideLedgerCubit: RideLedgerCubit(RideLedgerRepository(database)),
+        rideCoachCubit: RideCoachCubit(_UnavailableRideCoachGateway()),
       ),
     );
     await tester.pumpAndSettle();
@@ -217,17 +235,9 @@ void main() {
     expect(find.text('Cari rute GPX'), findsOneWidget);
     expect(find.text('SIAP BERSEPEDA'), findsNothing);
     expect(find.byType(DraggableScrollableSheet), findsNothing);
-    expect(find.byTooltip('Detail sesi'), findsOneWidget);
-    await tester.tap(find.byTooltip('Detail sesi'));
-    await tester.pumpAndSettle();
-    expect(find.text('Detail sesi'), findsNWidgets(2));
-    expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
-    expect(find.text('Detail kesiapan & izin'), findsNothing);
-    expect(find.text('Pemeriksaan pra-balapan'), findsNothing);
-    expect(find.text('Pakai rute untuk sesi ini?'), findsNothing);
+    expect(find.byKey(const Key('start-session-button')), findsOneWidget);
+    expect(find.byTooltip('Detail sesi'), findsNothing);
     expect(sessionCubit.state.session, isNull);
-    await tester.tap(find.byTooltip('Tutup detail sesi'));
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Logistik').last);
     await tester.pumpAndSettle();
@@ -447,4 +457,41 @@ class _FakeEmergencyContactActions implements EmergencyContactActions {
   @override
   Future<bool> openWhatsApp(EmergencyContact contact, String message) async =>
       true;
+}
+
+class _FakeRideNotificationService implements RideNotificationService {
+  @override
+  Future<void> cancelWeeklyReminders() async {}
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Future<void> scheduleWeeklyReminder({
+    required Set<int> weekdays,
+    required int hour,
+    required int minute,
+  }) async {}
+
+  @override
+  Future<void> show({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {}
+}
+
+class _UnavailableRideCoachGateway implements RideCoachGateway {
+  @override
+  bool get isConfigured => false;
+
+  @override
+  Future<String> recommend({
+    required Map<String, Object?> rideContext,
+    required bool consent,
+  }) async => throw StateError('Not configured');
 }

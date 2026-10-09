@@ -263,10 +263,8 @@ class SenapathButton extends StatelessWidget {
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: foregroundColor,
-                  fontSize: 15,
-                ),
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(color: foregroundColor, fontSize: 15),
               ),
             ),
           ],

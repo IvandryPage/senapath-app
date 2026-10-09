@@ -49,10 +49,8 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
             const SizedBox(height: 18),
             Text(
               'Perjalananmu.\nRuangmu.',
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                height: 1.02,
-              ),
+              style: Theme.of(context).textTheme.displaySmall
+                  ?.copyWith(fontWeight: FontWeight.w900, height: 1.02),
             ),
             const SizedBox(height: 10),
             Text(

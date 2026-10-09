@@ -3,17 +3,20 @@ import 'dart:convert';
 import 'package:xml/xml.dart';
 
 import '../domain/ride_session.dart';
+import '../../routes/domain/saved_route.dart';
 
 class GpxImport {
   const GpxImport({
     required this.name,
     required this.description,
     required this.locations,
+    this.checkpoints = const [],
   });
 
   final String? name;
   final String? description;
   final List<TelemetryLocation> locations;
+  final List<RouteCheckpoint> checkpoints;
 }
 
 class SessionFileService {
@@ -57,10 +60,7 @@ class SessionFileService {
       'activities': [
         for (final activity in activities)
           jsonDecode(
-            toJson(
-              session: activity.session,
-              locations: activity.locations,
-            ),
+            toJson(session: activity.session, locations: activity.locations),
           ),
       ],
     };
@@ -119,18 +119,20 @@ class SessionFileService {
 
   GpxImport parseGpxDocument(String content) {
     if (utf8.encode(content).length > maximumGpxBytes) {
-      throw const FormatException(
-        'Ukuran GPX melebihi batas 10 MB.',
-      );
+      throw const FormatException('Ukuran GPX melebihi batas 10 MB.');
     }
     final document = XmlDocument.parse(content);
-    final points = document.findAllElements('trkpt').toList(growable: false);
+    final trackPoints = document.findAllElements('trkpt').toList();
+    final points = trackPoints.isNotEmpty
+        ? trackPoints
+        : document.findAllElements('rtept').toList(growable: false);
     if (points.isEmpty) {
       throw const FormatException('GPX tidak memiliki track point.');
     }
 
-    final locations = points
-        .map((point) {
+    final locations = points.indexed
+        .map((entry) {
+          final (index, point) = entry;
           final latitude = double.tryParse(point.getAttribute('lat') ?? '');
           final longitude = double.tryParse(point.getAttribute('lon') ?? '');
           final elevation = double.tryParse(
@@ -146,14 +148,15 @@ class SessionFileService {
               latitude < -90 ||
               latitude > 90 ||
               longitude < -180 ||
-              longitude > 180 ||
-              time == null) {
+              longitude > 180) {
             throw const FormatException(
               'GPX memiliki track point tidak valid.',
             );
           }
           return TelemetryLocation(
-            recordedAt: time.toUtc(),
+            recordedAt:
+                time?.toUtc() ??
+                DateTime.utc(2000).add(Duration(seconds: index)),
             latitude: latitude,
             longitude: longitude,
             accuracyMeters: double.nan,
@@ -173,11 +176,36 @@ class SessionFileService {
       document.findAllElements('metadata').firstOrNull?.getElement('desc'),
       document.findAllElements('desc').firstOrNull,
     ]);
+    final checkpoints = <RouteCheckpoint>[];
+    for (final (index, waypoint) in document.findAllElements('wpt').indexed) {
+      final latitude = double.tryParse(waypoint.getAttribute('lat') ?? '');
+      final longitude = double.tryParse(waypoint.getAttribute('lon') ?? '');
+      if (latitude == null ||
+          longitude == null ||
+          !latitude.isFinite ||
+          !longitude.isFinite ||
+          latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180) {
+        throw const FormatException('GPX memiliki checkpoint tidak valid.');
+      }
+      checkpoints.add(
+        RouteCheckpoint(
+          name:
+              _firstText([waypoint.getElement('name')]) ??
+              'Checkpoint ${index + 1}',
+          latitude: latitude,
+          longitude: longitude,
+        ),
+      );
+    }
 
     return GpxImport(
       name: name,
       description: description,
       locations: locations,
+      checkpoints: List.unmodifiable(checkpoints),
     );
   }
 

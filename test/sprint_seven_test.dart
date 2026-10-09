@@ -74,10 +74,7 @@ void main() {
       (activities[1] as Map<String, dynamic>)['session']['title'],
       'Gowes sore',
     );
-    expect(
-      (activities[1] as Map<String, dynamic>)['track'],
-      hasLength(1),
-    );
+    expect((activities[1] as Map<String, dynamic>)['track'], hasLength(1));
   });
 
   test('GPX export can be parsed back into route points', () {
@@ -89,13 +86,16 @@ void main() {
     expect(parsed.last.longitude, locations.last.longitude);
   });
 
-  test('GPX export/parser retains valid time, and missing metadata is optional', () {
-    final parsed = service.parseGpxDocument(service.toGpx(locations));
+  test(
+    'GPX export/parser retains valid time, and missing metadata is optional',
+    () {
+      final parsed = service.parseGpxDocument(service.toGpx(locations));
 
-    expect(parsed.name, 'Senapath session');
-    expect(parsed.description, isNull);
-    expect(parsed.locations, hasLength(2));
-  });
+      expect(parsed.name, 'Senapath session');
+      expect(parsed.description, isNull);
+      expect(parsed.locations, hasLength(2));
+    },
+  );
 
   test('GPX import preserves track name and description', () {
     const gpx = '''
@@ -121,10 +121,7 @@ void main() {
   test('GPX import rejects content above the configured size limit', () {
     final oversized = ' ' * (SessionFileService.maximumGpxBytes + 1);
 
-    expect(
-      () => service.parseGpx(oversized),
-      throwsA(isA<FormatException>()),
-    );
+    expect(() => service.parseGpx(oversized), throwsA(isA<FormatException>()));
   });
 
   test('invalid GPX is rejected with a clear format error', () {

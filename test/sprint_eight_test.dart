@@ -166,9 +166,7 @@ void main() {
 
       expect(EventTimeZone.all, isNotEmpty);
       expect(
-        EventTimeZone.all.any(
-          (zone) => zone.ianaName == 'America/New_York',
-        ),
+        EventTimeZone.all.any((zone) => zone.ianaName == 'America/New_York'),
         isTrue,
       );
       expect(newYork, isNotNull);

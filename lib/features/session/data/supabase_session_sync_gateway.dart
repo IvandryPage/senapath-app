@@ -37,35 +37,32 @@ class SupabaseSessionSyncGateway implements SessionSyncGateway {
       throw StateError('Waktu selesai sesi tidak tersedia.');
     }
 
-    await client.from('ride_session_summaries').upsert(
-      {
-        'user_id': userId,
-        'session_id': session.id,
-        'started_at': session.startedAt.toUtc().toIso8601String(),
-        'ended_at': endedAt.toUtc().toIso8601String(),
-        'duration_seconds': session
-                .durationAt(endedAt)
-                .inSeconds,
-        'distance_meters': session.distanceMeters,
-        'sample_count': summary.sampleCount,
-        'elevation_gain_meters': summary.elevationGainMeters,
-        'elevation_source': summary.elevationSource,
-        'accelerometer_sample_count': summary.accelerometerSampleCount,
-        'gyroscope_sample_count': summary.gyroscopeSampleCount,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      },
-      onConflict: 'user_id,session_id',
-    );
+    await client.from('ride_session_summaries').upsert({
+      'user_id': userId,
+      'session_id': session.id,
+      'started_at': session.startedAt.toUtc().toIso8601String(),
+      'ended_at': endedAt.toUtc().toIso8601String(),
+      'duration_seconds': session.durationAt(endedAt).inSeconds,
+      'distance_meters': session.distanceMeters,
+      'sample_count': summary.sampleCount,
+      'elevation_gain_meters': summary.elevationGainMeters,
+      'elevation_source': summary.elevationSource,
+      'accelerometer_sample_count': summary.accelerometerSampleCount,
+      'gyroscope_sample_count': summary.gyroscopeSampleCount,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'user_id,session_id');
     if (shareWithTeamId != null) {
-      await client.from('team_shared_ride_summaries').upsert(
-        {
-          'team_id': shareWithTeamId,
-          'user_id': userId,
-          'session_id': session.id,
-        },
-        onConflict: 'team_id,user_id,session_id',
-        ignoreDuplicates: true,
-      );
+      await client
+          .from('team_shared_ride_summaries')
+          .upsert(
+            {
+              'team_id': shareWithTeamId,
+              'user_id': userId,
+              'session_id': session.id,
+            },
+            onConflict: 'team_id,user_id,session_id',
+            ignoreDuplicates: true,
+          );
     }
   }
 }

@@ -19,11 +19,14 @@ void main() {
     notificationsPermanentlyDenied: false,
   );
 
-  test('allows a recording attempt only when permission and location are on', () {
-    expect(report().canStartRecording, isTrue);
-    expect(report(permission: false).canStartRecording, isFalse);
-    expect(report(services: false).canStartRecording, isFalse);
-  });
+  test(
+    'allows a recording attempt only when permission and location are on',
+    () {
+      expect(report().canStartRecording, isTrue);
+      expect(report(permission: false).canStartRecording, isFalse);
+      expect(report(services: false).canStartRecording, isFalse);
+    },
+  );
 
   test('distinguishes an unchecked GPS from a checked missing fix', () {
     expect(report().gpsFixChecked, isFalse);

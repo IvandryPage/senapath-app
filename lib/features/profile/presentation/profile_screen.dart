@@ -130,7 +130,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       IconButton(
                         tooltip: 'Edit nama dan foto profil',
-                        onPressed: () => _editProfile(profile, state.avatarBytes),
+                        onPressed: () =>
+                            _editProfile(profile, state.avatarBytes),
                         visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.edit_outlined, size: 20),
                       ),
@@ -263,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     builder: (sheetContext) => BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) => SafeArea(
         child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           child: SingleChildScrollView(
             child: _buildContactsSection(context, state),
           ),
@@ -855,16 +856,13 @@ class _ProfileEditorState extends State<_ProfileEditor> {
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
-            Navigator.pop(
-              context,
-              (
-                UserProfile(
-                  displayName: _nameController.text,
-                  teamName: widget.profile.teamName,
-                ),
-                _updatedAvatarBytes,
+            Navigator.pop(context, (
+              UserProfile(
+                displayName: _nameController.text,
+                teamName: widget.profile.teamName,
               ),
-            );
+              _updatedAvatarBytes,
+            ));
           },
           child: const Text('Simpan'),
         ),

@@ -92,10 +92,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     final client = await _requireClient();
     final rows = await client.rpc(
       'create_cycling_team',
-      params: {
-        'p_name': name,
-        'p_display_name': displayName,
-      },
+      params: {'p_name': name, 'p_display_name': displayName},
     );
     final row = (rows as List).single as Map<String, dynamic>;
     final teams = await loadTeams();
@@ -107,10 +104,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     final client = await _requireClient();
     final rows = await client.rpc(
       'join_cycling_team',
-      params: {
-        'p_invite_code': inviteCode,
-        'p_display_name': displayName,
-      },
+      params: {'p_invite_code': inviteCode, 'p_display_name': displayName},
     );
     final row = (rows as List).single as Map<String, dynamic>;
     final teams = await loadTeams();
@@ -219,10 +213,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
   @override
   Future<void> leaveTeam(String teamId) async {
     final client = await _requireClient();
-    await client.rpc(
-      'leave_cycling_team',
-      params: {'p_team_id': teamId},
-    );
+    await client.rpc('leave_cycling_team', params: {'p_team_id': teamId});
   }
 
   @override
@@ -237,19 +228,11 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
   }
 
   @override
-  Future<void> setMemberRole(
-    String teamId,
-    String userId,
-    String role,
-  ) async {
+  Future<void> setMemberRole(String teamId, String userId, String role) async {
     final client = await _requireClient();
     await client.rpc(
       'set_cycling_team_member_role',
-      params: {
-        'p_team_id': teamId,
-        'p_user_id': userId,
-        'p_role': role,
-      },
+      params: {'p_team_id': teamId, 'p_user_id': userId, 'p_role': role},
     );
   }
 }

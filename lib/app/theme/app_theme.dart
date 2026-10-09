@@ -38,8 +38,7 @@ abstract final class AppTheme {
       errorContainer: const Color(0xFFFFDAD6),
       onErrorContainer: const Color(0xFF410002),
     );
-    final textTheme = Typography.material2021()
-        .black
+    final textTheme = Typography.material2021().black
         .apply(bodyColor: ink, displayColor: ink, fontFamily: 'Roboto')
         .copyWith(
           bodySmall: const TextStyle(fontSize: 13, height: 1.4),
@@ -78,10 +77,7 @@ abstract final class AppTheme {
           ),
         );
     final borderRadius = BorderRadius.circular(SenapathShape.medium);
-    final outline = BorderSide(
-      color: ink,
-      width: SenapathShape.borderWidth,
-    );
+    final outline = BorderSide(color: ink, width: SenapathShape.borderWidth);
 
     return ThemeData(
       useMaterial3: true,
@@ -142,10 +138,7 @@ abstract final class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(SenapathShape.small),
-          borderSide: BorderSide(
-            color: ink.withValues(alpha: 0.7),
-            width: 2,
-          ),
+          borderSide: BorderSide(color: ink.withValues(alpha: 0.7), width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(SenapathShape.small),
@@ -245,9 +238,8 @@ abstract final class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? SenapathColors.ink
-              : null,
+          (states) =>
+              states.contains(WidgetState.selected) ? SenapathColors.ink : null,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)

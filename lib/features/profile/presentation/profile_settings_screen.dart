@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/senapath_design.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
@@ -49,6 +50,18 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       _themeModeInfo(),
       const SizedBox(height: 12),
       _biometricSettings(),
+      const SizedBox(height: 12),
+      SenapathCard(
+        child: ListTile(
+          leading: const Icon(Icons.notifications_active_outlined),
+          title: const Text('Notifikasi latihan'),
+          subtitle: const Text(
+            'Progres GPX, checkpoint, dan jadwal pengingat.',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/profile/notifications'),
+        ),
+      ),
       const SizedBox(height: 28),
       _sectionHeading(
         context,
@@ -70,7 +83,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     children: [
       CircleAvatar(
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-        child: Icon(icon, color: Theme.of(context).colorScheme.onSecondaryContainer),
+        child: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.onSecondaryContainer,
+        ),
       ),
       const SizedBox(width: 12),
       Expanded(
@@ -92,7 +108,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Sistem satuan', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Sistem satuan',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             Text(
               'Berlaku pada peta, sesi, ringkasan, dan riwayat.',
@@ -132,7 +151,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     child: ListTile(
       leading: const Icon(Icons.light_mode_outlined),
       title: const Text('Tema terang'),
-      subtitle: const Text('Senapath menggunakan tema terang di semua kondisi.'),
+      subtitle: const Text(
+        'Senapath menggunakan tema terang di semua kondisi.',
+      ),
     ),
   );
 
@@ -205,7 +226,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           ),
           trailing: IconButton(
             tooltip: 'Hapus cache peta',
-            onPressed: _usage == null || _usage!.mapCacheBytes == 0 || _clearingCache
+            onPressed:
+                _usage == null || _usage!.mapCacheBytes == 0 || _clearingCache
                 ? null
                 : _confirmClearMapCache,
             icon: _clearingCache
@@ -224,8 +246,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
-        if (_loadingStorage)
-          const LinearProgressIndicator(),
+        if (_loadingStorage) const LinearProgressIndicator(),
       ],
     ),
   );

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -67,6 +68,11 @@ class DeviceReadinessChecker implements ReadinessChecker {
             permission == LocationPermission.deniedForever)) {
       permission = await Geolocator.requestPermission();
     }
+    if (requestLocationPermission &&
+        permission == LocationPermission.whileInUse) {
+      await Permission.locationAlways.request();
+      permission = await Geolocator.checkPermission();
+    }
     final locationPermissionGranted =
         permission == LocationPermission.whileInUse ||
         permission == LocationPermission.always;
@@ -76,9 +82,7 @@ class DeviceReadinessChecker implements ReadinessChecker {
 
     Position? position;
     String? gpsMessage;
-    if (locationPermissionGranted &&
-        locationServicesEnabled &&
-        checkGpsFix) {
+    if (locationPermissionGranted && locationServicesEnabled && checkGpsFix) {
       try {
         position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
@@ -102,8 +106,7 @@ class DeviceReadinessChecker implements ReadinessChecker {
     } else if (!locationServicesEnabled) {
       gpsMessage = 'Aktifkan layanan lokasi perangkat untuk mendapat fix GPS.';
     } else if (locationPermanentlyDenied) {
-      gpsMessage =
-          'Izin lokasi ditolak permanen. Aktifkan izin dari pengaturan aplikasi.';
+      gpsMessage = 'Izin lokasi ditolak permanen. Aktifkan izin dari pengaturan aplikasi.';
     } else if (!locationPermissionGranted) {
       gpsMessage = 'Izinkan akses lokasi agar Senapath dapat memeriksa GPS.';
     } else if (!checkGpsFix) {
@@ -163,12 +166,42 @@ class GeolocatorLocationSource implements LocationSource {
   const GeolocatorLocationSource();
 
   @override
-  Stream<Position> get positions => Geolocator.getPositionStream(
-    locationSettings: const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 5,
-    ),
-  );
+  Stream<Position> get positions {
+    const accuracy = LocationAccuracy.high;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return Geolocator.getPositionStream(
+        locationSettings: AndroidSettings(
+          accuracy: accuracy,
+          distanceFilter: 5,
+          intervalDuration: const Duration(seconds: 5),
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationTitle: 'Senapath sedang merekam',
+            notificationText: 'Lokasi dipakai untuk progres sesi bersepeda.',
+            notificationChannelName: 'Perekaman sesi',
+            enableWakeLock: true,
+          ),
+        ),
+      );
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return Geolocator.getPositionStream(
+        locationSettings: AppleSettings(
+          accuracy: accuracy,
+          distanceFilter: 5,
+          activityType: ActivityType.fitness,
+          pauseLocationUpdatesAutomatically: false,
+          allowBackgroundLocationUpdates: true,
+          showBackgroundLocationIndicator: true,
+        ),
+      );
+    }
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    );
+  }
 }
 
 abstract interface class BarometerSource {

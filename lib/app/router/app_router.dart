@@ -19,6 +19,9 @@ import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 import '../../features/session/domain/ride_session.dart';
 import '../../features/progress/presentation/activity_progress_screen.dart';
 import '../../features/teams/presentation/cycling_team_screen.dart';
+import '../../features/notifications/presentation/notification_settings_screen.dart';
+import '../../features/gamification/presentation/rider_screen.dart';
+import '../../features/ledger/presentation/ride_ledger_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -72,6 +75,16 @@ final appRouter = GoRouter(
                   path: 'account',
                   builder: (context, state) => const CloudAccountScreen(),
                 ),
+                GoRoute(
+                  path: 'rider',
+                  builder: (context, state) => const RiderScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'ledger',
+                      builder: (context, state) => const RideLedgerScreen(),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
@@ -120,6 +133,11 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'settings',
                   builder: (context, state) => const ProfileSettingsScreen(),
+                ),
+                GoRoute(
+                  path: 'notifications',
+                  builder: (context, state) =>
+                      const NotificationSettingsScreen(),
                 ),
                 GoRoute(
                   path: 'teams',
@@ -178,6 +196,9 @@ class _AppShellState extends State<_AppShell> {
       '/progress' => 'Progres aktivitas',
       '/account' => 'Akun & keamanan',
       '/profile/settings' => 'Pengaturan',
+      '/profile/notifications' => 'Notifikasi',
+      '/rider' => 'Karakter rider',
+      '/rider/ledger' => 'Bukti perjalanan',
       '/profile/teams' => 'Tim',
       _ when widget.location.startsWith('/profile/teams/') => 'Detail tim',
       '/profile/sessions' => 'Riwayat sesi',

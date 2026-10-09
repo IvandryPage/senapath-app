@@ -32,8 +32,14 @@ class _RoutesScreenState extends State<RoutesScreen> {
   @override
   void initState() {
     super.initState();
-    unawaited(context.read<RideSessionCubit>().initialize());
-    unawaited(context.read<RoutesCubit>().load());
+    unawaited(_initializeScreen());
+  }
+
+  Future<void> _initializeScreen() async {
+    final sessionCubit = context.read<RideSessionCubit>();
+    final routesCubit = context.read<RoutesCubit>();
+    await Future.wait([sessionCubit.initialize(), routesCubit.load()]);
+    if (mounted) sessionCubit.setActiveRoute(routesCubit.state.sessionRoute);
   }
 
   @override
@@ -167,7 +173,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                       ? null
                                       : () => context
                                             .read<RideSessionCubit>()
-                                            .start(),
+                                            .start(route: activeRoute),
                                   icon: const Icon(Icons.play_arrow),
                                   label: const Text('Mulai sesi'),
                                 ),

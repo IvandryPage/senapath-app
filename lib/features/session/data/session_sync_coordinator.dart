@@ -38,10 +38,7 @@ class SessionSyncCoordinator {
         await repository.updateSyncStatus(sessionId, 'pending');
         return;
       }
-      await gateway.uploadSummary(
-        summary,
-        shareWithTeamId: shareWithTeamId,
-      );
+      await gateway.uploadSummary(summary, shareWithTeamId: shareWithTeamId);
       if (shouldContinue != null && !shouldContinue()) {
         await repository.updateSyncStatus(sessionId, 'pending');
         return;

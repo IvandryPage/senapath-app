@@ -11,6 +11,12 @@ import '../../leaderboard/domain/leaderboard_models.dart';
 import '../../leaderboard/presentation/leaderboard_cubit.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
+import '../../gamification/presentation/rider_gamification_cubit.dart';
+import '../../gamification/domain/rider_progress.dart';
+import '../../routes/domain/route_progress.dart';
+import '../../routes/domain/saved_route.dart';
+import '../../ride_coach/presentation/ride_coach_cubit.dart';
+import '../../notifications/presentation/notification_settings_cubit.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -27,133 +33,161 @@ class _OverviewScreenState extends State<OverviewScreen> {
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    unawaited(context.read<RideSessionCubit>().initialize());
+    unawaited(_initialize());
     unawaited(context.read<LeaderboardCubit>().load());
+  }
+
+  Future<void> _initialize() async {
+    final sessionCubit = context.read<RideSessionCubit>();
+    await sessionCubit.initialize();
+    if (!mounted) return;
+    await context.read<RiderGamificationCubit>().load(
+      sessionCubit.state.completedSessions,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<RideSessionCubit, RideSessionState>(
-      builder: (context, state) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final sessions = state.completedSessions;
-        final activeSession =
-            state.session != null &&
-            state.session!.status != RideSessionStatus.completed;
-        final now = DateTime.now();
-        final weekSessions = sessions.where(
-          (session) =>
-              session.startedAt.isAfter(now.subtract(const Duration(days: 7))),
-        );
-        final weekDistance = weekSessions.fold<double>(
-          0,
-          (total, session) => total + session.distanceMeters,
-        );
+    return BlocListener<RideSessionCubit, RideSessionState>(
+      listenWhen: (previous, current) =>
+          !identical(previous.completedSessions, current.completedSessions),
+      listener: (context, state) => context
+          .read<RiderGamificationCubit>()
+          .updateSessions(state.completedSessions),
+      child: BlocBuilder<RideSessionCubit, RideSessionState>(
+        builder: (context, state) {
+          final colorScheme = Theme.of(context).colorScheme;
+          final sessions = state.completedSessions;
+          final activeSession =
+              state.session != null &&
+              state.session!.status != RideSessionStatus.completed;
+          final now = DateTime.now();
+          final weekSessions = sessions.where(
+            (session) => session.startedAt.isAfter(
+              now.subtract(const Duration(days: 7)),
+            ),
+          );
+          final weekDistance = weekSessions.fold<double>(
+            0,
+            (total, session) => total + session.distanceMeters,
+          );
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _formatLongDate(now),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _formatLongDate(now),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Hai, siap gowes?',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                    ],
+                        const SizedBox(height: 3),
+                        Text(
+                          'Hai, siap gowes?',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _WelcomeCard(
-              title: activeSession ? 'RIDE IN PROGRESS' : 'READY TO RIDE',
-              startLabel: activeSession ? 'Lanjutkan sesi' : 'Mulai sesi',
-              onExplore: () => context.go('/routes'),
-              onStart: () => context.go('/routes'),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Ringkasan 7 hari',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _WelcomeCard(
+                title: activeSession ? 'RIDE IN PROGRESS' : 'READY TO RIDE',
+                startLabel: activeSession ? 'Lanjutkan sesi' : 'Mulai sesi',
+                onExplore: () => context.go('/routes'),
+                onStart: () => context.go('/routes'),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Ringkasan 7 hari',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () => context.go('/progress'),
-                  child: const Text('Progres'),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: _SummaryTile(
-                    icon: Icons.route_outlined,
-                    value: _formatDistance(weekDistance),
-                    label: 'Jarak total',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _SummaryTile(
-                    icon: Icons.directions_bike_outlined,
-                    value: '${weekSessions.length}',
-                    label: 'Sesi selesai',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _LeaderboardPreview(onOpen: () => context.push('/leaderboard')),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Aktivitas terbaru',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                if (sessions.isNotEmpty)
                   TextButton(
-                    onPressed: () => context.go('/profile/sessions'),
-                    child: const Text('Lihat semua'),
+                    onPressed: () => context.go('/progress'),
+                    child: const Text('Progres'),
                   ),
-              ],
-            ),
-            if (state.isLoading && sessions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (sessions.isEmpty)
-              const _EmptyActivityCard()
-            else
-              for (final session in sessions.take(3))
-                _ActivityCard(
-                  session: session,
-                  onTap: () => context.push('/profile/sessions/${session.id}'),
-                ),
-          ],
-        );
-      },
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SummaryTile(
+                      icon: Icons.route_outlined,
+                      value: _formatDistance(weekDistance),
+                      label: 'Jarak total',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _SummaryTile(
+                      icon: Icons.directions_bike_outlined,
+                      value: '${weekSessions.length}',
+                      label: 'Sesi selesai',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _RiderProgressPreview(onOpen: () => context.push('/rider')),
+              const SizedBox(height: 14),
+              _RideCoachPreview(
+                sessionState: state,
+                onSendNotification: (recommendation) => context
+                    .read<NotificationSettingsCubit>()
+                    .sendRecommendation(recommendation),
+              ),
+              const SizedBox(height: 20),
+              _LeaderboardPreview(onOpen: () => context.push('/leaderboard')),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Aktivitas terbaru',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  if (sessions.isNotEmpty)
+                    TextButton(
+                      onPressed: () => context.go('/profile/sessions'),
+                      child: const Text('Lihat semua'),
+                    ),
+                ],
+              ),
+              if (state.isLoading && sessions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (sessions.isEmpty)
+                const _EmptyActivityCard()
+              else
+                for (final session in sessions.take(3))
+                  _ActivityCard(
+                    session: session,
+                    onTap: () =>
+                        context.push('/profile/sessions/${session.id}'),
+                  ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -187,6 +221,246 @@ class _OverviewScreenState extends State<OverviewScreen> {
     ];
     return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
   }
+}
+
+class _RideCoachPreview extends StatelessWidget {
+  const _RideCoachPreview({
+    required this.sessionState,
+    required this.onSendNotification,
+  });
+
+  final RideSessionState sessionState;
+  final Future<void> Function(String recommendation) onSendNotification;
+
+  @override
+  Widget build(BuildContext context) {
+    final session = sessionState.session;
+    final route = sessionState.activeRoute;
+    final isActive =
+        session != null &&
+        (session.status == RideSessionStatus.recording ||
+            session.status == RideSessionStatus.paused);
+    final location = sessionState.recordedLocations.isEmpty
+        ? null
+        : sessionState.recordedLocations.last;
+    final progress = isActive ? sessionState.routeProgress : null;
+    final nextCheckpoint = route == null || location == null
+        ? null
+        : _nextCheckpoint(route, location);
+
+    return BlocBuilder<RideCoachCubit, RideCoachState>(
+      builder: (context, coachState) => SenapathCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .tertiaryContainer,
+                  child: Icon(
+                    Icons.auto_awesome_outlined,
+                    color: Theme.of(context).colorScheme.onTertiaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pelatih AI saat gowes',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        route == null
+                            ? 'Pilih GPX dan mulai sesi untuk saran kontekstual.'
+                            : '${route.name} · ${progress?.percent ?? 0}% selesai',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (coachState.recommendation != null) ...[
+              const SizedBox(height: 14),
+              Text(coachState.recommendation!),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () =>
+                      onSendNotification(coachState.recommendation!),
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: const Text('Kirim sebagai notifikasi'),
+                ),
+              ),
+            ],
+            if (coachState.error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                coachState.error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: 10),
+            FilledButton.tonalIcon(
+              onPressed:
+                  coachState.isLoading ||
+                      !isActive ||
+                      route == null ||
+                      progress == null ||
+                      !context.read<RideCoachCubit>().isConfigured
+                  ? null
+                  : () => _requestRecommendation(
+                      context,
+                      route: route,
+                      progress: progress,
+                      elapsedMinutes: sessionState.elapsed.inMinutes,
+                      speedKmh: session.currentSpeedMetersPerSecond * 3.6,
+                      nextCheckpoint: nextCheckpoint,
+                    ),
+              icon: coachState.isLoading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.lightbulb_outline),
+              label: Text(
+                coachState.isLoading ? 'Menganalisis...' : 'Minta rekomendasi',
+              ),
+            ),
+            if (route != null && progress != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Konteks yang dikirim hanya ringkasan rute, progres, durasi, kecepatan, '
+                  'dan checkpoint berikutnya—bukan koordinat GPS.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  RouteCheckpoint? _nextCheckpoint(
+    RouteRecord route,
+    TelemetryLocation location,
+  ) {
+    RouteCheckpoint? closest;
+    var closestDistance = double.infinity;
+    for (final checkpoint in route.checkpoints) {
+      final distance = RouteProgress.distanceToCheckpoint(location, checkpoint);
+      if (distance < closestDistance) {
+        closest = checkpoint;
+        closestDistance = distance;
+      }
+    }
+    return closest;
+  }
+
+  Future<void> _requestRecommendation(
+    BuildContext context, {
+    required RouteRecord route,
+    required RouteProgress progress,
+    required int elapsedMinutes,
+    required double speedKmh,
+    required RouteCheckpoint? nextCheckpoint,
+  }) async {
+    final consent = await showDialog<bool>(
+      context: context,
+      builder: (context) => SenapathAlertDialog(
+        title: const Text('Minta saran pelatih AI?'),
+        content: const Text(
+          'Ringkasan nama rute, persentase dan jarak tersisa, durasi, kecepatan, '
+          'serta checkpoint berikutnya akan dikirim ke layanan AI untuk membuat rekomendasi. '
+          'Koordinat GPS mentah tidak dikirim.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Setuju & minta saran'),
+          ),
+        ],
+      ),
+    );
+    if (consent != true || !context.mounted) return;
+    await context.read<RideCoachCubit>().recommend(
+      consent: true,
+      rideContext: {
+        'routeName': route.name,
+        'distanceRemainingKm': progress.distanceRemainingMeters / 1000,
+        'progressPercent': progress.percent,
+        'elapsedMinutes': elapsedMinutes,
+        'speedKmh': speedKmh,
+        'nextCheckpoint': nextCheckpoint?.name,
+      },
+    );
+  }
+}
+
+class _RiderProgressPreview extends StatelessWidget {
+  const _RiderProgressPreview({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) =>
+      BlocBuilder<RiderGamificationCubit, RiderGamificationState>(
+        builder: (context, state) {
+          final progress = state.progress;
+          if (progress == null) return const SizedBox.shrink();
+          return SenapathCard(
+            onTap: onOpen,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: SenapathColors.gold,
+                  child: Icon(switch (progress.style) {
+                    RiderStyle.sprinter => Icons.bolt,
+                    RiderStyle.climber => Icons.terrain,
+                    RiderStyle.explorer => Icons.explore,
+                  }, color: SenapathColors.ink),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rider level ${progress.level}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      LinearProgressIndicator(value: progress.levelProgress),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${progress.experience} XP · ${progress.style.label}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          );
+        },
+      );
 }
 
 class _WelcomeCard extends StatelessWidget {

@@ -37,6 +37,15 @@ import 'features/progress/data/activity_goals_repository.dart';
 import 'features/progress/presentation/activity_goals_cubit.dart';
 import 'features/teams/data/cycling_team_repository.dart';
 import 'features/teams/presentation/cycling_team_cubit.dart';
+import 'features/notifications/data/notification_settings_repository.dart';
+import 'features/notifications/data/ride_notification_service.dart';
+import 'features/notifications/presentation/notification_settings_cubit.dart';
+import 'features/gamification/data/rider_profile_repository.dart';
+import 'features/gamification/presentation/rider_gamification_cubit.dart';
+import 'features/ledger/data/ride_ledger_repository.dart';
+import 'features/ledger/presentation/ride_ledger_cubit.dart';
+import 'features/ride_coach/data/supabase_ride_coach_gateway.dart';
+import 'features/ride_coach/presentation/ride_coach_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +73,11 @@ Future<void> main() async {
     secureVault: secureVault,
   );
   final database = AppDatabase();
+  final notificationService = LocalRideNotificationService();
+  final notificationSettingsRepository = NotificationSettingsRepository(
+    database,
+  );
+  final rideLedgerRepository = RideLedgerRepository(database);
   final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
     database: database,
@@ -97,11 +111,20 @@ Future<void> main() async {
       leaderboardCubit: LeaderboardCubit(
         SupabaseLeaderboardGateway(supabaseClient, authSessionManager),
       ),
-      activityGoalsCubit: ActivityGoalsCubit(
-        ActivityGoalsRepository(database),
-      ),
+      activityGoalsCubit: ActivityGoalsCubit(ActivityGoalsRepository(database)),
       cyclingTeamCubit: CyclingTeamCubit(
         SupabaseCyclingTeamRepository(supabaseClient, authSessionManager),
+      ),
+      notificationSettingsCubit: NotificationSettingsCubit(
+        notificationSettingsRepository,
+        notificationService,
+      ),
+      riderGamificationCubit: RiderGamificationCubit(
+        RiderProfileRepository(database),
+      ),
+      rideLedgerCubit: RideLedgerCubit(rideLedgerRepository),
+      rideCoachCubit: RideCoachCubit(
+        SupabaseRideCoachGateway(supabaseClient, authSessionManager),
       ),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
@@ -109,6 +132,9 @@ Future<void> main() async {
         locationSource: const GeolocatorLocationSource(),
         barometerSource: const SensorsPlusBarometerSource(),
         motionSensorSource: const SensorsPlusMotionSensorSource(),
+        notificationService: notificationService,
+        notificationSettingsRepository: notificationSettingsRepository,
+        ledgerRepository: rideLedgerRepository,
         syncCoordinator: SessionSyncCoordinator(
           repository: sessionRepository,
           gateway: SupabaseSessionSyncGateway(

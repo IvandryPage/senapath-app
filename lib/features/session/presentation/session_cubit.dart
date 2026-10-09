@@ -8,6 +8,11 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../data/readiness_checker.dart';
 import '../data/ride_session_repository.dart';
 import '../data/session_sync_coordinator.dart';
+import '../../notifications/data/notification_settings_repository.dart';
+import '../../notifications/data/ride_notification_service.dart';
+import '../../ledger/data/ride_ledger_repository.dart';
+import '../../routes/domain/route_progress.dart';
+import '../../routes/domain/saved_route.dart';
 import '../domain/ride_session.dart';
 
 class RideSessionState {
@@ -23,6 +28,8 @@ class RideSessionState {
     this.summaryLocations = const [],
     this.isLoadingSummary = false,
     this.syncingSessionId,
+    this.activeRoute,
+    this.routeProgress,
     this.now,
     this.message,
   });
@@ -38,6 +45,8 @@ class RideSessionState {
   final List<TelemetryLocation> summaryLocations;
   final bool isLoadingSummary;
   final String? syncingSessionId;
+  final RouteRecord? activeRoute;
+  final RouteProgress? routeProgress;
   final DateTime? now;
   final String? message;
 
@@ -55,6 +64,10 @@ class RideSessionState {
     String? syncingSessionId,
     bool clearSummary = false,
     bool clearSyncingSession = false,
+    RouteRecord? activeRoute,
+    bool clearActiveRoute = false,
+    RouteProgress? routeProgress,
+    bool clearRouteProgress = false,
     DateTime? now,
     String? message,
     bool clearMessage = false,
@@ -74,6 +87,10 @@ class RideSessionState {
     syncingSessionId: clearSyncingSession
         ? null
         : syncingSessionId ?? this.syncingSessionId,
+    activeRoute: clearActiveRoute ? null : activeRoute ?? this.activeRoute,
+    routeProgress: clearRouteProgress
+        ? null
+        : routeProgress ?? this.routeProgress,
     now: now ?? this.now,
     message: clearMessage ? null : message ?? this.message,
   );
@@ -93,6 +110,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     this.barometerSource,
     this.motionSensorSource,
     this.syncCoordinator,
+    this.notificationService,
+    this.notificationSettingsRepository,
+    this.ledgerRepository,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now,
        super(const RideSessionState());
@@ -103,6 +123,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final BarometerSource? barometerSource;
   final MotionSensorSource? motionSensorSource;
   final SessionSyncCoordinator? syncCoordinator;
+  final RideNotificationService? notificationService;
+  final NotificationSettingsRepository? notificationSettingsRepository;
+  final RideLedgerRepository? ledgerRepository;
   final DateTime Function() _clock;
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<double>? _barometerSubscription;
@@ -114,6 +137,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   Timer? _ticker;
   int _syncGeneration = 0;
   int _summaryGeneration = 0;
+  int _lastNotifiedProgress = 0;
+  final Set<int> _approachedCheckpoints = {};
+  final Set<int> _reachedCheckpoints = {};
+  bool _routeNotificationsFailed = false;
+  bool _routeNotificationsEnabled = false;
+  RouteProgressCalculator? _routeProgressCalculator;
 
   bool get canSyncSessions =>
       syncCoordinator?.gateway.isConfigured == true &&
@@ -224,14 +253,17 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> start() async {
+  Future<void> start({RouteRecord? route}) async {
     if (state.session != null &&
         state.session!.status != RideSessionStatus.completed) {
       _setMessage('Selesaikan atau lanjutkan sesi yang sedang tersimpan.');
       return;
     }
     try {
-      final readiness = await readinessChecker.check(checkGpsFix: false);
+      final readiness = await readinessChecker.check(
+        requestLocationPermission: true,
+        checkGpsFix: false,
+      );
       emit(state.copyWith(readiness: readiness));
       if (!readiness.canStartRecording) {
         _setMessage(
@@ -247,13 +279,22 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     try {
       final session = await repository.start(_clock().toUtc());
+      _activeRoute = route;
+      _routeProgressCalculator = route == null
+          ? null
+          : RouteProgressCalculator(route);
+      _resetRouteNotifications();
       emit(
         state.copyWith(
           session: session,
+          activeRoute: route,
+          clearActiveRoute: route == null,
+          clearRouteProgress: true,
           recordedLocations: const [],
           now: _clock().toUtc(),
         ),
       );
+      await _prepareRouteNotifications();
       _startLocationStream(session.id);
       _startBarometerStream();
       _startMotionSensorStreams();
@@ -281,7 +322,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> resume() async {
+  Future<void> resume({RouteRecord? route}) async {
     final session = state.session;
     if (session == null || session.status != RideSessionStatus.paused) {
       _setMessage('Tidak ada sesi jeda untuk dilanjutkan.');
@@ -293,7 +334,19 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     try {
       final resumed = await repository.resume(session.id, _clock().toUtc());
-      emit(state.copyWith(session: resumed, now: _clock().toUtc()));
+      if (route != null) {
+        _activeRoute = route;
+        _routeProgressCalculator = RouteProgressCalculator(route);
+        _resetRouteNotifications();
+      }
+      emit(
+        state.copyWith(
+          session: resumed,
+          activeRoute: route,
+          now: _clock().toUtc(),
+        ),
+      );
+      await _prepareRouteNotifications();
       _startLocationStream(resumed.id);
       _startBarometerStream();
       _startMotionSensorStreams();
@@ -316,14 +369,26 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     try {
       final completed = await repository.finish(session.id, _clock().toUtc());
       final history = await repository.loadCompletedSessions();
+      String? ledgerMessage;
+      try {
+        await ledgerRepository?.appendSession(completed);
+      } catch (_) {
+        ledgerMessage = 'Sesi selesai, tetapi bukti aktivitas belum tercatat di rantai lokal.';
+      }
       emit(
         state.copyWith(
           session: completed,
+          clearActiveRoute: true,
+          clearRouteProgress: true,
           completedSessions: history,
           now: completed.endedAt,
           clearSummary: true,
+          message: ledgerMessage,
+          clearMessage: ledgerMessage == null,
         ),
       );
+      _activeRoute = null;
+      _routeProgressCalculator = null;
     } catch (_) {
       _setMessage('Sesi belum dapat diakhiri. Data lokal tetap tersedia.');
     }
@@ -391,8 +456,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         state.copyWith(
           completedSessions: history,
           clearSummary: clearSummary,
-          message:
-              'Aktivitas lokal dihapus. Salinan cloud, jika ada, tidak ikut dihapus.',
+          message: 'Aktivitas lokal dihapus. Salinan cloud, jika ada, tidak ikut dihapus.',
         ),
       );
     } catch (_) {
@@ -520,13 +584,126 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       addedDistanceMeters: addedDistanceMeters,
     );
     if (updated != null && state.session?.id == sessionId) {
+      final routeProgress = _routeProgressCalculator?.calculate(location);
       emit(
         state.copyWith(
           session: updated,
           recordedLocations: [...state.recordedLocations, location],
+          routeProgress: routeProgress,
+          clearRouteProgress: routeProgress == null,
           now: _clock().toUtc(),
         ),
       );
+      unawaited(_notifyRouteProgress(location, routeProgress));
+    }
+  }
+
+  RouteRecord? _activeRoute;
+
+  void setActiveRoute(RouteRecord? route) {
+    if (state.session?.status != RideSessionStatus.recording) return;
+    _activeRoute = route;
+    _routeProgressCalculator = route == null
+        ? null
+        : RouteProgressCalculator(route);
+    _resetRouteNotifications();
+    final location = state.recordedLocations.isEmpty
+        ? null
+        : state.recordedLocations.last;
+    final progress = route == null || location == null
+        ? null
+        : _routeProgressCalculator?.calculate(location);
+    emit(
+      state.copyWith(
+        activeRoute: route,
+        clearActiveRoute: route == null,
+        routeProgress: progress,
+        clearRouteProgress: progress == null,
+      ),
+    );
+    unawaited(_prepareRouteNotifications());
+  }
+
+  Future<void> _prepareRouteNotifications() async {
+    final settingsRepository = notificationSettingsRepository;
+    final service = notificationService;
+    if (settingsRepository == null || service == null) return;
+    try {
+      final settings = await settingsRepository.load();
+      _routeNotificationsEnabled = settings.routeProgressEnabled;
+      if (_routeNotificationsEnabled && !await service.requestPermission()) {
+        _routeNotificationsEnabled = false;
+        _setMessage('Notifikasi rute tidak aktif karena izin belum diberikan.');
+      }
+    } catch (_) {
+      _routeNotificationsEnabled = false;
+      _setMessage('Pengaturan notifikasi rute tidak dapat dibaca.');
+    }
+  }
+
+  void _resetRouteNotifications() {
+    _lastNotifiedProgress = 0;
+    _approachedCheckpoints.clear();
+    _reachedCheckpoints.clear();
+    _routeNotificationsFailed = false;
+  }
+
+  Future<void> _notifyRouteProgress(
+    TelemetryLocation location,
+    RouteProgress? progress,
+  ) async {
+    final route = _activeRoute;
+    final service = notificationService;
+    if (route == null ||
+        service == null ||
+        !_routeNotificationsEnabled ||
+        _routeNotificationsFailed) {
+      return;
+    }
+    if (progress == null ||
+        progress.distanceFromRouteMeters >
+            math.max(90, location.accuracyMeters * 2)) {
+      return;
+    }
+    try {
+      final milestone = (progress.percent ~/ 25) * 25;
+      if (milestone >= 25 && milestone > _lastNotifiedProgress) {
+        _lastNotifiedProgress = milestone;
+        await service.show(
+          id: 7200,
+          title: 'Progres rute $milestone%',
+          body: 'Kamu sudah menempuh $milestone% dari ${route.name}.',
+          payload: 'route-progress',
+        );
+      }
+      for (var index = 0; index < route.checkpoints.length; index++) {
+        final checkpoint = route.checkpoints[index];
+        final distance = RouteProgress.distanceToCheckpoint(
+          location,
+          checkpoint,
+        );
+        if (distance <= 250 && _approachedCheckpoints.add(index)) {
+          await service.show(
+            id: 7300 + index,
+            title: 'Checkpoint dekat',
+            body: '${checkpoint.name} sekitar ${distance.round()} m lagi.',
+            payload: 'route-checkpoint',
+          );
+        }
+        if (distance <= 60 && _reachedCheckpoints.add(index)) {
+          await service.show(
+            id: 7400 + index,
+            title: 'Checkpoint tercapai',
+            body: 'Kamu sudah memasuki ${checkpoint.name}.',
+            payload: 'route-checkpoint',
+          );
+        }
+      }
+    } catch (_) {
+      _routeNotificationsFailed = true;
+      if (!isClosed) {
+        _setMessage('Notifikasi progres rute tidak dapat ditampilkan.');
+      }
     }
   }
 

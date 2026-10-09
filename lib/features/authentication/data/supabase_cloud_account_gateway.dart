@@ -2,9 +2,7 @@ import 'custom_auth_session_manager.dart';
 import 'cloud_account_gateway.dart';
 
 class SupabaseCloudAccountGateway implements CloudAccountGateway {
-  const SupabaseCloudAccountGateway({
-    required this._sessionManager,
-  });
+  const SupabaseCloudAccountGateway({required this._sessionManager});
 
   final CustomAuthSessionManager _sessionManager;
 

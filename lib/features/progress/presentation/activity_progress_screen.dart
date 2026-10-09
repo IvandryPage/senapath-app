@@ -126,7 +126,9 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
                     child: ListTile(
                       leading: Icon(Icons.flag_outlined),
                       title: Text('Belum ada target'),
-                      subtitle: Text('Buat target mingguan atau bulanan sendiri.'),
+                      subtitle: Text(
+                        'Buat target mingguan atau bulanan sendiri.',
+                      ),
                     ),
                   );
                 }
@@ -140,9 +142,8 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
                             : month,
                         isSaving: state.isSaving,
                         onEdit: () => _editGoal(context, goal),
-                        onDelete: () => context
-                            .read<ActivityGoalsCubit>()
-                            .remove(goal.id),
+                        onDelete: () =>
+                            context.read<ActivityGoalsCubit>().remove(goal.id),
                       ),
                   ],
                 );
@@ -159,10 +160,7 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
     );
   }
 
-  Future<void> _editGoal(
-    BuildContext context, [
-    ActivityGoal? existing,
-  ]) async {
+  Future<void> _editGoal(BuildContext context, [ActivityGoal? existing]) async {
     final goal = await showDialog<ActivityGoal>(
       context: context,
       builder: (_) => _GoalDialog(existing: existing),
@@ -199,7 +197,8 @@ class _ProgressPeriodCard extends StatelessWidget {
     final sessionsById = {
       for (final session in sourceSessions) session.id: session,
     };
-    final periodLabel = '${DateFormat('d MMM').format(progress.startsAt)} – '
+    final periodLabel =
+        '${DateFormat('d MMM').format(progress.startsAt)} – '
         '${DateFormat('d MMM').format(progress.endsAt.subtract(const Duration(days: 1)))}';
     return SenapathCard(
       child: Padding(
@@ -241,9 +240,7 @@ class _ProgressPeriodCard extends StatelessWidget {
                   ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Sesi bersepeda',
-                    ),
+                    title: Text('Sesi bersepeda'),
                     subtitle: Text(
                       DateFormat('d MMM yyyy · HH:mm')
                           .format(session.startedAt.toLocal()),
@@ -271,8 +268,7 @@ class _Comparison extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final distanceDifference =
-        current.distanceMeters - previous.distanceMeters;
+    final distanceDifference = current.distanceMeters - previous.distanceMeters;
     final distance = unit == UnitSystem.metric
         ? distanceDifference / 1000
         : distanceDifference / 1609.344;
@@ -331,9 +327,10 @@ class _GoalCard extends StatelessWidget {
     final displayValue = switch (goal.metric) {
       GoalMetric.completedSessions =>
         '${current.toStringAsFixed(0)} / ${target.toStringAsFixed(0)} sesi',
-      GoalMetric.distanceMeters => unit == UnitSystem.metric
-          ? '${(current / 1000).toStringAsFixed(1)} / ${(target / 1000).toStringAsFixed(1)} km'
-          : '${(current / 1609.344).toStringAsFixed(1)} / ${(target / 1609.344).toStringAsFixed(1)} mi',
+      GoalMetric.distanceMeters =>
+        unit == UnitSystem.metric
+            ? '${(current / 1000).toStringAsFixed(1)} / ${(target / 1000).toStringAsFixed(1)} km'
+            : '${(current / 1609.344).toStringAsFixed(1)} / ${(target / 1609.344).toStringAsFixed(1)} mi',
       GoalMetric.activeSeconds =>
         '${(current / 3600).toStringAsFixed(1)} / ${(target / 3600).toStringAsFixed(1)} jam',
     };
@@ -484,7 +481,8 @@ class _GoalDialogState extends State<_GoalDialog> {
           Navigator.pop(
             context,
             ActivityGoal(
-              id: widget.existing?.id ??
+              id:
+                  widget.existing?.id ??
                   DateTime.now().microsecondsSinceEpoch.toString(),
               metric: _metric,
               target: _targetValue()!,

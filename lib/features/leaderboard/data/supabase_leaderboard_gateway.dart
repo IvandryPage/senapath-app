@@ -48,17 +48,19 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     if (response is! List) {
       throw const FormatException('Respons leaderboard tidak valid.');
     }
-    return response.map((raw) {
-      if (raw is! Map) {
-        throw const FormatException('Baris leaderboard tidak valid.');
-      }
-      final row = Map<String, Object?>.from(raw);
-      return LeaderboardEntry(
-        rank: (row['place'] as num).toInt(),
-        alias: row['public_alias'] as String,
-        score: (row['score'] as num).toDouble(),
-      );
-    }).toList(growable: false);
+    return response
+        .map((raw) {
+          if (raw is! Map) {
+            throw const FormatException('Baris leaderboard tidak valid.');
+          }
+          final row = Map<String, Object?>.from(raw);
+          return LeaderboardEntry(
+            rank: (row['place'] as num).toInt(),
+            alias: row['public_alias'] as String,
+            score: (row['score'] as num).toDouble(),
+          );
+        })
+        .toList(growable: false);
   }
 
   @override
