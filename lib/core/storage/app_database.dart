@@ -14,8 +14,7 @@ class AppPreferences extends Table {
 class RideSessions extends Table {
   TextColumn get id => text()();
   TextColumn get title => text().withDefault(const Constant(''))();
-  TextColumn get activityType =>
-      text().withDefault(const Constant('ride'))();
+  TextColumn get activityType => text().withDefault(const Constant('ride'))();
   TextColumn get source => text().withDefault(const Constant('recorded'))();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
@@ -57,34 +56,8 @@ class SavedRoutes extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-class ReactionTestResults extends Table {
-  TextColumn get id => text()();
-  DateTimeColumn get completedAt => dateTime()();
-  TextColumn get resultJson => text()();
-  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-class StrategyGameResults extends Table {
-  TextColumn get id => text()();
-  DateTimeColumn get playedAt => dateTime()();
-  TextColumn get resultJson => text()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
 @DriftDatabase(
-  tables: [
-    AppPreferences,
-    RideSessions,
-    TelemetryPoints,
-    SavedRoutes,
-    ReactionTestResults,
-    StrategyGameResults,
-  ],
+  tables: [AppPreferences, RideSessions, TelemetryPoints, SavedRoutes],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'senapath'));
@@ -92,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,19 +78,17 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await migrator.createTable(savedRoutes);
       }
-      if (from < 4) {
-        await migrator.createTable(reactionTestResults);
-      }
       if (from < 5) {
         await migrator.addColumn(savedRoutes, savedRoutes.description);
-      }
-      if (from < 6) {
-        await migrator.createTable(strategyGameResults);
       }
       if (from < 7) {
         await migrator.addColumn(rideSessions, rideSessions.title);
         await migrator.addColumn(rideSessions, rideSessions.activityType);
         await migrator.addColumn(rideSessions, rideSessions.source);
+      }
+      if (from < 8) {
+        await customStatement('DROP TABLE IF EXISTS reaction_test_results');
+        await customStatement('DROP TABLE IF EXISTS strategy_game_results');
       }
     },
   );

@@ -75,15 +75,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
                     ],
                   ),
                 ),
-                Material(
-                  color: colorScheme.surface,
-                  shape: const CircleBorder(),
-                  child: IconButton(
-                    tooltip: 'Profil',
-                    onPressed: () => context.go('/profile'),
-                    icon: const Icon(Icons.person_outline),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -160,59 +151,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   session: session,
                   onTap: () => context.push('/profile/sessions/${session.id}'),
                 ),
-            const SizedBox(height: 18),
-            Text(
-              'Untuk perjalananmu',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _FeatureShortcut(
-                    key: const Key('home-shortcut-strategy'),
-                    icon: Icons.flash_on_outlined,
-                    title: 'Strategi rute',
-                    subtitle: 'Latihan singkat',
-                    onTap: () => context.push('/strategy'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _FeatureShortcut(
-                    icon: Icons.map_outlined,
-                    title: 'Jelajah rute',
-                    subtitle: 'Peta & sesi',
-                    onTap: () => context.go('/routes'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _FeatureShortcut(
-                    key: const Key('home-shortcut-ai'),
-                    icon: Icons.auto_awesome_outlined,
-                    title: 'Chat AI',
-                    subtitle: 'Tanya asisten',
-                    onTap: () => context.push('/assistant'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _FeatureShortcut(
-                    key: const Key('home-shortcut-feedback'),
-                    icon: Icons.feedback_outlined,
-                    title: 'Saran & kesan',
-                    subtitle: 'Kirim masukan',
-                    onTap: () => context.push('/feedback'),
-                  ),
-                ),
-              ],
-            ),
           ],
         );
       },
@@ -719,64 +657,6 @@ class _ActivityMetric extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _FeatureShortcut extends StatelessWidget {
-  const _FeatureShortcut({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return SenapathCard(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: colors.secondaryContainer,
-            child: Icon(icon, size: 19, color: colors.primary),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

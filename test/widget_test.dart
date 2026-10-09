@@ -25,8 +25,6 @@ import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/logistics/data/logistics_repository.dart';
 import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
-import 'package:senapath/features/strategy_game/data/strategy_game_repository.dart';
-import 'package:senapath/features/strategy_game/presentation/strategy_game_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/presentation/explore_map.dart';
@@ -50,9 +48,6 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
-    final strategyGameCubit = StrategyGameCubit(
-      StrategyGameRepository(database),
-    );
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final routesCubit = RoutesCubit(
       SavedRouteRepository(
@@ -89,7 +84,6 @@ void main() {
         unitSettingsCubit: settingsCubit,
         sessionCubit: sessionCubit,
         logisticsCubit: logisticsCubit,
-        strategyGameCubit: strategyGameCubit,
         aiChatCubit: AiChatCubit(
           SupabaseAiChatGateway(
             null,
@@ -124,6 +118,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Buka Senapath'), findsNothing);
+    expect(find.text('Jelajah rute'), findsNothing);
+    expect(find.text('Saran & kesan'), findsNothing);
+    expect(find.text('Strategi rute'), findsNothing);
+    expect(find.byKey(const Key('home-chat-ai')), findsOneWidget);
     final configuredApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(configuredApp.themeMode, ThemeMode.light);
     expect(configuredApp.darkTheme, isNull);
@@ -145,8 +143,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('Chat AI'), 400);
-    await tester.tap(find.text('Chat AI'));
+    await tester.tap(find.byKey(const Key('home-chat-ai')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Chat belum terhubung'), findsOneWidget);
     expect(
@@ -155,60 +152,6 @@ void main() {
     );
     expect(find.byType(BackButton), findsOneWidget);
     await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(find.text('Saran & kesan'), 400);
-    await tester.tap(find.text('Saran & kesan'));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Mata Kuliah Pemrograman Aplikasi Mobile'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Lorem ipsum dolor sit amet'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
-    expect(find.text('Kirim feedback'), findsNothing);
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(find.text('Strategi rute'), 400);
-    await tester.tap(find.text('Strategi rute'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Latihan strategi rute'), findsOneWidget);
-    expect(find.text('Mulai tantangan'), findsOneWidget);
-    await tester.tap(find.text('Mulai tantangan'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.textContaining('Menjaga tempo terukur'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('Menjaga tempo terukur'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Lanjut'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjut'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.textContaining('Membandingkan situasi dengan rencana'),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.textContaining('Membandingkan situasi dengan rencana'),
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Lanjut'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjut'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.textContaining('Membandingkan profil, jarak'),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('Membandingkan profil, jarak'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Lihat hasil'), 250);
-    await tester.tap(find.text('Lihat hasil'));
-    await tester.pumpAndSettle();
-    expect(find.text('Pilihan strategis: 3/3'), findsOneWidget);
-    expect(strategyGameCubit.state.results, hasLength(1));
-    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Jelajah').last);
@@ -389,7 +332,6 @@ void main() {
     await settingsCubit.close();
     await sessionCubit.close();
     await logisticsCubit.close();
-    await strategyGameCubit.close();
   });
 
   testWidgets('loading state is announced with progress', (tester) async {

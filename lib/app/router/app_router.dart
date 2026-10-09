@@ -10,7 +10,6 @@ import '../../features/profile/presentation/profile_settings_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
-import '../../features/strategy_game/presentation/strategy_game_screen.dart';
 import '../../features/authentication/presentation/cloud_account_screen.dart';
 import '../../features/authentication/presentation/password_reset_screen.dart';
 import '../../features/authentication/presentation/cloud_account_cubit.dart';
@@ -51,10 +50,6 @@ final appRouter = GoRouter(
               path: '/',
               builder: (context, state) => const OverviewScreen(),
               routes: [
-                GoRoute(
-                  path: 'strategy',
-                  builder: (context, state) => const StrategyGameScreen(),
-                ),
                 GoRoute(
                   path: 'assistant',
                   builder: (context, state) => const AiChatScreen(),
@@ -177,7 +172,6 @@ class _AppShellState extends State<_AppShell> {
     }
 
     final title = switch (widget.location) {
-      '/strategy' => 'Strategi Rute',
       '/assistant' => 'Chat AI',
       '/feedback' => 'Saran & kesan',
       '/leaderboard' => 'Papan Peringkat',
@@ -200,6 +194,21 @@ class _AppShellState extends State<_AppShell> {
       appBar: AppBar(
         title: Text(title),
         leading: isSubmenu ? BackButton(onPressed: () => context.pop()) : null,
+        actions: widget.location == '/'
+            ? [
+                IconButton(
+                  tooltip: 'Profil',
+                  onPressed: () => context.go('/profile'),
+                  icon: const Icon(Icons.person_outline),
+                ),
+                IconButton(
+                  key: const Key('home-chat-ai'),
+                  tooltip: 'Chat AI',
+                  onPressed: () => context.push('/assistant'),
+                  icon: const Icon(Icons.help_outline),
+                ),
+              ]
+            : null,
       ),
       body: SafeArea(top: false, child: widget.navigationShell),
       bottomNavigationBar: DecoratedBox(

@@ -9,7 +9,6 @@ import '../features/emergency/presentation/emergency_cubit.dart';
 import '../features/profile/presentation/profile_cubit.dart';
 import '../features/routes/presentation/routes_cubit.dart';
 import '../features/logistics/presentation/logistics_cubit.dart';
-import '../features/strategy_game/presentation/strategy_game_cubit.dart';
 import '../features/leaderboard/presentation/leaderboard_cubit.dart';
 import '../features/progress/presentation/activity_goals_cubit.dart';
 import '../features/teams/presentation/cycling_team_cubit.dart';
@@ -25,7 +24,6 @@ class SenapathApp extends StatelessWidget {
     required this.unitSettingsCubit,
     required this.sessionCubit,
     required this.logisticsCubit,
-    required this.strategyGameCubit,
     required this.aiChatCubit,
     required this.leaderboardCubit,
     required this.activityGoalsCubit,
@@ -40,7 +38,6 @@ class SenapathApp extends StatelessWidget {
   final UnitSettingsCubit unitSettingsCubit;
   final RideSessionCubit sessionCubit;
   final LogisticsCubit logisticsCubit;
-  final StrategyGameCubit strategyGameCubit;
   final AiChatCubit aiChatCubit;
   final LeaderboardCubit leaderboardCubit;
   final ActivityGoalsCubit activityGoalsCubit;
@@ -57,7 +54,6 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: unitSettingsCubit),
         BlocProvider.value(value: sessionCubit),
         BlocProvider.value(value: logisticsCubit),
-        BlocProvider.value(value: strategyGameCubit),
         BlocProvider.value(value: aiChatCubit),
         BlocProvider.value(value: leaderboardCubit),
         BlocProvider.value(value: activityGoalsCubit),

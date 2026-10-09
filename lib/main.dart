@@ -29,8 +29,6 @@ import 'features/session/data/supabase_session_sync_gateway.dart';
 import 'features/session/presentation/session_cubit.dart';
 import 'features/logistics/data/logistics_repository.dart';
 import 'features/logistics/presentation/logistics_cubit.dart';
-import 'features/strategy_game/data/strategy_game_repository.dart';
-import 'features/strategy_game/presentation/strategy_game_cubit.dart';
 import 'features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'features/assistant/presentation/ai_chat_cubit.dart';
 import 'features/leaderboard/data/supabase_leaderboard_gateway.dart';
@@ -93,7 +91,6 @@ Future<void> main() async {
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
-      strategyGameCubit: StrategyGameCubit(StrategyGameRepository(database)),
       aiChatCubit: AiChatCubit(
         SupabaseAiChatGateway(supabaseClient, authSessionManager),
       ),
