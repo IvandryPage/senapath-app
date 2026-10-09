@@ -47,6 +47,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
         builder: (context, state) {
           return BlocBuilder<RideSessionCubit, RideSessionState>(
             builder: (context, sessionState) {
+              final unitSystem = context
+                  .watch<UnitSettingsCubit>()
+                  .state
+                  .unitSystem;
               final trackPoints = [
                 for (final location in sessionState.recordedLocations)
                   LatLng(location.latitude, location.longitude),
@@ -54,7 +58,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
               final currentLocation = sessionState.recordedLocations.isEmpty
                   ? null
                   : sessionState.recordedLocations.last;
-              final sessionStatus = sessionState.session?.status;
+              final session = sessionState.session;
+              final sessionStatus = session?.status;
               final hasActiveSession =
                   sessionStatus == RideSessionStatus.recording ||
                   sessionStatus == RideSessionStatus.paused;
@@ -81,6 +86,17 @@ class _RoutesScreenState extends State<RoutesScreen> {
                             RideSessionStatus.recording,
                         showEmptyMessage: false,
                       ),
+                      if (hasActiveSession && session != null)
+                        Positioned(
+                          right: 16,
+                          bottom: 84,
+                          child: _SessionMetricsOverlay(
+                            speedMetersPerSecond:
+                                session.currentSpeedMetersPerSecond,
+                            distanceMeters: session.distanceMeters,
+                            unitSystem: unitSystem,
+                          ),
+                        ),
                       if (!hasActiveSession) ...[
                         Positioned(
                           top: 12,
@@ -123,9 +139,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
           heightFactor: 0.96,
           child: Material(
             clipBehavior: Clip.antiAlias,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             color: Theme.of(context).colorScheme.surface,
             child: Column(
               children: [
@@ -162,7 +176,75 @@ class _RoutesScreenState extends State<RoutesScreen> {
           ),
         ),
       );
+}
 
+class _SessionMetricsOverlay extends StatelessWidget {
+  const _SessionMetricsOverlay({
+    required this.speedMetersPerSecond,
+    required this.distanceMeters,
+    required this.unitSystem,
+  });
+
+  final double speedMetersPerSecond;
+  final double distanceMeters;
+  final UnitSystem unitSystem;
+
+  @override
+  Widget build(BuildContext context) {
+    final metric = unitSystem == UnitSystem.metric;
+    final speed = speedMetersPerSecond.isFinite
+        ? speedMetersPerSecond * (metric ? 3.6 : 2.236936)
+        : null;
+    final distance = distanceMeters.isFinite
+        ? metric
+              ? distanceMeters / 1000
+              : distanceMeters / 1609.344
+        : null;
+    final colors = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label:
+          'Kecepatan ${speed == null ? 'tidak tersedia' : '${speed.toStringAsFixed(1)} ${metric ? 'km/j' : 'mph'}'}, '
+          'jarak ${distance == null ? 'tidak tersedia' : '${distance.toStringAsFixed(2)} ${metric ? 'km' : 'mi'}'}',
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 132),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: colors.surface.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.outlineVariant),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              speed == null
+                  ? '— ${metric ? 'km/j' : 'mph'}'
+                  : '${speed.toStringAsFixed(1)} ${metric ? 'km/j' : 'mph'}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Jarak  ${distance == null ? '—' : distance.toStringAsFixed(2)} ${metric ? 'km' : 'mi'}',
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class SavedRoutesScreen extends StatefulWidget {

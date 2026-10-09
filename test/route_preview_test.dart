@@ -152,6 +152,59 @@ void main() {
     expect(find.text('Loop Selatan'), findsNothing);
   });
 
+  testWidgets('shows live speed and distance above the session button', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final telemetryCodec = EncryptedTelemetryCodec(
+      secureVault: _MemorySecureVault(),
+    );
+    final routeRepository = SavedRouteRepository(
+      database,
+      geometryCodec: telemetryCodec,
+    );
+    final routesCubit = RoutesCubit(
+      routeRepository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = RideSessionCubit(
+      repository: DriftRideSessionRepository(
+        database: database,
+        telemetryCodec: telemetryCodec,
+      ),
+      readinessChecker: const _TestReadinessChecker(
+        locationPermissionGranted: true,
+      ),
+      locationSource: _EmptyLocationSource(),
+    );
+    await unitCubit.load();
+    await sessionCubit.initialize();
+    await sessionCubit.start();
+    expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: routesCubit),
+          BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: sessionCubit),
+        ],
+        child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('0.0 km/j'), findsOneWidget);
+    expect(find.text('Jarak  0.00 km'), findsOneWidget);
+    expect(find.byTooltip('Detail sesi'), findsOneWidget);
+    await sessionCubit.pause();
+  });
+
   testWidgets('opens an imported route from the saved route library', (
     tester,
   ) async {
