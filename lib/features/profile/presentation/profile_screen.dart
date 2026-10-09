@@ -5,13 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../../../core/units/unit_settings_cubit.dart';
+import '../../../core/units/unit_system.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
+import '../../progress/domain/activity_progress.dart';
+import '../../progress/presentation/activity_goals_cubit.dart';
 import '../domain/user_profile.dart';
 import 'profile_cubit.dart';
+import '../../session/domain/ride_session.dart';
+import '../../session/presentation/session_cubit.dart';
 
 final _phoneFormCountries = allCountries
     .where((country) => country.isoCode != 'SJ')
@@ -34,6 +41,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_startedLoading) return;
     _startedLoading = true;
     unawaited(context.read<ProfileCubit>().load());
+    unawaited(context.read<RideSessionCubit>().initialize());
+    unawaited(context.read<ActivityGoalsCubit>().load());
   }
 
   @override
@@ -53,186 +62,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-            children: [
-              _buildProfileSection(context, state),
-              const SizedBox(height: 8),
-              _buildSectionHeading(
-                context,
-                icon: Icons.health_and_safety_outlined,
-                title: 'Keselamatan',
-                subtitle: 'Orang yang dapat dihubungi saat dibutuhkan.',
-              ),
-              const SizedBox(height: 8),
-              SenapathCard(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildContactsSection(context, state),
+          return BlocBuilder<RideSessionCubit, RideSessionState>(
+            builder: (context, rideState) => ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              children: [
+                _buildProfileSection(context, state),
+                const SizedBox(height: 24),
+                _ProfileProgressSection(
+                  sessions: rideState.completedSessions,
+                  isLoading: rideState.isLoading,
+                  onSeeAll: () => context.push('/progress'),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _buildSectionHeading(
-                context,
-                icon: Icons.groups_2_outlined,
-                title: 'Tim',
-                subtitle: 'Anggota dan ringkasan perjalanan bersama.',
-              ),
-              const SizedBox(height: 8),
-              SenapathCard(
-                child: ListTile(
-                  leading: const Icon(Icons.groups_outlined),
-                  title: const Text('Tim saya'),
-                  subtitle: const Text(
-                    'Buat tim atau gabung dengan kode undangan',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/profile/teams'),
+                const SizedBox(height: 24),
+                _RecentSessionsSection(
+                  sessions: rideState.completedSessions,
+                  isLoading: rideState.isLoading,
+                  onSeeAll: () => context.push('/profile/sessions'),
+                  onStartSession: () => context.go('/routes'),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _buildSectionHeading(
-                context,
-                icon: Icons.directions_bike_outlined,
-                title: 'Aktivitas',
-                subtitle: 'Perjalanan, progres, dan rute tersimpan.',
-              ),
-              const SizedBox(height: 8),
-              _buildActivityNavigation(context),
-              const SizedBox(height: 20),
-              _buildSectionHeading(
-                context,
-                icon: Icons.tune,
-                title: 'Akun dan aplikasi',
-                subtitle: 'Pengaturan, akun, dan keamanan.',
-              ),
-              const SizedBox(height: 8),
-              _buildAccountNavigation(context),
-              const SizedBox(height: 20),
-              _buildSectionHeading(
-                context,
-                icon: Icons.info_outline,
-                title: 'Tentang',
-                subtitle: 'Informasi untuk mata kuliah aplikasi mobile.',
-              ),
-              const SizedBox(height: 8),
-              _buildAboutNavigation(context),
-            ],
+              ],
+            ),
           );
         },
       ),
     );
   }
-
-  Widget _buildCloudAccountEntry(BuildContext context) {
-    final account = context.watch<CloudAccountCubit>().state;
-    return ListTile(
-      leading: Icon(
-        account.isSignedIn
-            ? Icons.verified_user_outlined
-            : Icons.manage_accounts_outlined,
-      ),
-      title: const Text('Akun & keamanan'),
-      subtitle: Text(account.email ?? 'Kelola akun dan keamanan'),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => context.push('/account'),
-    );
-  }
-
-  Widget _buildSectionHeading(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) => Row(
-    children: [
-      CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-        child: Icon(
-          icon,
-          color: Theme.of(context).colorScheme.onSecondaryContainer,
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    ],
-  );
-
-  Widget _buildActivityNavigation(BuildContext context) => SenapathCard(
-    child: Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.history),
-          title: const Text('Riwayat sesi'),
-          subtitle: const Text('Aktivitas dan ringkasan perjalanan'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/profile/sessions'),
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.insights_outlined),
-          title: const Text('Progres dan target'),
-          subtitle: const Text('Statistik aktivitas mingguan dan bulanan'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/progress'),
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.route_outlined),
-          title: const Text('Rute tersimpan'),
-          subtitle: const Text('Kelola GPX untuk perjalanan berikutnya'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/profile/routes'),
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.leaderboard_outlined),
-          title: const Text('Papan peringkat'),
-          subtitle: const Text('Peringkat mingguan · opsional'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/leaderboard'),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildAccountNavigation(BuildContext context) => SenapathCard(
-    child: Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.settings_outlined),
-          title: const Text('Pengaturan'),
-          subtitle: const Text('Satuan, tema, dan penyimpanan'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/profile/settings'),
-        ),
-        const Divider(height: 1),
-        _buildCloudAccountEntry(context),
-      ],
-    ),
-  );
-
-  Widget _buildAboutNavigation(BuildContext context) => SenapathCard(
-    child: Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.feedback_outlined),
-          title: const Text('Saran dan kesan'),
-          subtitle: const Text('Mata Kuliah Pemrograman Aplikasi Mobile'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/feedback'),
-        ),
-      ],
-    ),
-  );
 
   Widget _buildProfileSection(BuildContext context, ProfileState state) {
     final profile = state.profile;
@@ -243,21 +97,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              radius: 34,
-              backgroundColor: colorScheme.secondaryContainer,
-              foregroundImage: state.avatarBytes == null
-                  ? null
-                  : MemoryImage(state.avatarBytes!),
-              child: state.avatarBytes == null
-                  ? Icon(Icons.person, size: 34, color: colorScheme.primary)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            IconButton.filledTonal(
-              tooltip: 'Pilih foto profil',
-              onPressed: _chooseAvatar,
-              icon: const Icon(Icons.photo_camera_outlined),
+            GestureDetector(
+              onTap: _chooseAvatar,
+              child: CircleAvatar(
+                radius: 38,
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundImage: state.avatarBytes == null
+                    ? null
+                    : MemoryImage(state.avatarBytes!),
+                child: state.avatarBytes == null
+                    ? Icon(Icons.person, size: 38, color: colorScheme.primary)
+                    : null,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -268,30 +119,149 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     profile.displayName.isEmpty
                         ? 'Nama belum diatur'
                         : profile.displayName,
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                  if (profile.teamName.isNotEmpty)
+                  Text(
+                    profile.teamName.isEmpty
+                        ? 'Nama tim belum diatur'
+                        : profile.teamName,
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                  if (context.watch<CloudAccountCubit>().state.email
+                      case final email?)
                     Text(
-                      profile.teamName,
-                      style: Theme.of(context).textTheme.bodyMedium
+                      email,
+                      style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
             ),
             IconButton(
-              tooltip: 'Edit profil',
-              onPressed: () => _editProfile(profile),
-              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Pengaturan dan menu profil',
+              onPressed: _openProfileMenu,
+              icon: const Icon(Icons.settings_outlined),
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        const Divider(),
+        const SizedBox(height: 12),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            onPressed: () => _editProfile(profile),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit profil'),
+          ),
+        ),
       ],
     );
   }
+
+  Future<void> _openProfileMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            const ListTile(
+              title: Text('Menu profil'),
+              subtitle: Text('Pengaturan dan fitur lainnya'),
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.health_and_safety_outlined,
+              title: 'Kontak darurat',
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _openEmergencyContacts();
+              },
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.groups_outlined,
+              title: 'Tim saya',
+              onTap: () => _openMenuDestination(sheetContext, '/profile/teams'),
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.route_outlined,
+              title: 'Rute tersimpan',
+              onTap: () =>
+                  _openMenuDestination(sheetContext, '/profile/routes'),
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.leaderboard_outlined,
+              title: 'Papan peringkat',
+              onTap: () => _openMenuDestination(sheetContext, '/leaderboard'),
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.manage_accounts_outlined,
+              title: 'Akun & keamanan',
+              subtitle:
+                  context.read<CloudAccountCubit>().state.email ??
+                  'Kelola akun',
+              onTap: () => _openMenuDestination(sheetContext, '/account'),
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.tune,
+              title: 'Pengaturan aplikasi',
+              onTap: () =>
+                  _openMenuDestination(sheetContext, '/profile/settings'),
+            ),
+            _profileMenuItem(
+              sheetContext,
+              icon: Icons.feedback_outlined,
+              title: 'Saran dan kesan',
+              onTap: () => _openMenuDestination(sheetContext, '/feedback'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _profileMenuItem(
+    BuildContext sheetContext, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) => ListTile(
+    leading: Icon(icon),
+    title: Text(title),
+    subtitle: subtitle == null ? null : Text(subtitle),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
+
+  void _openMenuDestination(BuildContext sheetContext, String route) {
+    Navigator.pop(sheetContext);
+    context.push(route);
+  }
+
+  Future<void> _openEmergencyContacts() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (sheetContext) => BlocBuilder<ProfileCubit, ProfileState>(
+      builder: (context, state) => SafeArea(
+        child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: SingleChildScrollView(
+            child: _buildContactsSection(context, state),
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _buildContactsSection(BuildContext context, ProfileState state) {
     final contacts = state.contacts;
@@ -416,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _removeContact(EmergencyContact contact) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => SenapathAlertDialog(
         title: const Text('Hapus kontak?'),
         content: Text('${contact.name} akan dihapus dari kontak darurat.'),
         actions: [
@@ -467,6 +437,320 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+class _ProfileProgressSection extends StatelessWidget {
+  const _ProfileProgressSection({
+    required this.sessions,
+    required this.isLoading,
+    required this.onSeeAll,
+  });
+
+  static const _calculator = ActivityProgressCalculator();
+
+  final List<RideSessionSnapshot> sessions;
+  final bool isLoading;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
+    final week = _calculator.calculate(
+      sessions,
+      now: DateTime.now(),
+      period: ProgressPeriod.week,
+    );
+    final goalsState = context.watch<ActivityGoalsCubit>().state;
+    final weeklyGoals = goalsState.goals
+        .where((goal) => goal.period == ProgressPeriod.week)
+        .take(2)
+        .toList(growable: false);
+    final metric = unit == UnitSystem.metric;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ProfileSectionTitle(
+          title: 'Progres & target',
+          actionLabel: 'Lihat semua',
+          onAction: onSeeAll,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              flex: 6,
+              child: _ProfileBentoTile(
+                background: Theme.of(context).colorScheme.primaryContainer,
+                foreground: Theme.of(context).colorScheme.onPrimaryContainer,
+                icon: Icons.route_outlined,
+                label: 'Jarak minggu ini',
+                value: _profileDistance(week.distanceMeters, metric),
+                helper: 'dari sesi selesai',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 4,
+              child: _ProfileBentoTile(
+                background: Theme.of(context).colorScheme.secondaryContainer,
+                foreground: Theme.of(context).colorScheme.onSecondaryContainer,
+                icon: Icons.directions_bike_outlined,
+                label: 'Sesi',
+                value: '${week.completedSessions}',
+                helper: 'minggu ini',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (goalsState.isLoading && weeklyGoals.isEmpty)
+          const LinearProgressIndicator()
+        else if (weeklyGoals.isEmpty)
+          SenapathCard(
+            child: ListTile(
+              leading: const Icon(Icons.flag_outlined),
+              title: const Text('Belum ada target mingguan'),
+              subtitle: const Text('Buat target pribadi di halaman progres.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: onSeeAll,
+            ),
+          )
+        else
+          for (final goal in weeklyGoals)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _ProfileGoalTile(
+                goal: goal,
+                progress: week,
+                unitSystem: unit,
+              ),
+            ),
+        if (isLoading && sessions.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: LinearProgressIndicator(),
+          ),
+      ],
+    );
+  }
+}
+
+class _ProfileBentoTile extends StatelessWidget {
+  const _ProfileBentoTile({
+    required this.background,
+    required this.foreground,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.helper,
+  });
+
+  final Color background;
+  final Color foreground;
+  final IconData icon;
+  final String label;
+  final String value;
+  final String helper;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 144,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: BorderRadius.circular(22),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: foreground),
+        const Spacer(),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(color: foreground, fontWeight: FontWeight.w800),
+        ),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: foreground),
+        ),
+        Text(
+          helper,
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: foreground.withValues(alpha: 0.76)),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ProfileGoalTile extends StatelessWidget {
+  const _ProfileGoalTile({
+    required this.goal,
+    required this.progress,
+    required this.unitSystem,
+  });
+
+  final ActivityGoal goal;
+  final ActivityProgress progress;
+  final UnitSystem unitSystem;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = progress.valueFor(goal.metric);
+    final progressValue = progress.progressFor(goal);
+    final valueText = switch (goal.metric) {
+      GoalMetric.completedSessions =>
+        '${current.toStringAsFixed(0)} / ${goal.target.toStringAsFixed(0)} sesi',
+      GoalMetric.distanceMeters =>
+        '${_profileDistance(current, unitSystem == UnitSystem.metric)} / '
+            '${_profileDistance(goal.target, unitSystem == UnitSystem.metric)}',
+      GoalMetric.activeSeconds =>
+        '${(current / 3600).toStringAsFixed(1)} / '
+            '${(goal.target / 3600).toStringAsFixed(1)} jam',
+    };
+    final label = switch (goal.metric) {
+      GoalMetric.completedSessions => 'Target sesi',
+      GoalMetric.distanceMeters => 'Target jarak',
+      GoalMetric.activeSeconds => 'Target durasi',
+    };
+
+    return SenapathCard(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(label)),
+                Text(
+                  '${(progressValue * 100).round()}%',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: progressValue),
+            const SizedBox(height: 6),
+            Text(valueText, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentSessionsSection extends StatelessWidget {
+  const _RecentSessionsSection({
+    required this.sessions,
+    required this.isLoading,
+    required this.onSeeAll,
+    required this.onStartSession,
+  });
+
+  final List<RideSessionSnapshot> sessions;
+  final bool isLoading;
+  final VoidCallback onSeeAll;
+  final VoidCallback onStartSession;
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
+    final recent = sessions.take(3).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ProfileSectionTitle(
+          title: 'Sesi terbaru',
+          actionLabel: 'Lihat semua',
+          onAction: onSeeAll,
+        ),
+        const SizedBox(height: 8),
+        if (isLoading && sessions.isEmpty)
+          const Center(child: CircularProgressIndicator())
+        else if (recent.isEmpty)
+          SenapathCard(
+            child: ListTile(
+              leading: const Icon(Icons.directions_bike_outlined),
+              title: const Text('Belum ada sesi'),
+              subtitle: const Text('Mulai perjalanan pertamamu dari Jelajah.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: onStartSession,
+            ),
+          )
+        else
+          SenapathCard(
+            child: Column(
+              children: [
+                for (var index = 0; index < recent.length; index++) ...[
+                  if (index > 0) const Divider(height: 1, indent: 68),
+                  _RecentSessionTile(session: recent[index], unitSystem: unit),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _RecentSessionTile extends StatelessWidget {
+  const _RecentSessionTile({required this.session, required this.unitSystem});
+
+  final RideSessionSnapshot session;
+  final UnitSystem unitSystem;
+
+  @override
+  Widget build(BuildContext context) {
+    final metric = unitSystem == UnitSystem.metric;
+    final distance = _profileDistance(session.distanceMeters, metric);
+    final duration = session
+        .durationAt(session.endedAt ?? session.startedAt)
+        .inMinutes;
+    final date = DateFormat('d MMM yyyy').format(session.startedAt.toLocal());
+    return ListTile(
+      leading: const CircleAvatar(child: Icon(Icons.directions_bike_outlined)),
+      title: Text(
+        session.title.isEmpty ? 'Perjalanan' : session.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text('$date · $distance · ${duration}m'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => context.push('/profile/sessions/${session.id}'),
+    );
+  }
+}
+
+class _ProfileSectionTitle extends StatelessWidget {
+  const _ProfileSectionTitle({
+    required this.title,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String title;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+      ),
+      TextButton(onPressed: onAction, child: Text(actionLabel)),
+    ],
+  );
+}
+
+String _profileDistance(double meters, bool metric) => metric
+    ? '${(meters / 1000).toStringAsFixed(1)} km'
+    : '${(meters / 1609.344).toStringAsFixed(1)} mi';
+
 class _ProfileEditor extends StatefulWidget {
   const _ProfileEditor({required this.profile});
 
@@ -497,7 +781,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return SenapathAlertDialog(
       title: const Text('Edit profil'),
       content: Form(
         key: _formKey,
@@ -512,6 +796,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Isi nama.' : null,
             ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _teamController,
               textCapitalization: TextCapitalization.words,
@@ -581,7 +866,7 @@ class _ContactEditorState extends State<_ContactEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return SenapathAlertDialog(
       title: Text(widget.contact == null ? 'Tambah kontak' : 'Edit kontak'),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       content: Form(

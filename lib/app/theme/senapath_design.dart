@@ -22,6 +22,36 @@ abstract final class SenapathSpacing {
   static const double xl = 32;
 }
 
+class SenapathAlertDialog extends StatelessWidget {
+  const SenapathAlertDialog({
+    this.title,
+    this.content,
+    this.actions,
+    this.contentPadding = const EdgeInsets.fromLTRB(24, 16, 24, 8),
+    this.titlePadding = const EdgeInsets.fromLTRB(24, 24, 24, 0),
+    this.actionsPadding = const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    super.key,
+  });
+
+  final Widget? title;
+  final Widget? content;
+  final List<Widget>? actions;
+  final EdgeInsetsGeometry contentPadding;
+  final EdgeInsetsGeometry titlePadding;
+  final EdgeInsetsGeometry actionsPadding;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: title,
+    content: content,
+    actions: actions,
+    titlePadding: titlePadding,
+    contentPadding: contentPadding,
+    actionsPadding: actionsPadding,
+    actionsOverflowButtonSpacing: SenapathSpacing.xs,
+  );
+}
+
 abstract final class SenapathShape {
   static const small = 8.0;
   static const medium = 12.0;

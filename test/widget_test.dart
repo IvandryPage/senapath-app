@@ -225,12 +225,20 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    expect(find.text('Kontak darurat'), findsOneWidget);
+    expect(find.text('Progres & target'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.byTooltip('Tambah kontak darurat'),
-      250,
+      find.text('Sesi terbaru'),
+      220,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.pumpAndSettle();
+    expect(find.text('Sesi terbaru'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kontak darurat'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Tambah kontak darurat'));
     await tester.pumpAndSettle();
     expect(find.byType(PhoneFormField), findsOneWidget);
@@ -249,15 +257,9 @@ void main() {
     expect(find.text('+ 47'), findsAtLeastNWidgets(1));
     await tester.tap(find.text('Batal'));
     await tester.pumpAndSettle();
-    final profileScrollable = find
-        .ancestor(
-          of: find.text('Rute tersimpan'),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    await tester.drag(profileScrollable, const Offset(0, -300));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Rute tersimpan'));
+    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rute tersimpan'));
     await tester.pumpAndSettle();
@@ -329,10 +331,23 @@ void main() {
     expect(find.text('Perpustakaan rute'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Akun & keamanan'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Sesi terbaru'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Sesi terbaru'), findsOneWidget);
     expect(find.text('Akun online'), findsNothing);
-    await tester.ensureVisible(find.text('Pengaturan'));
-    await tester.tap(find.text('Pengaturan'));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Pengaturan aplikasi'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Pengaturan aplikasi'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Tema terang'), findsOneWidget);
@@ -344,7 +359,15 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.ensureVisible(find.text('Akun & keamanan'));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Akun & keamanan'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('Akun & keamanan'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

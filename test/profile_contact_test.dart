@@ -1,17 +1,29 @@
 import 'dart:typed_data';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:phone_form_field/phone_form_field.dart';
+import 'package:senapath/core/storage/app_database.dart';
+import 'package:senapath/core/storage/secure_vault.dart';
+import 'package:senapath/core/units/unit_settings_cubit.dart';
+import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/features/authentication/data/cloud_account_gateway.dart';
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
+import 'package:senapath/features/progress/data/activity_goals_repository.dart';
+import 'package:senapath/features/progress/presentation/activity_goals_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/profile/presentation/profile_screen.dart';
+import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
+import 'package:senapath/features/session/data/readiness_checker.dart';
+import 'package:senapath/features/session/data/ride_session_repository.dart';
+import 'package:senapath/features/session/presentation/session_cubit.dart';
 
 void main() {
   testWidgets('editing a saved emergency contact preloads its phone number', (
@@ -30,6 +42,19 @@ void main() {
     await profileCubit.load();
     final cloudAccountCubit = CloudAccountCubit(_TestCloudAccountGateway());
     final emergencyCubit = EmergencyCubit(_TestEmergencyContactActions());
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final vault = _TestSecureVault();
+    final sessionCubit = RideSessionCubit(
+      repository: DriftRideSessionRepository(
+        database: database,
+        telemetryCodec: EncryptedTelemetryCodec(secureVault: vault),
+      ),
+      readinessChecker: const _TestReadinessChecker(),
+      locationSource: const _TestLocationSource(),
+    );
+    final goalsCubit = ActivityGoalsCubit(ActivityGoalsRepository(database));
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    await unitCubit.load();
 
     await tester.pumpWidget(
       MultiBlocProvider(
@@ -37,12 +62,19 @@ void main() {
           BlocProvider.value(value: profileCubit),
           BlocProvider.value(value: cloudAccountCubit),
           BlocProvider.value(value: emergencyCubit),
+          BlocProvider.value(value: sessionCubit),
+          BlocProvider.value(value: goalsCubit),
+          BlocProvider.value(value: unitCubit),
         ],
         child: const MaterialApp(home: Scaffold(body: ProfileScreen())),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kontak darurat'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Kelola Ibu'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
@@ -66,6 +98,10 @@ void main() {
     await profileCubit.close();
     await cloudAccountCubit.close();
     await emergencyCubit.close();
+    await sessionCubit.close();
+    await goalsCubit.close();
+    await unitCubit.close();
+    await database.close();
   });
 }
 
@@ -144,4 +180,51 @@ class _TestEmergencyContactActions implements EmergencyContactActions {
   @override
   Future<bool> openWhatsApp(EmergencyContact contact, String message) async =>
       true;
+}
+
+class _TestSecureVault implements SecureVault {
+  @override
+  Future<void> delete(String key) async {}
+
+  @override
+  Future<String?> read(String key) async => null;
+
+  @override
+  Future<void> write(String key, String value) async {}
+}
+
+class _TestReadinessChecker implements ReadinessChecker {
+  const _TestReadinessChecker();
+
+  @override
+  Future<ReadinessReport> check({
+    bool requestLocationPermission = false,
+    bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
+  }) async => const ReadinessReport(
+    locationPermissionGranted: false,
+    locationPermanentlyDenied: false,
+    locationServicesEnabled: false,
+    gpsFixAvailable: false,
+    accelerometerAvailable: false,
+    gyroscopeAvailable: false,
+    notificationsGranted: false,
+    notificationsPermanentlyDenied: false,
+  );
+
+  @override
+  Future<bool> openLocationServiceSettings() async => true;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<bool> openNotificationSettings() async => true;
+}
+
+class _TestLocationSource implements LocationSource {
+  const _TestLocationSource();
+
+  @override
+  Stream<Position> get positions => const Stream.empty();
 }

@@ -1107,7 +1107,7 @@ class _SessionScreenState extends State<SessionScreen>
   ) async {
     final approved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Hapus aktivitas lokal?'),
         content: const Text(
           'Ringkasan dan titik GPS sesi ini akan dihapus dari perangkat. '
@@ -1136,7 +1136,7 @@ class _SessionScreenState extends State<SessionScreen>
   ) async {
     final approved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Ekspor semua sesi?'),
         content: const Text(
           'File JSON akan memuat ringkasan dan jejak lokasi GPS semua sesi '
@@ -1441,7 +1441,7 @@ class _SessionScreenState extends State<SessionScreen>
     final result = await showDialog<(String, RideActivityType)>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) => SenapathAlertDialog(
           title: const Text('Detail aktivitas'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1455,6 +1455,7 @@ class _SessionScreenState extends State<SessionScreen>
                   hintText: 'Contoh: Gowes pagi',
                 ),
               ),
+              const SizedBox(height: 12),
               DropdownButtonFormField<RideActivityType>(
                 initialValue: activityType,
                 decoration: const InputDecoration(labelText: 'Jenis'),
@@ -1591,7 +1592,7 @@ class _SessionScreenState extends State<SessionScreen>
     final session = summary.session;
     final approved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Sinkronkan ringkasan sesi?'),
         content: Text(
           'Data yang dikirim ke akun Supabase milikmu: waktu mulai/selesai, '
@@ -1692,7 +1693,7 @@ class _SessionScreenState extends State<SessionScreen>
   Future<void> _confirmFinish(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => SenapathAlertDialog(
         title: const Text('Akhiri sesi?'),
         content: const Text('Data sesi akan disimpan di perangkat.'),
         actions: [

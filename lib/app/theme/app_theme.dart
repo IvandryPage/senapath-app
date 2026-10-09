@@ -209,6 +209,7 @@ abstract final class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         shape: RoundedRectangleBorder(
           borderRadius: borderRadius,
           side: outline,

@@ -262,7 +262,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   Future<void> _confirmClearMapCache() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => SenapathAlertDialog(
         title: const Text('Hapus cache peta?'),
         content: const Text(
           'Tindakan ini hanya menghapus cache peta, bukan database, '

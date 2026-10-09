@@ -31,106 +31,106 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => BlocListener<CyclingTeamCubit,
-      CyclingTeamState>(
-    listenWhen: (previous, current) =>
-        previous.message != current.message && current.message != null ||
-        previous.error != current.error && current.error != null,
-    listener: (context, state) {
-      final message = state.error ?? state.message!;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(message)));
-      context.read<CyclingTeamCubit>().clearMessage();
-    },
-    child: BlocBuilder<CyclingTeamCubit, CyclingTeamState>(
-      builder: (context, state) {
-        final teamCubit = context.read<CyclingTeamCubit>();
-        if (!teamCubit.isConfigured || !teamCubit.isSignedIn) {
-          return _TeamAccessRequired(configured: teamCubit.isConfigured);
-        }
+  Widget build(BuildContext context) =>
+      BlocListener<CyclingTeamCubit, CyclingTeamState>(
+        listenWhen: (previous, current) =>
+            previous.message != current.message && current.message != null ||
+            previous.error != current.error && current.error != null,
+        listener: (context, state) {
+          final message = state.error ?? state.message!;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(message)));
+          context.read<CyclingTeamCubit>().clearMessage();
+        },
+        child: BlocBuilder<CyclingTeamCubit, CyclingTeamState>(
+          builder: (context, state) {
+            final teamCubit = context.read<CyclingTeamCubit>();
+            if (!teamCubit.isConfigured || !teamCubit.isSignedIn) {
+              return _TeamAccessRequired(configured: teamCubit.isConfigured);
+            }
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-          children: [
-            Text(
-              'Kelola tim dan lihat ringkasan perjalanan anggota yang dibagikan.',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 8),
-            const _PrivacyNotice(),
-            const SizedBox(height: 12),
-            Row(
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: state.isSaving ? null : _joinTeam,
-                    icon: const Icon(Icons.group_add_outlined),
-                    label: const Text('Gabung tim'),
-                  ),
+                Text(
+                  'Kelola tim dan lihat ringkasan perjalanan anggota yang dibagikan.',
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: state.isSaving ? null : _createTeam,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Buat tim'),
-                  ),
-                ),
-              ],
-            ),
-            if (state.isSaving) ...[
-              const SizedBox(height: 8),
-              const LinearProgressIndicator(),
-            ],
-            if (state.isLoading && state.teams.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (state.error != null && state.teams.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 24),
-                child: Column(
+                const SizedBox(height: 8),
+                const _PrivacyNotice(),
+                const SizedBox(height: 12),
+                Row(
                   children: [
-                    Text(state.error!, textAlign: TextAlign.center),
-                    TextButton.icon(
-                      onPressed: teamCubit.loadTeams,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Coba lagi'),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: state.isSaving ? null : _joinTeam,
+                        icon: const Icon(Icons.group_add_outlined),
+                        label: const Text('Gabung tim'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: state.isSaving ? null : _createTeam,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Buat tim'),
+                      ),
                     ),
                   ],
                 ),
-              )
-            else if (state.teams.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 36),
-                child: Center(
-                  child: Text(
-                    'Kamu belum tergabung dalam tim. Buat tim baru atau '
-                    'masukkan kode undangan dari ketua tim.',
-                    textAlign: TextAlign.center,
+                if (state.isSaving) ...[
+                  const SizedBox(height: 8),
+                  const LinearProgressIndicator(),
+                ],
+                if (state.isLoading && state.teams.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (state.error != null && state.teams.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: Column(
+                      children: [
+                        Text(state.error!, textAlign: TextAlign.center),
+                        TextButton.icon(
+                          onPressed: teamCubit.loadTeams,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba lagi'),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (state.teams.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 36),
+                    child: Center(
+                      child: Text(
+                        'Kamu belum tergabung dalam tim. Buat tim baru atau '
+                        'masukkan kode undangan dari ketua tim.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                else ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'Tim saya',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                ),
-              )
-            else ...[
-              const SizedBox(height: 24),
-              Text(
-                'Tim saya',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              for (final team in state.teams)
-                _TeamListCard(
-                  team: team,
-                  onTap: () => context.push('/profile/teams/${team.id}'),
-                ),
-            ],
-          ],
-        );
-      },
-    ),
-  );
+                  const SizedBox(height: 8),
+                  for (final team in state.teams)
+                    _TeamListCard(
+                      team: team,
+                      onTap: () => context.push('/profile/teams/${team.id}'),
+                    ),
+                ],
+              ],
+            );
+          },
+        ),
+      );
 
   Future<void> _createTeam() async {
     final form = await _showTeamForm(join: false);
@@ -169,7 +169,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
 
     return showDialog<_TeamFormResult>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: Text(join ? 'Gabung dengan kode' : 'Buat tim'),
         content: Form(
           key: formKey,
@@ -305,9 +305,7 @@ class _CyclingTeamDashboardScreenState
               );
             }
             if (dashboard == null) return const SizedBox.shrink();
-            final myUserId = context
-                .read<CyclingTeamCubit>()
-                .currentUserId;
+            final myUserId = context.read<CyclingTeamCubit>().currentUserId;
             final ownMember = dashboard.members
                 .where((member) => member.userId == myUserId)
                 .firstOrNull;
@@ -322,9 +320,8 @@ class _CyclingTeamDashboardScreenState
                 );
 
             return RefreshIndicator(
-              onRefresh: () => context
-                  .read<CyclingTeamCubit>()
-                  .loadDashboard(widget.teamId),
+              onRefresh: () =>
+                  context.read<CyclingTeamCubit>().loadDashboard(widget.teamId),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                 children: [
@@ -353,20 +350,21 @@ class _CyclingTeamDashboardScreenState
                       member: member,
                       sessions: dashboard.sessionsFor(member.userId),
                       metric: metric,
-                      onSetRole: dashboard.team.isManager &&
-                              member.userId != myUserId
-                          ? (role) => context
-                                .read<CyclingTeamCubit>()
-                                .setMemberRole(
+                      onSetRole:
+                          dashboard.team.isManager && member.userId != myUserId
+                          ? (role) =>
+                                context.read<CyclingTeamCubit>().setMemberRole(
                                   widget.teamId,
                                   member.userId,
                                   role,
                                 )
                           : null,
                       onUnshare: member.userId == myUserId
-                          ? (session) => context
-                                .read<CyclingTeamCubit>()
-                                .unshareSession(widget.teamId, session.sessionId)
+                          ? (session) =>
+                                context.read<CyclingTeamCubit>().unshareSession(
+                                  widget.teamId,
+                                  session.sessionId,
+                                )
                           : null,
                     ),
                   const SizedBox(height: 24),
@@ -412,7 +410,7 @@ class _CyclingTeamDashboardScreenState
   Future<void> _confirmAndShare(RideSessionSnapshot session) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Bagikan ringkasan sesi?'),
         content: const Text(
           'Anggota tim dapat melihat waktu, durasi, jarak, elevasi, dan jumlah '
@@ -450,7 +448,7 @@ class _CyclingTeamDashboardScreenState
   Future<void> _leaveTeam() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Keluar dari tim?'),
         content: const Text(
           'Ringkasan sesi yang pernah dibagikan akan berhenti terlihat '
@@ -577,10 +575,8 @@ class _InviteCodeCard extends StatelessWidget {
       title: const Text('Kode undangan'),
       subtitle: SelectableText(
         code,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w800,
-          letterSpacing: 2,
-        ),
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 2),
       ),
       trailing: IconButton(
         tooltip: 'Salin kode undangan',
@@ -597,10 +593,7 @@ class _InviteCodeCard extends StatelessWidget {
 }
 
 class _TeamSummaryCards extends StatelessWidget {
-  const _TeamSummaryCards({
-    required this.dashboard,
-    required this.metric,
-  });
+  const _TeamSummaryCards({required this.dashboard, required this.metric});
 
   final CyclingTeamDashboard dashboard;
   final bool metric;
@@ -630,8 +623,7 @@ class _TeamSummaryCards extends StatelessWidget {
         value: dashboard.totalDurationSeconds == 0
             ? '—'
             : _formatSpeed(
-                dashboard.totalDistanceMeters /
-                    dashboard.totalDurationSeconds,
+                dashboard.totalDistanceMeters / dashboard.totalDurationSeconds,
                 metric,
               ),
         icon: Icons.speed_outlined,
@@ -734,8 +726,7 @@ class _MemberSummaryCard extends StatelessWidget {
                   children: [
                     Text('${sessions.length} sesi'),
                     Text(_formatDistance(distance, metric)),
-                    if (duration > 0)
-                      Text('Aktif ${_durationLabel(duration)}'),
+                    if (duration > 0) Text('Aktif ${_durationLabel(duration)}'),
                   ],
                 ),
                 if (onSetRole != null)

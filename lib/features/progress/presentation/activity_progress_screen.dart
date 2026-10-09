@@ -422,7 +422,7 @@ class _GoalDialogState extends State<_GoalDialog> {
   };
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SenapathAlertDialog(
     title: Text(widget.existing == null ? 'Buat target' : 'Ubah target'),
     content: Form(
       key: _formKey,
@@ -443,6 +443,7 @@ class _GoalDialogState extends State<_GoalDialog> {
               if (value != null) setState(() => _metric = value);
             },
           ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<ProgressPeriod>(
             initialValue: _period,
             decoration: const InputDecoration(labelText: 'Periode'),
@@ -460,6 +461,7 @@ class _GoalDialogState extends State<_GoalDialog> {
               if (value != null) setState(() => _period = value);
             },
           ),
+          const SizedBox(height: 12),
           TextFormField(
             controller: _target,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),

@@ -147,7 +147,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
           child: Padding(
             padding: EdgeInsets.fromLTRB(
               20,
-              4,
+              12,
               20,
               MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
             ),

@@ -185,7 +185,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 12, 4),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
                   child: Row(
                     children: [
                       Expanded(
@@ -609,7 +609,7 @@ class _RouteTile extends StatelessWidget {
   Future<void> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Hapus rute GPX?'),
         content: Text(
           '“${route.name}” akan dihapus dari rute tersimpan. Tindakan ini '
