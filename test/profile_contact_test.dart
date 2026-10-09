@@ -24,12 +24,16 @@ import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
+import 'package:senapath/features/teams/data/cycling_team_repository.dart';
+import 'package:senapath/features/teams/domain/cycling_team.dart';
+import 'package:senapath/features/teams/presentation/cycling_team_cubit.dart';
 
 void main() {
   testWidgets('editing a saved emergency contact preloads its phone number', (
     tester,
   ) async {
     final repository = _TestProfileRepository()
+      ..profile = const UserProfile(teamName: 'Nama tim manual lama')
       ..contacts = const [
         EmergencyContact(
           id: 'saved-contact',
@@ -54,6 +58,17 @@ void main() {
     );
     final goalsCubit = ActivityGoalsCubit(ActivityGoalsRepository(database));
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final teamCubit = CyclingTeamCubit(
+      _TestCyclingTeamRepository([
+        const CyclingTeam(
+          id: 'team-1',
+          name: 'Tim dari akun',
+          inviteCode: '',
+          role: 'member',
+          memberCount: 2,
+        ),
+      ]),
+    );
     await unitCubit.load();
 
     await tester.pumpWidget(
@@ -65,11 +80,26 @@ void main() {
           BlocProvider.value(value: sessionCubit),
           BlocProvider.value(value: goalsCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: teamCubit),
         ],
         child: const MaterialApp(home: Scaffold(body: ProfileScreen())),
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Tim dari akun'), findsOneWidget);
+    expect(find.text('Nama tim manual lama'), findsNothing);
+
+    await tester.tap(find.byTooltip('Edit nama dan foto profil'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextFormField), findsOneWidget);
+    expect(find.text('Tim (opsional)'), findsNothing);
+    expect(find.text('Ubah foto'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField), 'Rider Baru');
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(repository.profile.displayName, 'Rider Baru');
+    expect(repository.profile.teamName, 'Nama tim manual lama');
+    expect(find.byTooltip('Edit nama dan foto profil'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
     await tester.pumpAndSettle();
@@ -101,8 +131,50 @@ void main() {
     await sessionCubit.close();
     await goalsCubit.close();
     await unitCubit.close();
+    await teamCubit.close();
     await database.close();
   });
+}
+
+class _TestCyclingTeamRepository implements CyclingTeamRepository {
+  _TestCyclingTeamRepository(this.teams);
+
+  final List<CyclingTeam> teams;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  bool get isSignedIn => true;
+
+  @override
+  String? get currentUserId => 'user-1';
+
+  @override
+  Future<List<CyclingTeam>> loadTeams() async => teams;
+
+  @override
+  Future<CyclingTeam> createTeam(String name, String displayName) =>
+      throw UnimplementedError();
+
+  @override
+  Future<CyclingTeam> joinTeam(String inviteCode, String displayName) =>
+      throw UnimplementedError();
+
+  @override
+  Future<CyclingTeamDashboard> loadDashboard(String teamId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> leaveTeam(String teamId) => throw UnimplementedError();
+
+  @override
+  Future<void> unshareSession(String teamId, String sessionId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> setMemberRole(String teamId, String userId, String role) =>
+      throw UnimplementedError();
 }
 
 class _TestProfileRepository implements UserProfileRepository {

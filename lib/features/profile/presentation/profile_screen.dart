@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,6 +20,7 @@ import '../domain/user_profile.dart';
 import 'profile_cubit.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
+import '../../teams/presentation/cycling_team_cubit.dart';
 
 final _phoneFormCountries = allCountries
     .where((country) => country.isoCode != 'SJ')
@@ -43,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     unawaited(context.read<ProfileCubit>().load());
     unawaited(context.read<RideSessionCubit>().initialize());
     unawaited(context.read<ActivityGoalsCubit>().load());
+    unawaited(context.read<CyclingTeamCubit>().loadTeams());
   }
 
   @override
@@ -91,41 +94,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileSection(BuildContext context, ProfileState state) {
     final profile = state.profile;
     final colorScheme = Theme.of(context).colorScheme;
+    final teamState = context.watch<CyclingTeamCubit>().state;
+    final teamNames = teamState.teams.map((team) => team.name).join(' · ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            GestureDetector(
-              onTap: _chooseAvatar,
-              child: CircleAvatar(
-                radius: 38,
-                backgroundColor: colorScheme.secondaryContainer,
-                foregroundImage: state.avatarBytes == null
-                    ? null
-                    : MemoryImage(state.avatarBytes!),
-                child: state.avatarBytes == null
-                    ? Icon(Icons.person, size: 38, color: colorScheme.primary)
-                    : null,
-              ),
+            CircleAvatar(
+              radius: 38,
+              backgroundColor: colorScheme.secondaryContainer,
+              foregroundImage: state.avatarBytes == null
+                  ? null
+                  : MemoryImage(state.avatarBytes!),
+              child: state.avatarBytes == null
+                  ? Icon(Icons.person, size: 38, color: colorScheme.primary)
+                  : null,
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    profile.displayName.isEmpty
-                        ? 'Nama belum diatur'
-                        : profile.displayName,
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          profile.displayName.isEmpty
+                              ? 'Nama belum diatur'
+                              : profile.displayName,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Edit nama dan foto profil',
+                        onPressed: () => _editProfile(profile, state.avatarBytes),
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                      ),
+                    ],
                   ),
                   Text(
-                    profile.teamName.isEmpty
-                        ? 'Nama tim belum diatur'
-                        : profile.teamName,
+                    teamState.hasLoadedTeams
+                        ? teamState.error != null
+                              ? 'Nama tim tidak dapat dimuat'
+                              : teamNames.isEmpty
+                              ? 'Belum bergabung dengan tim'
+                              : teamNames
+                        : 'Memuat tim…',
                     style: Theme.of(context).textTheme.bodyMedium
                         ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
@@ -145,15 +163,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.settings_outlined),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: TextButton.icon(
-            onPressed: () => _editProfile(profile),
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Edit profil'),
-          ),
         ),
       ],
     );
@@ -348,30 +357,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _chooseAvatar() async {
+  Future<Uint8List?> _chooseAvatar() async {
     try {
       final image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,
         imageQuality: 85,
       );
-      if (image == null || !mounted) return;
+      if (image == null || !mounted) return null;
       final bytes = await image.readAsBytes();
-      if (!mounted) return;
-      await context.read<ProfileCubit>().saveAvatar(bytes);
+      if (!mounted) return null;
+      return bytes;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) return null;
       _showMessage('Foto tidak dapat dibaca. Coba pilih gambar lain.');
+      return null;
     }
   }
 
-  Future<void> _editProfile(UserProfile profile) async {
-    final updated = await showDialog<UserProfile>(
+  Future<void> _editProfile(UserProfile profile, Uint8List? avatarBytes) async {
+    final result = await showDialog<(UserProfile, Uint8List?)>(
       context: context,
-      builder: (context) => _ProfileEditor(profile: profile),
+      builder: (context) => _ProfileEditor(
+        profile: profile,
+        avatarBytes: avatarBytes,
+        onChooseAvatar: _chooseAvatar,
+      ),
     );
-    if (updated == null || !mounted) return;
-    await context.read<ProfileCubit>().saveProfile(updated);
+    if (result == null || !mounted) return;
+    await context.read<ProfileCubit>().saveProfile(result.$1);
+    if (result.$2 != null && mounted) {
+      await context.read<ProfileCubit>().saveAvatar(result.$2!);
+    }
   }
 
   Future<void> _editContact([EmergencyContact? contact]) async {
@@ -752,9 +769,15 @@ String _profileDistance(double meters, bool metric) => metric
     : '${(meters / 1609.344).toStringAsFixed(1)} mi';
 
 class _ProfileEditor extends StatefulWidget {
-  const _ProfileEditor({required this.profile});
+  const _ProfileEditor({
+    required this.profile,
+    required this.avatarBytes,
+    required this.onChooseAvatar,
+  });
 
   final UserProfile profile;
+  final Uint8List? avatarBytes;
+  final Future<Uint8List?> Function() onChooseAvatar;
 
   @override
   State<_ProfileEditor> createState() => _ProfileEditorState();
@@ -762,21 +785,31 @@ class _ProfileEditor extends StatefulWidget {
 
 class _ProfileEditorState extends State<_ProfileEditor> {
   late final TextEditingController _nameController;
-  late final TextEditingController _teamController;
   final _formKey = GlobalKey<FormState>();
+  late Uint8List? _avatarBytes;
+  Uint8List? _updatedAvatarBytes;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile.displayName);
-    _teamController = TextEditingController(text: widget.profile.teamName);
+    _avatarBytes = widget.avatarBytes;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _teamController.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseAvatar() async {
+    final bytes = await widget.onChooseAvatar();
+    if (bytes != null && mounted) {
+      setState(() {
+        _avatarBytes = bytes;
+        _updatedAvatarBytes = bytes;
+      });
+    }
   }
 
   @override
@@ -788,6 +821,21 @@ class _ProfileEditorState extends State<_ProfileEditor> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            CircleAvatar(
+              radius: 36,
+              foregroundImage: _avatarBytes == null
+                  ? null
+                  : MemoryImage(_avatarBytes!),
+              child: _avatarBytes == null
+                  ? const Icon(Icons.person, size: 36)
+                  : null,
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _chooseAvatar,
+              icon: const Icon(Icons.photo_camera_outlined),
+              label: const Text('Ubah foto'),
+            ),
             TextFormField(
               controller: _nameController,
               autofocus: true,
@@ -795,12 +843,6 @@ class _ProfileEditorState extends State<_ProfileEditor> {
               decoration: const InputDecoration(labelText: 'Nama'),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Isi nama.' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _teamController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Tim (opsional)'),
             ),
           ],
         ),
@@ -815,9 +857,12 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             if (!_formKey.currentState!.validate()) return;
             Navigator.pop(
               context,
-              UserProfile(
-                displayName: _nameController.text,
-                teamName: _teamController.text,
+              (
+                UserProfile(
+                  displayName: _nameController.text,
+                  teamName: widget.profile.teamName,
+                ),
+                _updatedAvatarBytes,
               ),
             );
           },

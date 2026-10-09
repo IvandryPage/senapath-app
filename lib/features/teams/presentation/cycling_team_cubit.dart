@@ -8,6 +8,7 @@ class CyclingTeamState {
   const CyclingTeamState({
     this.teams = const [],
     this.dashboard,
+    this.hasLoadedTeams = false,
     this.isLoading = false,
     this.isSaving = false,
     this.error,
@@ -16,6 +17,7 @@ class CyclingTeamState {
 
   final List<CyclingTeam> teams;
   final CyclingTeamDashboard? dashboard;
+  final bool hasLoadedTeams;
   final bool isLoading;
   final bool isSaving;
   final String? error;
@@ -24,6 +26,7 @@ class CyclingTeamState {
   CyclingTeamState copyWith({
     List<CyclingTeam>? teams,
     CyclingTeamDashboard? dashboard,
+    bool? hasLoadedTeams,
     bool clearDashboard = false,
     bool? isLoading,
     bool? isSaving,
@@ -34,6 +37,7 @@ class CyclingTeamState {
   }) => CyclingTeamState(
     teams: teams ?? this.teams,
     dashboard: clearDashboard ? null : dashboard ?? this.dashboard,
+    hasLoadedTeams: hasLoadedTeams ?? this.hasLoadedTeams,
     isLoading: isLoading ?? this.isLoading,
     isSaving: isSaving ?? this.isSaving,
     error: clearError ? null : error ?? this.error,
@@ -54,11 +58,19 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
       final teams = await _repository.loadTeams();
-      emit(state.copyWith(teams: teams, isLoading: false, clearError: true));
+      emit(
+        state.copyWith(
+          teams: teams,
+          hasLoadedTeams: true,
+          isLoading: false,
+          clearError: true,
+        ),
+      );
     } catch (error) {
       emit(
         state.copyWith(
           isLoading: false,
+          hasLoadedTeams: true,
           error: _message(error, 'Daftar tim tidak dapat dimuat.'),
         ),
       );
@@ -69,11 +81,7 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
 
   Future<void> loadDashboard(String teamId) async {
     emit(
-      state.copyWith(
-        isLoading: true,
-        clearDashboard: true,
-        clearError: true,
-      ),
+      state.copyWith(isLoading: true, clearDashboard: true, clearError: true),
     );
     try {
       final dashboard = await _repository.loadDashboard(teamId);
@@ -122,6 +130,7 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
       emit(
         state.copyWith(
           teams: teams,
+          hasLoadedTeams: true,
           isSaving: false,
           clearDashboard: true,
           message: 'Kamu telah keluar dari tim.',
@@ -159,11 +168,7 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
     }
   }
 
-  Future<void> setMemberRole(
-    String teamId,
-    String userId,
-    String role,
-  ) async {
+  Future<void> setMemberRole(String teamId, String userId, String role) async {
     emit(state.copyWith(isSaving: true, clearError: true, clearMessage: true));
     try {
       await _repository.setMemberRole(teamId, userId, role);
@@ -196,11 +201,7 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
       await operation();
       final teams = await _repository.loadTeams();
       emit(
-        state.copyWith(
-          teams: teams,
-          isSaving: false,
-          message: successMessage,
-        ),
+        state.copyWith(teams: teams, isSaving: false, message: successMessage),
       );
     } catch (error) {
       emit(
