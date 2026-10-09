@@ -4,6 +4,8 @@ abstract interface class SessionSyncGateway {
   bool get isConfigured;
   bool get isSignedIn;
 
-  Future<void> uploadSummary(RideSessionSummary summary);
+  Future<void> uploadSummary(
+    RideSessionSummary summary, {
+    String? shareWithTeamId,
+  });
 }
-

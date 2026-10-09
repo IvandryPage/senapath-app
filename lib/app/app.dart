@@ -10,9 +10,9 @@ import '../features/profile/presentation/profile_cubit.dart';
 import '../features/routes/presentation/routes_cubit.dart';
 import '../features/logistics/presentation/logistics_cubit.dart';
 import '../features/strategy_game/presentation/strategy_game_cubit.dart';
-import '../features/feedback/presentation/feedback_cubit.dart';
 import '../features/leaderboard/presentation/leaderboard_cubit.dart';
 import '../features/progress/presentation/activity_goals_cubit.dart';
+import '../features/teams/presentation/cycling_team_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -27,9 +27,9 @@ class SenapathApp extends StatelessWidget {
     required this.logisticsCubit,
     required this.strategyGameCubit,
     required this.aiChatCubit,
-    required this.feedbackCubit,
     required this.leaderboardCubit,
     required this.activityGoalsCubit,
+    required this.cyclingTeamCubit,
     super.key,
   });
 
@@ -42,9 +42,9 @@ class SenapathApp extends StatelessWidget {
   final LogisticsCubit logisticsCubit;
   final StrategyGameCubit strategyGameCubit;
   final AiChatCubit aiChatCubit;
-  final FeedbackCubit feedbackCubit;
   final LeaderboardCubit leaderboardCubit;
   final ActivityGoalsCubit activityGoalsCubit;
+  final CyclingTeamCubit cyclingTeamCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +59,9 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: logisticsCubit),
         BlocProvider.value(value: strategyGameCubit),
         BlocProvider.value(value: aiChatCubit),
-        BlocProvider.value(value: feedbackCubit),
         BlocProvider.value(value: leaderboardCubit),
         BlocProvider.value(value: activityGoalsCubit),
+        BlocProvider.value(value: cyclingTeamCubit),
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) =>
@@ -70,6 +70,7 @@ class SenapathApp extends StatelessWidget {
           aiChatCubit.clearConversation();
           sessionCubit.cancelPendingSync();
           leaderboardCubit.clearForAccountChange();
+          cyclingTeamCubit.clearForAccountChange();
         },
         child: MaterialApp.router(
           title: 'Senapath',

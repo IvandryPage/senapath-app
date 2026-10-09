@@ -153,13 +153,18 @@ void main() {
         gateway: gateway,
       );
 
-      await coordinator.syncSummary(session.id, consented: true);
+      await coordinator.syncSummary(
+        session.id,
+        consented: true,
+        shareWithTeamId: 'team-1',
+      );
 
       final row = await (database.select(
         database.rideSessions,
       )..where((item) => item.id.equals(session.id))).getSingle();
       expect(row.syncStatus, 'synced');
       expect(gateway.uploadedSummary?.session.id, session.id);
+      expect(gateway.sharedWithTeamId, 'team-1');
       expect(gateway.uploadCalls, 1);
     },
   );
@@ -266,6 +271,7 @@ class _FakeSessionSyncGateway implements SessionSyncGateway {
   bool shouldFail = false;
   int uploadCalls = 0;
   RideSessionSummary? uploadedSummary;
+  String? sharedWithTeamId;
   void Function()? afterUpload;
 
   @override
@@ -275,10 +281,14 @@ class _FakeSessionSyncGateway implements SessionSyncGateway {
   bool get isSignedIn => signedIn;
 
   @override
-  Future<void> uploadSummary(RideSessionSummary summary) async {
+  Future<void> uploadSummary(
+    RideSessionSummary summary, {
+    String? shareWithTeamId,
+  }) async {
     uploadCalls++;
     if (shouldFail) throw StateError('Simulated network failure.');
     uploadedSummary = summary;
+    sharedWithTeamId = shareWithTeamId;
     afterUpload?.call();
   }
 }

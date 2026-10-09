@@ -14,6 +14,7 @@ class SessionSyncCoordinator {
   Future<void> syncSummary(
     String sessionId, {
     required bool consented,
+    String? shareWithTeamId,
     bool Function()? shouldContinue,
   }) async {
     if (!consented) {
@@ -37,7 +38,10 @@ class SessionSyncCoordinator {
         await repository.updateSyncStatus(sessionId, 'pending');
         return;
       }
-      await gateway.uploadSummary(summary);
+      await gateway.uploadSummary(
+        summary,
+        shareWithTeamId: shareWithTeamId,
+      );
       if (shouldContinue != null && !shouldContinue()) {
         await repository.updateSyncStatus(sessionId, 'pending');
         return;

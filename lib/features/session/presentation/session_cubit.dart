@@ -400,7 +400,11 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> syncSummary(String sessionId, {required bool consented}) async {
+  Future<void> syncSummary(
+    String sessionId, {
+    required bool consented,
+    String? shareWithTeamId,
+  }) async {
     final coordinator = syncCoordinator;
     if (coordinator == null) {
       _setMessage('Sinkronisasi Supabase belum dikonfigurasi.');
@@ -414,6 +418,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       await coordinator.syncSummary(
         sessionId,
         consented: consented,
+        shareWithTeamId: shareWithTeamId,
         shouldContinue: () => !isClosed && generation == _syncGeneration,
       );
       if (isClosed || generation != _syncGeneration) return;
@@ -430,7 +435,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           summary: summary,
           summaryLocations: summaryLocations,
           clearSyncingSession: true,
-          message: 'Ringkasan sesi tersinkron ke akun Supabase.',
+          message: shareWithTeamId == null
+              ? 'Ringkasan sesi tersinkron ke akun Supabase.'
+              : 'Ringkasan sesi dibagikan ke tim.',
         ),
       );
     } catch (_) {

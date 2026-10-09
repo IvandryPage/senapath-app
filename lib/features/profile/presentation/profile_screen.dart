@@ -56,19 +56,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
-              _buildCloudAccountEntry(context),
-              const SizedBox(height: 20),
               _buildProfileSection(context, state),
-              const SizedBox(height: 12),
-              _buildProfileNavigation(context),
-              const SizedBox(height: 28),
-              _buildContactsSection(context, state),
-              const SizedBox(height: 20),
-              const Text(
-                'Profil dan kontak disimpan aman di perangkat. '
-                'Sinkronisasi cloud menunggu konfigurasi Supabase.',
-                textAlign: TextAlign.center,
+              const SizedBox(height: 8),
+              _buildSectionHeading(
+                context,
+                icon: Icons.health_and_safety_outlined,
+                title: 'Keselamatan',
+                subtitle: 'Orang yang dapat dihubungi saat dibutuhkan.',
               ),
+              const SizedBox(height: 8),
+              SenapathCard(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildContactsSection(context, state),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSectionHeading(
+                context,
+                icon: Icons.groups_2_outlined,
+                title: 'Tim',
+                subtitle: 'Anggota dan ringkasan perjalanan bersama.',
+              ),
+              const SizedBox(height: 8),
+              SenapathCard(
+                child: ListTile(
+                  leading: const Icon(Icons.groups_outlined),
+                  title: const Text('Tim saya'),
+                  subtitle: const Text('Buat tim atau gabung dengan kode undangan'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/profile/teams'),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSectionHeading(
+                context,
+                icon: Icons.directions_bike_outlined,
+                title: 'Aktivitas',
+                subtitle: 'Perjalanan, progres, dan rute tersimpan.',
+              ),
+              const SizedBox(height: 8),
+              _buildActivityNavigation(context),
+              const SizedBox(height: 20),
+              _buildSectionHeading(
+                context,
+                icon: Icons.tune,
+                title: 'Akun dan aplikasi',
+                subtitle: 'Pengaturan, akun, dan keamanan.',
+              ),
+              const SizedBox(height: 8),
+              _buildAccountNavigation(context),
+              const SizedBox(height: 20),
+              _buildSectionHeading(
+                context,
+                icon: Icons.info_outline,
+                title: 'Tentang',
+                subtitle: 'Informasi untuk mata kuliah aplikasi mobile.',
+              ),
+              const SizedBox(height: 8),
+              _buildAboutNavigation(context),
             ],
           );
         },
@@ -79,23 +125,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildCloudAccountEntry(BuildContext context) {
     final account = context.watch<CloudAccountCubit>().state;
     return ListTile(
-      contentPadding: EdgeInsets.zero,
       leading: Icon(
-        account.isSignedIn ? Icons.cloud_done_outlined : Icons.cloud_outlined,
+        account.isSignedIn
+            ? Icons.verified_user_outlined
+            : Icons.manage_accounts_outlined,
       ),
-      title: const Text('Akun online'),
-      subtitle: Text(
-        account.email ??
-            (account.isConfigured
-                ? 'Belum masuk'
-                : 'Supabase belum dikonfigurasi'),
-      ),
+      title: const Text('Akun & keamanan'),
+      subtitle: Text(account.email ?? 'Kelola akun dan keamanan'),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.push('/account'),
     );
   }
 
-  Widget _buildProfileNavigation(BuildContext context) => SenapathCard(
+  Widget _buildSectionHeading(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) => Row(
+    children: [
+      CircleAvatar(
+        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+        child: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.onSecondaryContainer,
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _buildActivityNavigation(BuildContext context) => SenapathCard(
     child: Column(
       children: [
         ListTile(
@@ -123,6 +192,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const Divider(height: 1),
         ListTile(
+          leading: const Icon(Icons.leaderboard_outlined),
+          title: const Text('Papan peringkat'),
+          subtitle: const Text('Peringkat mingguan · opsional'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/leaderboard'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildAccountNavigation(BuildContext context) => SenapathCard(
+    child: Column(
+      children: [
+        ListTile(
           leading: const Icon(Icons.settings_outlined),
           title: const Text('Pengaturan'),
           subtitle: const Text('Satuan, tema, dan penyimpanan'),
@@ -130,20 +213,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: () => context.push('/profile/settings'),
         ),
         const Divider(height: 1),
+        _buildCloudAccountEntry(context),
+      ],
+    ),
+  );
+
+  Widget _buildAboutNavigation(BuildContext context) => SenapathCard(
+    child: Column(
+      children: [
         ListTile(
           leading: const Icon(Icons.feedback_outlined),
           title: const Text('Saran dan kesan'),
           subtitle: const Text('Mata Kuliah Pemrograman Aplikasi Mobile'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/feedback'),
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.leaderboard_outlined),
-          title: const Text('Papan peringkat'),
-          subtitle: const Text('Peringkat mingguan · opsional'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/leaderboard'),
         ),
       ],
     ),
@@ -289,7 +372,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-        const Divider(),
       ],
     );
   }

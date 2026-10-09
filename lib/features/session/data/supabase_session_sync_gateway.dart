@@ -17,7 +17,10 @@ class SupabaseSessionSyncGateway implements SessionSyncGateway {
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
   @override
-  Future<void> uploadSummary(RideSessionSummary summary) async {
+  Future<void> uploadSummary(
+    RideSessionSummary summary, {
+    String? shareWithTeamId,
+  }) async {
     final client = _client;
     final userId = _sessionManager.currentUserId;
     if (client == null || userId == null) {
@@ -53,5 +56,16 @@ class SupabaseSessionSyncGateway implements SessionSyncGateway {
       },
       onConflict: 'user_id,session_id',
     );
+    if (shareWithTeamId != null) {
+      await client.from('team_shared_ride_summaries').upsert(
+        {
+          'team_id': shareWithTeamId,
+          'user_id': userId,
+          'session_id': session.id,
+        },
+        onConflict: 'team_id,user_id,session_id',
+        ignoreDuplicates: true,
+      );
+    }
   }
 }

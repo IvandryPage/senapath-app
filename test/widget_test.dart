@@ -16,9 +16,6 @@ import 'package:senapath/features/authentication/data/custom_auth_session_manage
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 import 'package:senapath/features/assistant/data/supabase_ai_chat_gateway.dart';
 import 'package:senapath/features/assistant/presentation/ai_chat_cubit.dart';
-import 'package:senapath/features/feedback/data/feedback_repository.dart';
-import 'package:senapath/features/feedback/data/supabase_feedback_gateway.dart';
-import 'package:senapath/features/feedback/presentation/feedback_cubit.dart';
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/leaderboard/data/supabase_leaderboard_gateway.dart';
@@ -41,6 +38,8 @@ import 'package:senapath/features/session/data/session_file_service.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
 import 'package:senapath/features/progress/data/activity_goals_repository.dart';
 import 'package:senapath/features/progress/presentation/activity_goals_cubit.dart';
+import 'package:senapath/features/teams/data/cycling_team_repository.dart';
+import 'package:senapath/features/teams/presentation/cycling_team_cubit.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -100,16 +99,6 @@ void main() {
             ),
           ),
         ),
-        feedbackCubit: FeedbackCubit(
-          FeedbackRepository(_FakeSecureVault()),
-          SupabaseFeedbackGateway(
-            null,
-            CustomAuthSessionManager(
-              client: null,
-              secureVault: _FakeSecureVault(),
-            ),
-          ),
-        ),
         leaderboardCubit: LeaderboardCubit(
           SupabaseLeaderboardGateway(
             null,
@@ -121,6 +110,15 @@ void main() {
         ),
         activityGoalsCubit: ActivityGoalsCubit(
           ActivityGoalsRepository(database),
+        ),
+        cyclingTeamCubit: CyclingTeamCubit(
+          SupabaseCyclingTeamRepository(
+            null,
+            CustomAuthSessionManager(
+              client: null,
+              secureVault: _FakeSecureVault(),
+            ),
+          ),
         ),
       ),
     );
@@ -161,8 +159,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('Saran & kesan'), 400);
     await tester.tap(find.text('Saran & kesan'));
     await tester.pumpAndSettle();
-    expect(find.text('Kirim feedback'), findsOneWidget);
-    expect(find.textContaining('Jika gagal'), findsOneWidget);
+    expect(
+      find.text('Mata Kuliah Pemrograman Aplikasi Mobile'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Lorem ipsum dolor sit amet'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Kirim feedback'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
@@ -221,6 +224,40 @@ void main() {
     await tester.tap(find.byTooltip('Ikuti arah gerak'));
     await tester.pump();
     await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Kontak darurat'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byTooltip('Tambah kontak darurat'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byTooltip('Tambah kontak darurat'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PhoneFormField), findsOneWidget);
+    await tester.tap(find.byType(PhoneFormField));
+    await tester.pumpAndSettle();
+    final initialDialCode = tester
+        .widget<Text>(find.textContaining('+ ').first)
+        .data;
+    await tester.tap(find.byType(FlagDialCodeChip).last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '47');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('NO')));
+    await tester.pumpAndSettle();
+    expect(initialDialCode, isNot('+ 47'));
+    expect(find.text('+ 47'), findsAtLeastNWidgets(1));
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
+    final profileScrollable = find
+        .ancestor(
+          of: find.text('Rute tersimpan'),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.drag(profileScrollable, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Rute tersimpan'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rute tersimpan'));
     await tester.pumpAndSettle();
@@ -299,7 +336,9 @@ void main() {
     expect(find.text('Perpustakaan rute'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Akun online'), findsOneWidget);
+    expect(find.text('Akun & keamanan'), findsOneWidget);
+    expect(find.text('Akun online'), findsNothing);
+    await tester.ensureVisible(find.text('Pengaturan'));
     await tester.tap(find.text('Pengaturan'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
@@ -312,8 +351,8 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.ensureVisible(find.text('Akun online'));
-    await tester.tap(find.text('Akun online'));
+    await tester.ensureVisible(find.text('Akun & keamanan'));
+    await tester.tap(find.text('Akun & keamanan'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Lupa password?'), findsOneWidget);
@@ -325,36 +364,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Profil').last);
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Kontak darurat'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Kontak darurat'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Tambah kontak darurat'));
-    await tester.pumpAndSettle();
-    expect(find.byType(PhoneFormField), findsOneWidget);
-    await tester.tap(find.byType(PhoneFormField));
-    await tester.pumpAndSettle();
-    final initialDialCode = tester
-        .widget<Text>(find.textContaining('+ ').first)
-        .data;
-    await tester.tap(find.byType(FlagDialCodeChip).last);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, '47');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('NO')));
-    await tester.pumpAndSettle();
-    expect(initialDialCode, isNot('+ 47'));
-    expect(find.text('+ 47'), findsAtLeastNWidgets(1));
-    await tester.tap(find.text('Batal'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Kontak darurat'), findsOneWidget);
-
     await tester.pumpWidget(const SizedBox.shrink());
     await database.close();
     await profileCubit.close();

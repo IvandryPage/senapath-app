@@ -221,7 +221,10 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         children: [
           const Icon(Icons.verified_user_outlined, size: 40),
           const SizedBox(height: 12),
-          Text('Akun online', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Akun & keamanan',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 4),
           Text(state.email ?? ''),
           const SizedBox(height: 12),
@@ -242,7 +245,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                 ? null
                 : context.read<CloudAccountCubit>().signOut,
             icon: const Icon(Icons.logout),
-            label: const Text('Keluar dari akun online'),
+            label: const Text('Keluar dari akun'),
           ),
           if (state.isLoading) const LinearProgressIndicator(),
         ],

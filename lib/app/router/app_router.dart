@@ -21,6 +21,7 @@ import '../../features/feedback/presentation/feedback_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 import '../../features/session/domain/ride_session.dart';
 import '../../features/progress/presentation/activity_progress_screen.dart';
+import '../../features/teams/presentation/cycling_team_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -134,6 +135,19 @@ final appRouter = GoRouter(
                   path: 'settings',
                   builder: (context, state) => const ProfileSettingsScreen(),
                 ),
+                GoRoute(
+                  path: 'teams',
+                  builder: (context, state) => const CyclingTeamScreen(),
+                  routes: [
+                    GoRoute(
+                      path: ':teamId',
+                      builder: (context, state) =>
+                          CyclingTeamDashboardScreen(
+                            teamId: state.pathParameters['teamId']!,
+                          ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
@@ -180,8 +194,10 @@ class _AppShellState extends State<_AppShell> {
       '/feedback' => 'Saran & kesan',
       '/leaderboard' => 'Papan Peringkat',
       '/progress' => 'Progres aktivitas',
-      '/account' => 'Akun online',
+      '/account' => 'Akun & keamanan',
       '/profile/settings' => 'Pengaturan',
+      '/profile/teams' => 'Tim',
+      _ when widget.location.startsWith('/profile/teams/') => 'Detail tim',
       '/profile/sessions' => 'Riwayat sesi',
       _ when widget.location.startsWith('/profile/sessions/') =>
         'Detail sesi',
