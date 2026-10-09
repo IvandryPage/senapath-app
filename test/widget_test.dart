@@ -137,6 +137,7 @@ void main() {
       const Key('home-shortcut-leaderboard'),
     );
     await tester.scrollUntilVisible(leaderboardShortcut, 400);
+    expect(find.text('Papan peringkat mingguan'), findsOneWidget);
     await tester.tap(leaderboardShortcut);
     await tester.pumpAndSettle();
     expect(find.textContaining('Peringkat mingguan bersepeda'), findsOneWidget);

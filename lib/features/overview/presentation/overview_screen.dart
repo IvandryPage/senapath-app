@@ -7,7 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
-import '../../routes/presentation/explore_map.dart';
+import '../../leaderboard/domain/leaderboard_models.dart';
+import '../../leaderboard/presentation/leaderboard_cubit.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
 
@@ -27,6 +28,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
     if (_initialized) return;
     _initialized = true;
     unawaited(context.read<RideSessionCubit>().initialize());
+    unawaited(context.read<LeaderboardCubit>().load());
   }
 
   @override
@@ -91,41 +93,19 @@ class _OverviewScreenState extends State<OverviewScreen> {
               onExplore: () => context.go('/routes'),
               onStart: () => context.go('/routes'),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Peta perjalanan',
+                    'Ringkasan 7 hari',
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: () => context.go('/routes'),
-                  icon: const Icon(Icons.open_in_new, size: 18),
-                  label: const Text('Buka peta'),
-                ),
-              ],
-            ),
-            ExploreMap(height: 320, showLocationButton: true),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '7 hari terakhir',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.go('/profile/sessions'),
-                  child: const Text('Riwayat'),
                 ),
                 TextButton(
                   onPressed: () => context.go('/progress'),
-                  child: const Text('Lihat progres'),
+                  child: const Text('Progres'),
                 ),
               ],
             ),
@@ -148,7 +128,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
+            _LeaderboardPreview(onOpen: () => context.push('/leaderboard')),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
@@ -199,11 +181,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _FeatureShortcut(
-                    key: const Key('home-shortcut-leaderboard'),
-                    icon: Icons.leaderboard_outlined,
-                    title: 'Papan peringkat',
-                    subtitle: 'Mingguan · opsional',
-                    onTap: () => context.push('/leaderboard'),
+                    icon: Icons.map_outlined,
+                    title: 'Jelajah rute',
+                    subtitle: 'Peta & sesi',
+                    onTap: () => context.go('/routes'),
                   ),
                 ),
               ],
@@ -348,6 +329,181 @@ class _WelcomeCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LeaderboardPreview extends StatelessWidget {
+  const _LeaderboardPreview({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) => BlocBuilder<LeaderboardCubit, LeaderboardState>(
+    builder: (context, state) {
+      final optedIn = state.settings?.isOptedIn == true;
+      final colors = Theme.of(context).colorScheme;
+
+      return SenapathCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.emoji_events_outlined, color: colors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Papan peringkat mingguan',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                TextButton(onPressed: onOpen, child: const Text('Lihat semua')),
+              ],
+            ),
+            if (state.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (!optedIn)
+              _LeaderboardInvitation(
+                message: state.error == null
+                    ? 'Ikut tantangan mingguan dan lihat progres pesepeda lain.'
+                    : 'Tantangan mingguan menunggu akun online. Kamu bisa '
+                          'melihat detail dan pengaturan leaderboard.',
+                onOpen: onOpen,
+              )
+            else if (state.error != null)
+              _LeaderboardInvitation(
+                message: 'Peringkat belum bisa dimuat. Coba lagi nanti.',
+                onOpen: onOpen,
+              )
+            else if (state.entries.isEmpty)
+              _LeaderboardInvitation(
+                message:
+                    'Belum ada skor pekan ini. Selesaikan sesi dan '
+                    'mulai kumpulkan poinmu!',
+                onOpen: onOpen,
+              )
+            else ...[
+              Text(
+                'Pekan ini · ${state.category == LeaderboardCategory.distance ? 'jarak terjauh' : 'durasi aktif'}',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+              for (final entry in state.entries.take(3))
+                _LeaderboardPreviewRow(
+                  rank: entry.rank,
+                  alias: entry.alias,
+                  score: _leaderboardScoreText(entry, state.category),
+                ),
+              const SizedBox(height: 4),
+              Text(
+                'Terus gowes, kejar posisi berikutnya!',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _LeaderboardInvitation extends StatelessWidget {
+  const _LeaderboardInvitation({required this.message, required this.onOpen});
+
+  final String message;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(message),
+      const SizedBox(height: 10),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FilledButton.tonalIcon(
+          key: const Key('home-shortcut-leaderboard'),
+          onPressed: onOpen,
+          icon: const Icon(Icons.emoji_events_outlined),
+          label: const Text('Ikut tantangan'),
+        ),
+      ),
+    ],
+  );
+}
+
+class _LeaderboardPreviewRow extends StatelessWidget {
+  const _LeaderboardPreviewRow({
+    required this.rank,
+    required this.alias,
+    required this.score,
+  });
+
+  final int rank;
+  final String alias;
+  final String score;
+
+  @override
+  Widget build(BuildContext context) {
+    final medalColor = switch (rank) {
+      1 => const Color(0xFFB77900),
+      2 => const Color(0xFF68727D),
+      3 => const Color(0xFF9C5A36),
+      _ => Theme.of(context).colorScheme.primary,
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: medalColor.withValues(alpha: 0.14),
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                color: medalColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              alias,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(score, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+String _leaderboardScoreText(
+  LeaderboardEntry entry,
+  LeaderboardCategory category,
+) {
+  if (category == LeaderboardCategory.distance) {
+    return '${(entry.score / 1000).toStringAsFixed(1)} km';
+  }
+  final seconds = entry.score.round();
+  final hours = seconds ~/ 3600;
+  final minutes = seconds % 3600 ~/ 60;
+  return hours > 0 ? '${hours}j ${minutes}m' : '${minutes}m';
 }
 
 class _SummaryTile extends StatelessWidget {
