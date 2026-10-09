@@ -10,9 +10,7 @@ import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../routes/data/route_file_exchange.dart';
-import '../../routes/domain/saved_route.dart';
 import '../../routes/presentation/explore_map.dart';
-import '../../routes/presentation/routes_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
@@ -493,7 +491,7 @@ class _SessionScreenState extends State<SessionScreen>
             FilledButton.icon(
               onPressed: state.isCheckingReadiness
                   ? null
-                  : () => _requestLocationAndChooseRoute(context),
+                  : () => _requestLocationAndStart(context),
               icon: state.isCheckingReadiness
                   ? const SizedBox.square(
                       dimension: 18,
@@ -960,7 +958,9 @@ class _SessionScreenState extends State<SessionScreen>
 
   Widget _buildStartControl(BuildContext context, RideSessionState state) {
     return SenapathButton(
-      onPressed: state.canStart ? () => _chooseRouteAndStart(context) : null,
+      onPressed: state.canStart
+          ? () => context.read<RideSessionCubit>().start()
+          : null,
       icon: Icons.play_arrow,
       label: 'Mulai sesi',
     );
@@ -973,7 +973,7 @@ class _SessionScreenState extends State<SessionScreen>
         children: [
           SenapathButton(
             onPressed: state.canStart
-                ? () => _chooseRouteAndStart(context)
+                ? () => context.read<RideSessionCubit>().start()
                 : null,
             icon: Icons.add,
             label: 'Mulai sesi baru',
@@ -1029,86 +1029,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
-  Future<void> _chooseRouteAndStart(BuildContext context) async {
-    final routesCubit = context.read<RoutesCubit>();
-    await routesCubit.load();
-    if (!context.mounted) return;
-
-    final routeState = routesCubit.state;
-    final availableRoutes = [
-      ...routeState.routes.where(
-        (route) => route.points.length >= 2,
-      ),
-    ];
-    final choice = await showDialog<_SessionRouteChoice>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Pakai rute untuk sesi ini?'),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 360),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Rute pilihan akan tampil di peta bersama jejak GPS. '
-                  'Sesi tetap bisa dimulai tanpa rute.',
-                ),
-                const SizedBox(height: 12),
-                if (availableRoutes.isEmpty)
-                  const Text(
-                    'Belum ada rute siap pakai. Impor GPX lewat Profil → '
-                    'Rute tersimpan, atau mulai sesi tanpa rute.',
-                  ),
-                for (final route in availableRoutes)
-                  SenapathCard(
-                    child: ListTile(
-                      leading: const Icon(Icons.route_outlined),
-                      title: Text(route.name),
-                      subtitle: Text(
-                        '${route.source} · ${route.points.length} titik',
-                      ),
-                      onTap: () => Navigator.pop(
-                        dialogContext,
-                        _SessionRouteChoice(route),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              const _SessionRouteChoice.manageRoutes(),
-            ),
-            icon: const Icon(Icons.folder_open_outlined),
-            label: const Text('Kelola rute'),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, const _SessionRouteChoice(null)),
-            child: const Text('Mulai tanpa rute'),
-          ),
-        ],
-      ),
-    );
-    if (!context.mounted || choice == null) return;
-    if (choice.openLibrary) {
-      await context.push('/profile/routes');
-      return;
-    }
-
-    routesCubit.selectSessionRoute(choice.route);
-    await context.read<RideSessionCubit>().start();
-  }
-
-  Future<void> _requestLocationAndChooseRoute(
-    BuildContext context,
-  ) async {
+  Future<void> _requestLocationAndStart(BuildContext context) async {
     final sessionCubit = context.read<RideSessionCubit>();
     await sessionCubit.checkReadiness(requestLocationPermission: true);
     if (!context.mounted) return;
@@ -1130,7 +1051,7 @@ class _SessionScreenState extends State<SessionScreen>
       }
       return;
     }
-    await _chooseRouteAndStart(context);
+    await sessionCubit.start();
   }
 
   Widget _buildHistory(
@@ -1802,14 +1723,6 @@ class _SessionScreenState extends State<SessionScreen>
   }
 }
 
-class _SessionRouteChoice {
-  const _SessionRouteChoice(this.route) : openLibrary = false;
-
-  const _SessionRouteChoice.manageRoutes() : route = null, openLibrary = true;
-
-  final RouteRecord? route;
-  final bool openLibrary;
-}
 
 class _ReadinessLine extends StatelessWidget {
   const _ReadinessLine({

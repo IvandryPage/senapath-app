@@ -8,8 +8,6 @@ import '../../features/overview/presentation/overview_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/profile_settings_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
-import '../../features/routes/presentation/route_guidance_screen.dart';
-import '../../features/routes/domain/saved_route.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
 import '../../features/strategy_game/presentation/strategy_game_screen.dart';
@@ -88,13 +86,6 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/routes',
               builder: (context, state) => const RoutesScreen(),
-              routes: [
-                GoRoute(
-                  path: 'navigation',
-                  builder: (context, state) =>
-                      RouteGuidanceScreen(route: state.extra! as RouteRecord),
-                ),
-              ],
             ),
           ],
         ),
@@ -141,10 +132,9 @@ final appRouter = GoRouter(
                   routes: [
                     GoRoute(
                       path: ':teamId',
-                      builder: (context, state) =>
-                          CyclingTeamDashboardScreen(
-                            teamId: state.pathParameters['teamId']!,
-                          ),
+                      builder: (context, state) => CyclingTeamDashboardScreen(
+                        teamId: state.pathParameters['teamId']!,
+                      ),
                     ),
                   ],
                 ),
@@ -178,9 +168,7 @@ class _AppShellState extends State<_AppShell> {
   Widget build(BuildContext context) {
     final account = context.watch<CloudAccountCubit>().state;
     if (account.isConfigured && !account.isInitialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (account.isConfigured && !account.isSignedIn) {
       return const Scaffold(
@@ -199,10 +187,8 @@ class _AppShellState extends State<_AppShell> {
       '/profile/teams' => 'Tim',
       _ when widget.location.startsWith('/profile/teams/') => 'Detail tim',
       '/profile/sessions' => 'Riwayat sesi',
-      _ when widget.location.startsWith('/profile/sessions/') =>
-        'Detail sesi',
+      _ when widget.location.startsWith('/profile/sessions/') => 'Detail sesi',
       '/profile/routes' => 'Rute tersimpan',
-      '/routes/navigation' => 'Panduan Rute',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
     final isSubmenu = switch (widget.location) {

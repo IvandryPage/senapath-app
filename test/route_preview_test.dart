@@ -23,7 +23,7 @@ import 'package:senapath/features/session/presentation/session_cubit.dart';
 import 'package:senapath/features/session/presentation/session_screen.dart';
 
 void main() {
-  testWidgets('selects a saved route before starting a new session', (
+  testWidgets('starts with the selected GPX without another route page', (
     tester,
   ) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
@@ -42,6 +42,8 @@ void main() {
       repository,
       const RouteFileExchange(SessionFileService()),
     );
+    await routesCubit.load();
+    routesCubit.selectSessionRoute(routesCubit.state.routes.single);
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
     final sessionCubit = RideSessionCubit(
       repository: DriftRideSessionRepository(
@@ -86,13 +88,7 @@ void main() {
 
     await tester.tap(find.text('Mulai sesi'));
     await tester.pumpAndSettle();
-    expect(find.text('Pakai rute untuk sesi ini?'), findsOneWidget);
-    expect(find.text('Loop Utara'), findsOneWidget);
-
-    await tester.tap(find.text('Loop Utara'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
+    expect(find.text('Pakai rute untuk sesi ini?'), findsNothing);
     expect(routesCubit.state.sessionRoute?.name, 'Loop Utara');
     expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
     await tester.ensureVisible(find.text('Performa sesi'));
@@ -205,7 +201,7 @@ void main() {
     await sessionCubit.pause();
   });
 
-  testWidgets('opens an imported route from the saved route library', (
+  testWidgets('selects an imported route from the saved route library', (
     tester,
   ) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
@@ -261,7 +257,77 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(RichAttributionWidget), findsOneWidget);
-    expect(find.text('Ikuti rute'), findsOneWidget);
+    expect(find.text('Tampilkan di Jelajah'), findsOneWidget);
+    await tester.tap(find.text('Tampilkan di Jelajah'));
+    await tester.pumpAndSettle();
+    expect(cubit.state.sessionRoute?.name, 'Loop Utara');
+    expect(find.text('Jejak GPX lokal'), findsNothing);
+  });
+
+  testWidgets('selects, changes, and removes a GPX route on the explore map', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
+    for (final name in ['Loop Utara', 'Loop Selatan']) {
+      await repository.saveImportedRoute(
+        name: name,
+        points: const [
+          (latitude: -6.2, longitude: 106.8, elevation: 10),
+          (latitude: -6.202, longitude: 106.804, elevation: 24),
+        ],
+      );
+    }
+    final routesCubit = RoutesCubit(
+      repository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = _createSessionCubit(database);
+    await unitCubit.load();
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: routesCubit),
+          BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: sessionCubit),
+        ],
+        child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cari rute GPX'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Loop Utara'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Loop Utara'), findsOneWidget);
+    expect(find.byTooltip('Ganti GPX'), findsOneWidget);
+    expect(find.byTooltip('Hapus GPX dari peta'), findsOneWidget);
+    expect(routesCubit.state.sessionRoute?.name, 'Loop Utara');
+    expect(find.byType(PolylineLayer), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Ganti GPX'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Loop Selatan'));
+    await tester.pumpAndSettle();
+    expect(routesCubit.state.sessionRoute?.name, 'Loop Selatan');
+    expect(find.text('Loop Selatan'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Hapus GPX dari peta'));
+    await tester.pumpAndSettle();
+    expect(routesCubit.state.sessionRoute, isNull);
+    expect(find.text('Cari rute GPX'), findsOneWidget);
+    expect(find.byType(PolylineLayer), findsNothing);
   });
 
   testWidgets('route distance and elevation respect imperial units', (

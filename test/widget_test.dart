@@ -279,13 +279,6 @@ void main() {
     expect(find.text('Detail kesiapan & izin'), findsNothing);
     expect(find.text('Pemeriksaan pra-balapan'), findsNothing);
     expect(find.text('Pakai rute untuk sesi ini?'), findsNothing);
-    await tester.tap(find.widgetWithText(FilledButton, 'Mulai sesi'));
-    await tester.pumpAndSettle();
-    expect(find.text('Pakai rute untuk sesi ini?'), findsOneWidget);
-    expect(find.text('Mulai tanpa rute'), findsOneWidget);
-    expect(find.text('Kelola rute'), findsOneWidget);
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
     expect(sessionCubit.state.session, isNull);
     await tester.tap(find.byTooltip('Tutup detail sesi'));
     await tester.pumpAndSettle();

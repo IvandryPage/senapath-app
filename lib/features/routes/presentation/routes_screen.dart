@@ -33,6 +33,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
   void initState() {
     super.initState();
     unawaited(context.read<RideSessionCubit>().initialize());
+    unawaited(context.read<RoutesCubit>().load());
   }
 
   @override
@@ -66,17 +67,15 @@ class _RoutesScreenState extends State<RoutesScreen> {
               final hasActiveSession =
                   sessionStatus == RideSessionStatus.recording ||
                   sessionStatus == RideSessionStatus.paused;
-              final movementBearing = sessionStatus ==
-                      RideSessionStatus.recording &&
-                  !_northUpLocked
+              final movementBearing =
+                  sessionStatus == RideSessionStatus.recording &&
+                      !_northUpLocked
                   ? gpsMovementBearing(
                       sessionState.recordedLocations,
                       now: sessionState.now ?? DateTime.now().toUtc(),
                     )
                   : null;
-              final activeRoute = hasActiveSession && state.sessionRouteSelected
-                  ? state.sessionRoute
-                  : null;
+              final activeRoute = state.sessionRoute;
               return LayoutBuilder(
                 builder: (context, constraints) {
                   return Stack(
@@ -97,9 +96,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
                             RideSessionStatus.recording,
                         movementBearingDegrees: movementBearing,
                         northUpLocked: _northUpLocked,
-                        onToggleNorthUp: () => setState(
-                          () => _northUpLocked = !_northUpLocked,
-                        ),
+                        onToggleNorthUp: () =>
+                            setState(() => _northUpLocked = !_northUpLocked),
                         showEmptyMessage: false,
                       ),
                       if (hasActiveSession && session != null)
@@ -113,17 +111,32 @@ class _RoutesScreenState extends State<RoutesScreen> {
                             unitSystem: unitSystem,
                           ),
                         ),
-                      if (!hasActiveSession) ...[
-                        Positioned(
-                          top: 12,
-                          left: 16,
-                          child: FilledButton.tonalIcon(
-                            onPressed: () => context.push('/profile/routes'),
-                            icon: const Icon(Icons.search),
-                            label: const Text('Cari rute GPX'),
+                      Positioned(
+                        top: 12,
+                        left: 16,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: constraints.maxWidth - 104,
                           ),
+                          child: activeRoute == null
+                              ? FilledButton.tonalIcon(
+                                  onPressed: state.isLoading
+                                      ? null
+                                      : _openGpxPicker,
+                                  icon: const Icon(Icons.search),
+                                  label: const Text('Cari rute GPX'),
+                                )
+                              : _SelectedRouteControl(
+                                  route: activeRoute,
+                                  onChange: state.isLoading
+                                      ? null
+                                      : _openGpxPicker,
+                                  onRemove: () => context
+                                      .read<RoutesCubit>()
+                                      .selectSessionRoute(null),
+                                ),
                         ),
-                      ],
+                      ),
                       Positioned(
                         right: 16,
                         bottom: 16,
@@ -142,6 +155,18 @@ class _RoutesScreenState extends State<RoutesScreen> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _openGpxPicker() async {
+    final routesCubit = context.read<RoutesCubit>();
+    await routesCubit.load();
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const _GpxRoutePicker(),
     );
   }
 
@@ -192,6 +217,180 @@ class _RoutesScreenState extends State<RoutesScreen> {
           ),
         ),
       );
+}
+
+class _SelectedRouteControl extends StatelessWidget {
+  const _SelectedRouteControl({
+    required this.route,
+    required this.onChange,
+    required this.onRemove,
+  });
+
+  final RouteRecord route;
+  final VoidCallback? onChange;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) => SenapathCard(
+    child: Padding(
+      padding: const EdgeInsetsDirectional.only(start: 14, end: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.route_outlined),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              route.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Ganti GPX',
+            onPressed: onChange,
+            icon: const Icon(Icons.swap_horiz),
+          ),
+          IconButton(
+            tooltip: 'Hapus GPX dari peta',
+            onPressed: onRemove,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _GpxRoutePicker extends StatefulWidget {
+  const _GpxRoutePicker();
+
+  @override
+  State<_GpxRoutePicker> createState() => _GpxRoutePickerState();
+}
+
+class _GpxRoutePickerState extends State<_GpxRoutePicker> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => BlocBuilder<RoutesCubit, RoutesState>(
+    builder: (context, state) {
+      final routes = state.routes
+          .where((route) => route.points.length >= 2)
+          .toList(growable: false);
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.72,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Pilih rute GPX',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey('explore-gpx-search'),
+                controller: _searchController,
+                onChanged: context.read<RoutesCubit>().search,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Cari nama rute',
+                  suffixIcon: state.query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Hapus pencarian',
+                          onPressed: () {
+                            _searchController.clear();
+                            context.read<RoutesCubit>().search('');
+                          },
+                          icon: const Icon(Icons.clear),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: state.isLoading
+                    ? null
+                    : context.read<RoutesCubit>().importGpx,
+                icon: const Icon(Icons.file_upload_outlined),
+                label: const Text('Impor GPX'),
+              ),
+              if (state.isLoading) const LinearProgressIndicator(),
+              if (state.message != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    state.message!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: routes.isEmpty
+                    ? Center(
+                        child: Text(
+                          state.query.isEmpty
+                              ? 'Belum ada rute GPX yang siap ditampilkan.'
+                              : 'Tidak ada rute GPX dengan nama “${state.query}”.',
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: routes.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 6),
+                        itemBuilder: (context, index) {
+                          final route = routes[index];
+                          return SenapathCard(
+                            child: ListTile(
+                              leading: const Icon(Icons.route_outlined),
+                              title: Text(route.name),
+                              subtitle: Text(
+                                '${route.points.length} titik · ${route.source}',
+                              ),
+                              trailing: const Icon(Icons.map_outlined),
+                              onTap: () {
+                                context.read<RoutesCubit>().selectSessionRoute(
+                                  route,
+                                );
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _SessionMetricsOverlay extends StatelessWidget {
@@ -295,8 +494,8 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Cari rute GPX berdasarkan nama, lihat detailnya, lalu pilih '
-              'rute saat memulai sesi.',
+              'Cari dan kelola rute GPX. Pilih rute untuk langsung '
+              'menampilkannya di peta Jelajah.',
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -488,12 +687,12 @@ class _RouteTile extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: () {
-                      if (router == null) return;
+                      context.read<RoutesCubit>().selectSessionRoute(route);
                       Navigator.of(context).pop();
-                      router.push('/routes/navigation', extra: route);
+                      router?.go('/routes');
                     },
                     icon: const Icon(Icons.navigation),
-                    label: const Text('Ikuti rute'),
+                    label: const Text('Tampilkan di Jelajah'),
                   ),
                 ),
               ],
