@@ -83,7 +83,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: ListTile(
                   leading: const Icon(Icons.groups_outlined),
                   title: const Text('Tim saya'),
-                  subtitle: const Text('Buat tim atau gabung dengan kode undangan'),
+                  subtitle: const Text(
+                    'Buat tim atau gabung dengan kode undangan',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/profile/teams'),
                 ),
@@ -581,21 +583,28 @@ class _ContactEditorState extends State<_ContactEditor> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.contact == null ? 'Tambah kontak' : 'Edit kontak'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextFormField(
               controller: _nameController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Nama'),
+              decoration: const InputDecoration(
+                labelText: 'Nama',
+                border: OutlineInputBorder(),
+              ),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Isi nama.' : null,
             ),
+            const SizedBox(height: 16),
             PhoneFormField(
               controller: _phoneController,
+              initialValue: _phoneController.value,
               defaultCountry: _defaultCountryCode,
               selectorNavigator: ModalBottomSheetNavigator(
                 countries: _phoneFormCountries,
@@ -603,6 +612,7 @@ class _ContactEditorState extends State<_ContactEditor> {
               errorText: 'Periksa format nomor telepon.',
               decoration: const InputDecoration(
                 labelText: 'Nomor telepon atau WhatsApp',
+                border: OutlineInputBorder(),
               ),
               onChanged: (phone) {
                 if (_phoneRequiredError && phone?.nsn.isNotEmpty == true) {
@@ -624,10 +634,14 @@ class _ContactEditorState extends State<_ContactEditor> {
                   ),
                 ),
               ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _relationshipController,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Hubungan'),
+              decoration: const InputDecoration(
+                labelText: 'Hubungan',
+                border: OutlineInputBorder(),
+              ),
               validator: (value) => value == null || value.trim().isEmpty
                   ? 'Isi hubungan.'
                   : null,
@@ -635,6 +649,7 @@ class _ContactEditorState extends State<_ContactEditor> {
           ],
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
