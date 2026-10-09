@@ -45,8 +45,59 @@ Deno.serve(async (request: Request) => {
   } catch {
     return jsonResponse(400, { error: "Invalid JSON request body." });
   }
-  if (body.consent !== true) {
-    return jsonResponse(400, { error: "Consent is required." });
+
+  if (body.action === "diagnose") {
+    if (Object.keys(body).some((key) => key !== "action")) {
+      return jsonResponse(400, { error: "Invalid diagnostic request." });
+    }
+    const configuredModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    const model = configuredModel.replace(/^models\//, "").trim();
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${
+        encodeURIComponent(model)
+      }`,
+      {
+        headers: { "x-goog-api-key": apiKey },
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (!response.ok) {
+      const providerBody = await response.json().catch(() => null);
+      const providerMessage = providerBody?.error?.message;
+      console.error("Rider coach model diagnosis failed", {
+        status: response.status,
+        model,
+        message: typeof providerMessage === "string"
+          ? providerMessage.slice(0, 300)
+          : "No provider message",
+      });
+      if (response.status === 400 || response.status === 404) {
+        return jsonResponse(200, {
+          diagnostic: `Model "${model}" tidak ditemukan untuk key ini. Periksa GEMINI_MODEL pada Supabase Secrets dan nama model di daftar API Models.`,
+        });
+      }
+      if (response.status === 401 || response.status === 403) {
+        return jsonResponse(200, {
+          diagnostic: "Gemini menolak key atau akses project. Periksa GEMINI_API_KEY, aktifkan Gemini API pada project penerbit key, dan periksa project restriction.",
+        });
+      }
+      return jsonResponse(200, {
+        diagnostic: `Pemeriksaan model gagal (HTTP ${response.status}). Periksa kuota, jaringan, dan log rider-coach.`,
+      });
+    }
+    const result = await response.json();
+    const supported = result?.supportedGenerationMethods;
+    if (!Array.isArray(supported) || !supported.includes("generateContent")) {
+      return jsonResponse(200, {
+        diagnostic: `Model "${model}" tersedia, tetapi tidak mencantumkan generateContent. Pilih model yang mendukung metode tersebut.`,
+      });
+    }
+    if (body.consent !== true) {
+      return jsonResponse(400, { error: "Consent is required." });
+    }
+    return jsonResponse(200, {
+      diagnostic: `Konfigurasi terlihat baik: "${model}" ditemukan dan mendukung generateContent. Pemeriksaan ini tidak menguji kuota generateContent; minta rekomendasi untuk uji panggilan sebenarnya.`,
+    });
   }
   const ride = body.ride;
   if (!ride || typeof ride !== "object" || Array.isArray(ride)) {
@@ -102,7 +153,8 @@ Deno.serve(async (request: Request) => {
     return jsonResponse(429, { error: "Kuota AI harian telah tercapai." });
   }
 
-  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  const configuredModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  const model = configuredModel.replace(/^models\//, "").trim();
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${
       encodeURIComponent(model)
@@ -134,7 +186,30 @@ Deno.serve(async (request: Request) => {
     },
   );
   if (!response.ok) {
-    console.error("Rider coach provider failed", { status: response.status });
+    const providerBody = await response.json().catch(() => null);
+    const providerMessage = providerBody?.error?.message;
+    console.error("Rider coach provider failed", {
+      status: response.status,
+      model,
+      message: typeof providerMessage === "string"
+        ? providerMessage.slice(0, 300)
+        : "No provider message",
+    });
+    if (response.status === 400 || response.status === 404) {
+      return jsonResponse(503, {
+        error: "Gemini menolak nama model. Periksa GEMINI_MODEL dan dukungan generateContent pada API key.",
+      });
+    }
+    if (response.status === 401 || response.status === 403) {
+      return jsonResponse(503, {
+        error: "Gemini menolak API key atau akses project. Periksa GEMINI_API_KEY dan status layanan.",
+      });
+    }
+    if (response.status === 429) {
+      return jsonResponse(503, {
+        error: "Kuota atau batas laju Gemini tercapai. Periksa kuota project Google AI Studio/Cloud.",
+      });
+    }
     return jsonResponse(503, { error: "Rekomendasi AI sedang tidak tersedia." });
   }
   const result = await response.json();

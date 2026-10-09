@@ -24,7 +24,6 @@ class RiderScreen extends StatelessWidget {
       if (progress == null) {
         return const Center(child: CircularProgressIndicator());
       }
-      final colors = Theme.of(context).colorScheme;
       return ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -114,34 +113,6 @@ class RiderScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          Text(
-            'Pilih gaya rider',
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          RadioGroup<RiderStyle>(
-            groupValue: progress.style,
-            onChanged: (value) {
-              if (!state.isSaving && value != null) {
-                context.read<RiderGamificationCubit>().setStyle(value);
-              }
-            },
-            child: Column(
-              children: [
-                for (final style in RiderStyle.values)
-                  RadioListTile<RiderStyle>(
-                    value: style,
-                    secondary: Icon(_styleIcon(style), color: colors.primary),
-                    title: Text(style.label),
-                    subtitle: Text(style.description),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-              ],
-            ),
-          ),
-          if (state.isSaving) const LinearProgressIndicator(),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () => context.push('/rider/ledger'),
@@ -161,6 +132,7 @@ class RiderScreen extends StatelessWidget {
     RiderStyle.sprinter => Icons.bolt,
     RiderStyle.climber => Icons.terrain,
     RiderStyle.explorer => Icons.explore,
+    RiderStyle.ace => Icons.stars,
   };
 }
 

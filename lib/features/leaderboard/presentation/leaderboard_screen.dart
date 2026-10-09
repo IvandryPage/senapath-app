@@ -220,8 +220,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 for (final entry in state.entries)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(child: Text('${entry.rank}')),
-                    title: Text(entry.alias),
+                    leading: CircleAvatar(
+                      child: Text(
+                        '${entry.rank}',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    title: Text('${entry.alias} · Lv.${entry.riderLevel}'),
+                    subtitle: Text(
+                      '${entry.riderStyle.label} · ${entry.riderExperience} XP',
+                    ),
                     trailing: Text(_formatScore(entry, state.category)),
                   ),
             ],

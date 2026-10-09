@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../authentication/data/custom_auth_session_manager.dart';
+import '../../gamification/domain/rider_progress.dart';
 import '../domain/leaderboard_models.dart';
 import 'leaderboard_gateway.dart';
 
@@ -58,6 +59,9 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
             rank: (row['place'] as num).toInt(),
             alias: row['public_alias'] as String,
             score: (row['score'] as num).toDouble(),
+            riderLevel: (row['rider_level'] as num?)?.toInt() ?? 1,
+            riderStyle: RiderStyle.fromName(row['rider_style']),
+            riderExperience: (row['experience'] as num?)?.toInt() ?? 0,
           );
         })
         .toList(growable: false);

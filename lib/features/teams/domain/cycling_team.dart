@@ -1,3 +1,5 @@
+import '../../gamification/domain/rider_progress.dart';
+
 class CyclingTeam {
   const CyclingTeam({
     required this.id,
@@ -22,12 +24,18 @@ class CyclingTeamMember {
     required this.displayName,
     required this.role,
     required this.joinedAt,
+    this.riderStyle = RiderStyle.explorer,
+    this.riderLevel = 1,
+    this.experience = 0,
   });
 
   final String userId;
   final String displayName;
   final String role;
   final DateTime joinedAt;
+  final RiderStyle riderStyle;
+  final int riderLevel;
+  final int experience;
 
   bool get isManager => role == 'manager';
 }

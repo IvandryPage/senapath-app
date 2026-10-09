@@ -14,6 +14,7 @@ import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
+import '../../gamification/presentation/rider_gamification_cubit.dart';
 import '../../progress/domain/activity_progress.dart';
 import '../../progress/presentation/activity_goals_cubit.dart';
 import '../domain/user_profile.dart';
@@ -43,9 +44,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_startedLoading) return;
     _startedLoading = true;
     unawaited(context.read<ProfileCubit>().load());
-    unawaited(context.read<RideSessionCubit>().initialize());
+    unawaited(_loadRiderProgress());
     unawaited(context.read<ActivityGoalsCubit>().load());
     unawaited(context.read<CyclingTeamCubit>().loadTeams());
+  }
+
+  Future<void> _loadRiderProgress() async {
+    final sessions = context.read<RideSessionCubit>();
+    await sessions.initialize();
+    if (!mounted) return;
+    await context.read<RiderGamificationCubit>().load(
+      sessions.state.completedSessions,
+    );
   }
 
   @override
@@ -147,6 +157,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : 'Memuat tim…',
                     style: Theme.of(context).textTheme.bodyMedium
                         ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                  BlocBuilder<RiderGamificationCubit, RiderGamificationState>(
+                    builder: (context, riderState) {
+                      final rider = riderState.progress;
+                      if (rider == null) return const SizedBox.shrink();
+                      return Text(
+                        'Level ${rider.level} · ${rider.style.label}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    },
                   ),
                   if (context.watch<CloudAccountCubit>().state.email
                       case final email?)

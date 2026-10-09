@@ -68,10 +68,36 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
                   'Data lokasi mentah tidak dimasukkan.',
                 ),
                 const SizedBox(height: 12),
+                if (state.cloudBlockCount != null)
+                  Text(
+                    'Database cloud: ${state.cloudBlockCount} blok tersimpan',
+                  ),
+                if (state.message case final message?) ...[
+                  const SizedBox(height: 8),
+                  Text(message),
+                ],
                 OutlinedButton.icon(
                   onPressed: () => context.read<RideLedgerCubit>().verify(),
                   icon: const Icon(Icons.fact_check_outlined),
                   label: const Text('Verifikasi ulang'),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                  onPressed:
+                      !context.read<RideLedgerCubit>().canSync ||
+                          state.isSyncing ||
+                          state.blocks.isEmpty
+                      ? null
+                      : () => _confirmSync(context),
+                  icon: state.isSyncing
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_upload_outlined),
+                  label: Text(
+                    state.isSyncing ? 'Menyinkronkan…' : 'Sinkronkan bukti',
+                  ),
                 ),
               ],
             ),
@@ -121,12 +147,41 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
             ),
           const SizedBox(height: 8),
           const Text(
-            'Rantai ini tersimpan lokal sebagai bukti yang bisa diperiksa di perangkat; '
-            'belum dipublikasikan atau didesentralisasi ke jaringan blockchain.',
+            'Hash aktivitas yang disinkronkan tidak berisi GPS, nama, atau email. '
+            'Database cloud menyimpan rantai hash untuk sinkronisasi akun. Ini bukan '
+            'blockchain terdesentralisasi: operator database tetap mengelola data, '
+            'dan hash hanya membantu mendeteksi perubahan terhadap rantai yang tersimpan.',
             style: TextStyle(fontStyle: FontStyle.italic),
           ),
         ],
       );
     },
   );
+
+  Future<void> _confirmSync(BuildContext context) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SenapathAlertDialog(
+        title: const Text('Sinkronkan hash bukti?'),
+        content: const Text(
+          'Hash, indeks blok, waktu selesai, jarak, dan durasi sesi akan disimpan '
+          'di database cloud akunmu. Koordinat GPS, nama, serta email tidak dikirim. '
+          'Ini sinkronisasi ledger cloud, bukan pencatatan pada blockchain publik.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Setuju & sinkronkan'),
+          ),
+        ],
+      ),
+    );
+    if (approved == true && context.mounted) {
+      await context.read<RideLedgerCubit>().sync();
+    }
+  }
 }

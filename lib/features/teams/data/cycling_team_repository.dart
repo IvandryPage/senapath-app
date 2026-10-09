@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../authentication/data/custom_auth_session_manager.dart';
+import '../../gamification/domain/rider_progress.dart';
 import '../domain/cycling_team.dart';
 
 abstract interface class CyclingTeamRepository {
@@ -124,7 +125,10 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     }
     final memberships = await client
         .from('cycling_team_members')
-        .select('user_id, display_name, role, joined_at')
+        .select(
+          'user_id, display_name, role, joined_at, '
+          'rider_profiles!left(rider_style, rider_level, experience)',
+        )
         .eq('team_id', teamId)
         .order('joined_at');
     final shares = await client
@@ -204,6 +208,17 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
             displayName: row['display_name']! as String,
             role: row['role']! as String,
             joinedAt: DateTime.parse(row['joined_at']! as String).toUtc(),
+            riderStyle: RiderStyle.fromName(
+              (row['rider_profiles'] as Map?)?['rider_style'],
+            ),
+            riderLevel:
+                ((row['rider_profiles'] as Map?)?['rider_level'] as num?)
+                    ?.toInt() ??
+                1,
+            experience:
+                ((row['rider_profiles'] as Map?)?['experience'] as num?)
+                    ?.toInt() ??
+                0,
           ),
       ],
       sharedSessions: sessions,

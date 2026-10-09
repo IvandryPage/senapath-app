@@ -145,7 +145,11 @@ void main() {
     expect(configuredApp.darkTheme, isNull);
     expect(configuredApp.theme?.brightness, Brightness.light);
 
-    await tester.drag(find.text('Hai, siap gowes?'), const Offset(0, -600));
+    await tester.scrollUntilVisible(
+      find.text('Aktivitas terbaru'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.text('Belum ada sesi'), findsOneWidget);
 
@@ -304,6 +308,11 @@ void main() {
     await tester.tap(find.text('Pengaturan aplikasi'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.scrollUntilVisible(
+      find.text('Tema terang'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('Tema terang'), findsOneWidget);
     expect(find.text('Gelap'), findsNothing);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
@@ -490,8 +499,14 @@ class _UnavailableRideCoachGateway implements RideCoachGateway {
   bool get isConfigured => false;
 
   @override
+  bool get isSignedIn => false;
+
+  @override
   Future<String> recommend({
     required Map<String, Object?> rideContext,
     required bool consent,
   }) async => throw StateError('Not configured');
+
+  @override
+  Future<String> diagnoseConfiguration() async => 'Not configured';
 }

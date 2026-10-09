@@ -140,7 +140,22 @@ Jika chat tidak mendapat jawaban, pastikan akun online sudah masuk, migrasi kuot
 ```sh
 supabase secrets list
 supabase functions logs rider-assistant --project-ref your-project-ref
+supabase functions logs rider-coach --project-ref your-project-ref
 ```
+
+Untuk memastikan key benar-benar dapat melihat model yang mendukung `generateContent`, jalankan pemeriksaan ini di PowerShell pada mesin tepercaya setelah `GEMINI_API_KEY` tersedia sebagai environment variable. Respons hanya menampilkan nama model; key tidak dicetak:
+
+```powershell
+if (-not $env:GEMINI_API_KEY) { throw 'Set GEMINI_API_KEY di environment terlebih dahulu.' }
+$models = Invoke-RestMethod `
+  -Uri 'https://generativelanguage.googleapis.com/v1beta/models' `
+  -Headers @{ 'x-goog-api-key' = $env:GEMINI_API_KEY }
+$models.models |
+  Where-Object { $_.supportedGenerationMethods -contains 'generateContent' } |
+  Select-Object name, displayName
+```
+
+Atur `GEMINI_MODEL` ke nama yang tercantum, tanpa awalan `models/` (misalnya `gemini-2.5-flash` bila model itu terlihat). Jika daftar model berhasil tetapi panggilan menghasilkan 400/404, model salah/tidak tersedia untuk key atau format namanya keliru; 401/403 menunjukkan key/API/project access ditolak; 429 berarti kuota atau rate limit. Pastikan Gemini API aktif pada project Google yang menerbitkan key, dan cek kuota/billing serta log Edge Function. `supabase secrets list` hanya untuk memeriksa nama secret, bukan nilainya.
 
 Error sesi berarti login ulang diperlukan; error konfigurasi berarti periksa `GEMINI_API_KEY`, `GEMINI_MODEL`, dan function yang ter-deploy; error kuota harian tidak akan hilang dengan mengirim ulang pesan.
 
@@ -148,7 +163,13 @@ Kartu **Pelatih AI saat gowes** di Beranda merupakan rekomendasi kontekstual yan
 
 ## Level rider dan bukti aktivitas
 
-Beranda menampilkan level, XP, dan gaya rider. XP dihitung lokal dari jarak dan durasi sesi selesai; gaya Sprinter, Climber, atau Explorer dapat dipilih di **Karakter rider**. Detail **Bukti perjalanan** menyimpan hash berantai untuk ringkasan sesi selesai tanpa koordinat GPS dan menyediakan pemeriksaan integritas. Ini adalah rantai hash lokal yang dapat mendeteksi perubahan isi blok, bukan blockchain terdistribusi/public chain dan tidak menjadi bukti yang terjangkar ke pihak independen.
+Beranda menampilkan level, XP, dan gaya rider; gaya Sprinter, Climber, Explorer, atau Ace/All-rounder diatur di **Profil → Pengaturan → Preferensi**, lalu disinkronkan ke profil cloud ketika akun online tersedia dan tampil pada kartu anggota tim serta leaderboard. XP masih dihitung dari sesi lokal dan angka profil cloud berasal dari aplikasi, bukan verifikasi independen.
+
+Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi selesai tanpa koordinat GPS dan menyediakan pemeriksaan integritas. Dengan persetujuan pengguna, **Sinkronkan bukti** mengirim metadata minimum (indeks, waktu, jarak, durasi, dan hash) ke ledger append-only di database cloud Supabase; GPS, nama, dan email tidak dikirim. Tidak ada integrasi Ethereum, wallet, RPC, maupun biaya transaksi. Ini merupakan ledger hash tersinkron di cloud, bukan blockchain terdesentralisasi: operator database tetap mengelola penyimpanan, dan data perjalanan awal tetap berasal dari aplikasi pengguna, bukan diverifikasi independen.
+
+### Seed data tim demo
+
+`supabase/seed.sql` menyediakan dua tim demo (masing-masing empat rider: Sprinter, Climber, Explorer, dan Ace), level/XP contoh, serta skor leaderboard mingguan. Setelah menjalankan migrasi, jalankan seed secara eksplisit melalui Supabase Dashboard → SQL Editor atau `supabase db reset` untuk database lokal yang memang boleh di-reset. Seed tidak dijalankan oleh `supabase db push`. Akun demo memakai alamat `example.invalid` dan password kosong sehingga merupakan data roster/leaderboard saja, tidak bisa login; jangan gunakan seed ini sebagai identitas pengguna produksi. Akun aplikasi yang sudah terdaftar bisa masuk ke tim demo dengan kode `A1000000000040008000000000000001` atau `A2000000000040008000000000000002`.
 
 4. Jalankan aplikasi dengan URL proyek dan publishable key Supabase dari `.env`:
 

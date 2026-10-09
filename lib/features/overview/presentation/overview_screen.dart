@@ -309,23 +309,52 @@ class _RideCoachPreview extends StatelessWidget {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
+            if (coachState.notice != null) ...[
+              const SizedBox(height: 10),
+              Text(coachState.notice!),
+            ],
             const SizedBox(height: 10),
-            FilledButton.tonalIcon(
-              onPressed:
-                  coachState.isLoading ||
-                      !isActive ||
-                      route == null ||
-                      progress == null ||
-                      !context.read<RideCoachCubit>().isConfigured
+            OutlinedButton.icon(
+              onPressed: coachState.isLoading ||
+                      !context.read<RideCoachCubit>().isConfigured ||
+                      !context.read<RideCoachCubit>().isSignedIn
                   ? null
-                  : () => _requestRecommendation(
-                      context,
-                      route: route,
-                      progress: progress,
-                      elapsedMinutes: sessionState.elapsed.inMinutes,
-                      speedKmh: session.currentSpeedMetersPerSecond * 3.6,
-                      nextCheckpoint: nextCheckpoint,
-                    ),
+                  : () => context.read<RideCoachCubit>().diagnoseConfiguration(),
+              icon: const Icon(Icons.manage_search_outlined),
+              label: const Text('Cek konfigurasi Gemini'),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: coachState.isLoading
+                  ? null
+                  : () {
+                      final blocker = !context
+                              .read<RideCoachCubit>()
+                              .isConfigured
+                          ? 'Layanan AI belum terhubung. Periksa konfigurasi Supabase.'
+                          : !context.read<RideCoachCubit>().isSignedIn
+                          ? 'Masuk ke akun online untuk meminta rekomendasi.'
+                          : !isActive
+                          ? 'Mulai atau lanjutkan sesi gowes terlebih dahulu.'
+                          : route == null
+                          ? 'Pilih GPX untuk sesi ini agar pelatih dapat membaca progres rute.'
+                          : progress == null
+                          ? 'Tunggu sampai lokasi GPS dan progres rute tersedia.'
+                          : null;
+                      if (blocker != null) {
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(content: Text(blocker)));
+                        return;
+                      }
+                      _requestRecommendation(
+                        context,
+                        route: route!,
+                        progress: progress!,
+                        elapsedMinutes: sessionState.elapsed.inMinutes,
+                        speedKmh: session!.currentSpeedMetersPerSecond * 3.6,
+                        nextCheckpoint: nextCheckpoint,
+                      );
+                    },
               icon: coachState.isLoading
                   ? const SizedBox.square(
                       dimension: 18,
@@ -433,6 +462,7 @@ class _RiderProgressPreview extends StatelessWidget {
                     RiderStyle.sprinter => Icons.bolt,
                     RiderStyle.climber => Icons.terrain,
                     RiderStyle.explorer => Icons.explore,
+                    RiderStyle.ace => Icons.stars,
                   }, color: SenapathColors.ink),
                 ),
                 const SizedBox(width: 12),

@@ -7,11 +7,13 @@ class RideCoachState {
     this.recommendation,
     this.isLoading = false,
     this.error,
+    this.notice,
   });
 
   final String? recommendation;
   final bool isLoading;
   final String? error;
+  final String? notice;
 }
 
 class RideCoachCubit extends Cubit<RideCoachState> {
@@ -20,6 +22,7 @@ class RideCoachCubit extends Cubit<RideCoachState> {
   final RideCoachGateway _gateway;
 
   bool get isConfigured => _gateway.isConfigured;
+  bool get isSignedIn => _gateway.isSignedIn;
 
   Future<void> recommend({
     required Map<String, Object?> rideContext,
@@ -38,6 +41,25 @@ class RideCoachCubit extends Cubit<RideCoachState> {
         emit(
           RideCoachState(
             error: error is StateError ? error.message : 'Rekomendasi tidak tersedia. Periksa koneksi dan konfigurasi AI.',
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> diagnoseConfiguration() async {
+    if (state.isLoading) return;
+    emit(const RideCoachState(isLoading: true));
+    try {
+      final message = await _gateway.diagnoseConfiguration();
+      if (!isClosed) emit(RideCoachState(notice: message));
+    } catch (error) {
+      if (!isClosed) {
+        emit(
+          RideCoachState(
+            error: error is StateError
+                ? error.message
+                : 'Pemeriksaan konfigurasi Gemini gagal.',
           ),
         );
       }

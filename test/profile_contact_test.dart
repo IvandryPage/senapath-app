@@ -14,6 +14,8 @@ import 'package:senapath/features/authentication/data/cloud_account_gateway.dart
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
+import 'package:senapath/features/gamification/data/rider_profile_repository.dart';
+import 'package:senapath/features/gamification/presentation/rider_gamification_cubit.dart';
 import 'package:senapath/features/progress/data/activity_goals_repository.dart';
 import 'package:senapath/features/progress/presentation/activity_goals_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
@@ -58,6 +60,7 @@ void main() {
     );
     final goalsCubit = ActivityGoalsCubit(ActivityGoalsRepository(database));
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final riderCubit = RiderGamificationCubit(RiderProfileRepository(database));
     final teamCubit = CyclingTeamCubit(
       _TestCyclingTeamRepository([
         const CyclingTeam(
@@ -80,6 +83,7 @@ void main() {
           BlocProvider.value(value: sessionCubit),
           BlocProvider.value(value: goalsCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: riderCubit),
           BlocProvider.value(value: teamCubit),
         ],
         child: const MaterialApp(home: Scaffold(body: ProfileScreen())),
@@ -135,6 +139,7 @@ void main() {
     await goalsCubit.close();
     await unitCubit.close();
     await teamCubit.close();
+    await riderCubit.close();
     await database.close();
   });
 }

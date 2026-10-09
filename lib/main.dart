@@ -43,6 +43,7 @@ import 'features/notifications/presentation/notification_settings_cubit.dart';
 import 'features/gamification/data/rider_profile_repository.dart';
 import 'features/gamification/presentation/rider_gamification_cubit.dart';
 import 'features/ledger/data/ride_ledger_repository.dart';
+import 'features/ledger/data/ride_ledger_sync_gateway.dart';
 import 'features/ledger/presentation/ride_ledger_cubit.dart';
 import 'features/ride_coach/data/supabase_ride_coach_gateway.dart';
 import 'features/ride_coach/presentation/ride_coach_cubit.dart';
@@ -120,9 +121,19 @@ Future<void> main() async {
         notificationService,
       ),
       riderGamificationCubit: RiderGamificationCubit(
-        RiderProfileRepository(database),
+        RiderProfileRepository(
+          database,
+          cloudClient: supabaseClient,
+          sessionManager: authSessionManager,
+        ),
       ),
-      rideLedgerCubit: RideLedgerCubit(rideLedgerRepository),
+      rideLedgerCubit: RideLedgerCubit(
+        rideLedgerRepository,
+        syncGateway: SupabaseRideLedgerSyncGateway(
+          supabaseClient,
+          authSessionManager,
+        ),
+      ),
       rideCoachCubit: RideCoachCubit(
         SupabaseRideCoachGateway(supabaseClient, authSessionManager),
       ),

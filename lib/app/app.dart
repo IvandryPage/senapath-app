@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -77,12 +79,22 @@ class SenapathApp extends StatelessWidget {
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) =>
-            previous.email != current.email && previous.email != null,
+            previous.email != current.email,
         listener: (context, state) {
           aiChatCubit.clearConversation();
           sessionCubit.cancelPendingSync();
           leaderboardCubit.clearForAccountChange();
           cyclingTeamCubit.clearForAccountChange();
+          riderGamificationCubit.clearForAccountChange();
+          if (state.isSignedIn) {
+            unawaited(
+              sessionCubit.initialize().then(
+                (_) => riderGamificationCubit.load(
+                  sessionCubit.state.completedSessions,
+                ),
+              ),
+            );
+          }
         },
         child: MaterialApp.router(
           title: 'Senapath',

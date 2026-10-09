@@ -3,18 +3,26 @@ import '../../session/domain/ride_session.dart';
 enum RiderStyle {
   sprinter,
   climber,
-  explorer;
+  explorer,
+  ace;
+
+  static RiderStyle fromName(Object? name) => RiderStyle.values.firstWhere(
+    (style) => style.name == name,
+    orElse: () => RiderStyle.explorer,
+  );
 
   String get label => switch (this) {
     RiderStyle.sprinter => 'Sprinter',
     RiderStyle.climber => 'Climber',
     RiderStyle.explorer => 'Explorer',
+    RiderStyle.ace => 'Ace / All-rounder',
   };
 
   String get description => switch (this) {
     RiderStyle.sprinter => 'Fokus pada kecepatan dan konsistensi.',
     RiderStyle.climber => 'Tangguh menghadapi tanjakan.',
     RiderStyle.explorer => 'Senang mencoba rute baru.',
+    RiderStyle.ace => 'Serba bisa untuk berbagai medan dan strategi lomba.',
   };
 }
 
