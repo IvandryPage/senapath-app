@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -203,6 +205,7 @@ class _ExploreMapState extends State<ExploreMap> {
                     ],
                   ),
                   RichAttributionWidget(
+                    alignment: AttributionAlignment.bottomLeft,
                     attributions: [
                       TextSourceAttribution(
                         '© OpenStreetMap contributors',
@@ -224,17 +227,16 @@ class _ExploreMapState extends State<ExploreMap> {
                   ),
                 ),
               ),
-              Positioned(
-                top: 12,
-                left: 12,
-                child: _MapStatusBadge(
-                  icon: _hasTileError ? Icons.cloud_off : Icons.public,
-                  label: _hasTileError
-                      ? 'Peta online tidak tersedia'
-                      : 'OpenStreetMap',
-                  isError: _hasTileError,
+              if (_hasTileError)
+                const Positioned(
+                  top: 64,
+                  left: 12,
+                  child: _MapStatusBadge(
+                    icon: Icons.cloud_off,
+                    label: 'Peta online tidak tersedia',
+                    isError: true,
+                  ),
                 ),
-              ),
               if (widget.showLocationButton)
                 Positioned(
                   top: 10,
@@ -250,6 +252,7 @@ class _ExploreMapState extends State<ExploreMap> {
                         : const Icon(Icons.my_location),
                   ),
                 ),
+              const Positioned(top: 58, right: 10, child: _CompassIndicator()),
               if (widget.showEmptyMessage &&
                   !hasRoute &&
                   !hasTrack &&
@@ -433,6 +436,68 @@ class _ExploreMapState extends State<ExploreMap> {
     final location = widget.currentLocation ?? _currentLocation;
     if (!_mapReady || !widget.followLocation || location == null) return;
     _mapController.move(location, 16);
+  }
+}
+
+class _CompassIndicator extends StatelessWidget {
+  const _CompassIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<CompassEvent>(
+      stream: FlutterCompass.events,
+      builder: (context, snapshot) {
+        final heading = snapshot.data?.heading;
+        final hasHeading = heading != null && heading.isFinite;
+        final colors = Theme.of(context).colorScheme;
+        final description = hasHeading
+            ? 'Kompas utara, perangkat menghadap ${heading.toStringAsFixed(0)}°'
+            : 'Kompas utara tidak tersedia';
+
+        return Tooltip(
+          message: description,
+          child: Semantics(
+            label: description,
+            child: ExcludeSemantics(
+              child: Container(
+                width: 48,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: colors.surface.withValues(alpha: 0.96),
+                  border: Border.all(color: colors.outline),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x22000000), blurRadius: 6),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Transform.rotate(
+                      angle: hasHeading ? -heading * math.pi / 180 : 0,
+                      child: Icon(
+                        hasHeading
+                            ? Icons.navigation_rounded
+                            : Icons.explore_outlined,
+                        color: hasHeading
+                            ? colors.error
+                            : colors.onSurfaceVariant,
+                        size: 26,
+                      ),
+                    ),
+                    Text(
+                      hasHeading ? 'N' : '—',
+                      style: Theme.of(context).textTheme.labelSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

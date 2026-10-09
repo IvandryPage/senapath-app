@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -24,6 +26,12 @@ class RoutesScreen extends StatefulWidget {
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    unawaited(context.read<RideSessionCubit>().initialize());
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<RoutesCubit, RoutesState>(
@@ -71,15 +79,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                         followLocation:
                             sessionState.session?.status ==
                             RideSessionStatus.recording,
-                      ),
-                      const Positioned.fill(
-                        child: SessionScreen(
-                          showMap: false,
-                          showHistory: false,
-                          showSummary: false,
-                          initialPanelSize: 0.25,
-                          compactControls: true,
-                        ),
+                        showEmptyMessage: false,
                       ),
                       if (!hasActiveSession) ...[
                         Positioned(
@@ -92,6 +92,16 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           ),
                         ),
                       ],
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton.extended(
+                          tooltip: 'Detail sesi',
+                          onPressed: () => _openSessionDetails(context),
+                          icon: const Icon(Icons.monitor_heart_outlined),
+                          label: const Text('Detail sesi'),
+                        ),
+                      ),
                     ],
                   );
                 },
@@ -102,6 +112,57 @@ class _RoutesScreenState extends State<RoutesScreen> {
       ),
     );
   }
+
+  Future<void> _openSessionDetails(BuildContext context) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => FractionallySizedBox(
+          heightFactor: 0.96,
+          child: Material(
+            clipBehavior: Clip.antiAlias,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+            color: Theme.of(context).colorScheme.surface,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 12, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Detail sesi',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Tutup detail sesi',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SessionScreen(
+                    showMap: false,
+                    showHistory: false,
+                    showSummary: false,
+                    initialPanelSize: 0.92,
+                    compactControls: true,
+                    hideReadinessDetails: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
 }
 
 class SavedRoutesScreen extends StatefulWidget {

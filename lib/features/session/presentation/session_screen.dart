@@ -30,6 +30,7 @@ class SessionScreen extends StatefulWidget {
     this.summarySessionId,
     this.initialPanelSize = 0.7,
     this.compactControls = false,
+    this.hideReadinessDetails = false,
     super.key,
   });
 
@@ -40,6 +41,7 @@ class SessionScreen extends StatefulWidget {
   final String? summarySessionId;
   final double initialPanelSize;
   final bool compactControls;
+  final bool hideReadinessDetails;
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -243,9 +245,10 @@ class _SessionScreenState extends State<SessionScreen>
                                 unitSystem,
                               ),
                             ],
-                            if (session == null ||
+                            if (!widget.hideReadinessDetails &&
+                                (session == null ||
                                 session.status ==
-                                    RideSessionStatus.completed) ...[
+                                    RideSessionStatus.completed)) ...[
                               const SizedBox(height: 8),
                               Theme(
                                 data: Theme.of(context)
@@ -479,66 +482,90 @@ class _SessionScreenState extends State<SessionScreen>
           ],
         ),
         if (session == null) ...[
-          const SizedBox(height: 14),
-          if (state.readiness?.gpsMessage case final gpsMessage?)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(gpsMessage, style: theme.textTheme.bodySmall),
+          if (widget.hideReadinessDetails) ...[
+            const SizedBox(height: 14),
+            Text(
+              'Mulai rekam perjalananmu. Izin lokasi akan diminta saat '
+              'diperlukan.',
+              style: theme.textTheme.bodyMedium,
             ),
-          Row(
-            children: [
-              Expanded(
-                child: _ReadinessPill(
-                  label: 'Lokasi',
-                  isReady: state.readiness?.locationPermissionGranted ?? false,
-                ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: state.isCheckingReadiness
+                  ? null
+                  : () => _requestLocationAndChooseRoute(context),
+              icon: state.isCheckingReadiness
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.play_arrow),
+              label: const Text('Mulai sesi'),
+            ),
+          ] else ...[
+            const SizedBox(height: 14),
+            if (state.readiness?.gpsMessage case final gpsMessage?)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(gpsMessage, style: theme.textTheme.bodySmall),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ReadinessPill(
-                  label: gpsAccuracy == null
-                      ? 'GPS'
-                      : 'GPS ±${gpsAccuracy.toStringAsFixed(0)} m',
-                  isReady:
-                      state.readiness?.locationServicesEnabled == true &&
-                      state.readiness?.gpsFixAvailable == true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: state.isCheckingReadiness
-                ? null
-                : state.readiness?.locationPermanentlyDenied == true
-                ? () => context.read<RideSessionCubit>().openLocationSettings()
-                : state.readiness?.locationServicesEnabled == false
-                ? () => context
-                      .read<RideSessionCubit>()
-                      .openLocationServiceSettings()
-                : () => context.read<RideSessionCubit>().checkReadiness(
-                    requestLocationPermission:
-                        state.readiness?.locationPermissionGranted != true,
-                    checkGpsFix: true,
+            Row(
+              children: [
+                Expanded(
+                  child: _ReadinessPill(
+                    label: 'Lokasi',
+                    isReady:
+                        state.readiness?.locationPermissionGranted ?? false,
                   ),
-            icon: state.isCheckingReadiness
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.gps_fixed),
-            label: Text(
-              state.readiness?.locationPermanentlyDenied == true
-                  ? 'Buka pengaturan izin lokasi'
-                  : state.readiness?.locationServicesEnabled == false
-                  ? 'Buka pengaturan lokasi'
-                  : state.readiness?.locationPermissionGranted != true
-                  ? 'Izinkan lokasi & cek GPS'
-                  : 'Cek GPS sekarang',
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ReadinessPill(
+                    label: gpsAccuracy == null
+                        ? 'GPS'
+                        : 'GPS ±${gpsAccuracy.toStringAsFixed(0)} m',
+                    isReady:
+                        state.readiness?.locationServicesEnabled == true &&
+                        state.readiness?.gpsFixAvailable == true,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          _buildStartControl(context, state),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: state.isCheckingReadiness
+                  ? null
+                  : state.readiness?.locationPermanentlyDenied == true
+                  ? () =>
+                        context.read<RideSessionCubit>().openLocationSettings()
+                  : state.readiness?.locationServicesEnabled == false
+                  ? () => context
+                        .read<RideSessionCubit>()
+                        .openLocationServiceSettings()
+                  : () => context.read<RideSessionCubit>().checkReadiness(
+                      requestLocationPermission:
+                          state.readiness?.locationPermissionGranted != true,
+                      checkGpsFix: true,
+                    ),
+              icon: state.isCheckingReadiness
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.gps_fixed),
+              label: Text(
+                state.readiness?.locationPermanentlyDenied == true
+                    ? 'Buka pengaturan izin lokasi'
+                    : state.readiness?.locationServicesEnabled == false
+                    ? 'Buka pengaturan lokasi'
+                    : state.readiness?.locationPermissionGranted != true
+                    ? 'Izinkan lokasi & cek GPS'
+                    : 'Cek GPS sekarang',
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildStartControl(context, state),
+          ],
         ] else ...[
           const SizedBox(height: 6),
           Center(
@@ -1077,6 +1104,33 @@ class _SessionScreenState extends State<SessionScreen>
 
     routesCubit.selectSessionRoute(choice.route);
     await context.read<RideSessionCubit>().start();
+  }
+
+  Future<void> _requestLocationAndChooseRoute(
+    BuildContext context,
+  ) async {
+    final sessionCubit = context.read<RideSessionCubit>();
+    await sessionCubit.checkReadiness(requestLocationPermission: true);
+    if (!context.mounted) return;
+
+    final readiness = sessionCubit.state.readiness;
+    if (readiness?.canStartRecording != true) {
+      final message = readiness?.locationServicesEnabled == false
+          ? 'Aktifkan layanan lokasi untuk mulai merekam.'
+          : readiness?.locationPermanentlyDenied == true
+          ? 'Izinkan lokasi dari pengaturan perangkat untuk mulai merekam.'
+          : 'Izin lokasi diperlukan untuk mulai merekam.';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+      if (readiness?.locationServicesEnabled == false) {
+        await sessionCubit.openLocationServiceSettings();
+      } else if (readiness?.locationPermanentlyDenied == true) {
+        await sessionCubit.openLocationSettings();
+      }
+      return;
+    }
+    await _chooseRouteAndStart(context);
   }
 
   Widget _buildHistory(

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:phone_form_field/phone_form_field.dart';
@@ -210,7 +211,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Belum ada rute tersimpan'), findsNothing);
     expect(find.byType(ExploreMap), findsOneWidget);
-    expect(find.text('OpenStreetMap'), findsOneWidget);
+    expect(find.text('OpenStreetMap'), findsNothing);
+    expect(find.byType(RichAttributionWidget), findsOneWidget);
+    expect(find.byTooltip('Kompas utara tidak tersedia'), findsOneWidget);
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rute tersimpan'));
@@ -221,19 +224,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ExploreMap), findsOneWidget);
+    expect(find.byTooltip('Kompas utara tidak tersedia'), findsOneWidget);
     expect(find.text('Cari rute GPX'), findsOneWidget);
-    expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
-    expect(
-      tester.widget<DraggableScrollableSheet>(
-        find.byType(DraggableScrollableSheet),
-      ).initialChildSize,
-      0.25,
-    );
-    await tester.drag(find.text('SIAP BERSEPEDA'), const Offset(0, -300));
+    expect(find.text('SIAP BERSEPEDA'), findsNothing);
+    expect(find.byType(DraggableScrollableSheet), findsNothing);
+    expect(find.byTooltip('Detail sesi'), findsOneWidget);
+    await tester.tap(find.byTooltip('Detail sesi'));
     await tester.pumpAndSettle();
-    expect(find.text('Detail kesiapan & izin'), findsOneWidget);
-    await tester.ensureVisible(find.text('Mulai sesi'));
-    await tester.tap(find.text('Mulai sesi'));
+    expect(find.text('Detail sesi'), findsNWidgets(2));
+    expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
+    expect(find.text('Detail kesiapan & izin'), findsNothing);
+    expect(find.text('Pemeriksaan pra-balapan'), findsNothing);
+    expect(find.text('Pakai rute untuk sesi ini?'), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, 'Mulai sesi'));
     await tester.pumpAndSettle();
     expect(find.text('Pakai rute untuk sesi ini?'), findsOneWidget);
     expect(find.text('Mulai tanpa rute'), findsOneWidget);
@@ -241,22 +244,8 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(sessionCubit.state.session, isNull);
-    await tester.ensureVisible(find.text('Detail kesiapan & izin'));
+    await tester.tap(find.byTooltip('Tutup detail sesi'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Detail kesiapan & izin'));
-    await tester.pumpAndSettle();
-    expect(find.text('Pemeriksaan pra-balapan'), findsOneWidget);
-    expect(find.text('Izinkan notifikasi'), findsOneWidget);
-    await tester.drag(
-      find.text('Pemeriksaan pra-balapan'),
-      const Offset(0, -300),
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Izinkan notifikasi'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Izinkan notifikasi'));
-    await tester.pumpAndSettle();
-    expect(sessionCubit.state.readiness?.notificationsGranted, isTrue);
 
     await tester.tap(find.text('Logistik').last);
     await tester.pumpAndSettle();
