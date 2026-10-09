@@ -11,6 +11,7 @@ import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
+import '../domain/gps_movement_bearing.dart';
 import '../domain/saved_route.dart';
 import 'routes_cubit.dart';
 import 'explore_map.dart';
@@ -26,6 +27,8 @@ class RoutesScreen extends StatefulWidget {
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
+  bool _northUpLocked = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +66,14 @@ class _RoutesScreenState extends State<RoutesScreen> {
               final hasActiveSession =
                   sessionStatus == RideSessionStatus.recording ||
                   sessionStatus == RideSessionStatus.paused;
+              final movementBearing = sessionStatus ==
+                      RideSessionStatus.recording &&
+                  !_northUpLocked
+                  ? gpsMovementBearing(
+                      sessionState.recordedLocations,
+                      now: sessionState.now ?? DateTime.now().toUtc(),
+                    )
+                  : null;
               final activeRoute = hasActiveSession && state.sessionRouteSelected
                   ? state.sessionRoute
                   : null;
@@ -84,6 +95,11 @@ class _RoutesScreenState extends State<RoutesScreen> {
                         followLocation:
                             sessionState.session?.status ==
                             RideSessionStatus.recording,
+                        movementBearingDegrees: movementBearing,
+                        northUpLocked: _northUpLocked,
+                        onToggleNorthUp: () => setState(
+                          () => _northUpLocked = !_northUpLocked,
+                        ),
                         showEmptyMessage: false,
                       ),
                       if (hasActiveSession && session != null)

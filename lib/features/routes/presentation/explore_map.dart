@@ -17,6 +17,9 @@ class ExploreMap extends StatefulWidget {
     this.trackPoints = const [],
     this.currentLocation,
     this.followLocation = false,
+    this.movementBearingDegrees,
+    this.northUpLocked = false,
+    this.onToggleNorthUp,
     this.height = 280,
     this.borderRadius = 0,
     this.showLocationButton = true,
@@ -28,6 +31,9 @@ class ExploreMap extends StatefulWidget {
   final List<LatLng> trackPoints;
   final LatLng? currentLocation;
   final bool followLocation;
+  final double? movementBearingDegrees;
+  final bool northUpLocked;
+  final VoidCallback? onToggleNorthUp;
   final double height;
   final double borderRadius;
   final bool showLocationButton;
@@ -75,6 +81,11 @@ class _ExploreMapState extends State<ExploreMap> {
         if (mounted) _followCurrentLocation();
       });
     }
+    if (oldWidget.movementBearingDegrees != widget.movementBearingDegrees) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applyMovementBearing();
+      });
+    }
   }
 
   @override
@@ -108,6 +119,9 @@ class _ExploreMapState extends State<ExploreMap> {
                   initialZoom: widget.followLocation && currentLocation != null
                       ? 16
                       : 12,
+                  initialRotation: widget.movementBearingDegrees == null
+                      ? 0
+                      : widget.movementBearingDegrees!,
                   minZoom: 3,
                   maxZoom: 18,
                   backgroundColor: colors.surfaceContainerHighest,
@@ -115,6 +129,7 @@ class _ExploreMapState extends State<ExploreMap> {
                     _mapReady = true;
                     _fitRoutes();
                     _followCurrentLocation();
+                    _applyMovementBearing();
                   },
                 ),
                 mapController: _mapController,
@@ -253,6 +268,22 @@ class _ExploreMapState extends State<ExploreMap> {
                   ),
                 ),
               const Positioned(top: 58, right: 10, child: _CompassIndicator()),
+              if (widget.onToggleNorthUp != null)
+                Positioned(
+                  top: 122,
+                  right: 10,
+                  child: IconButton.filledTonal(
+                    tooltip: widget.northUpLocked
+                        ? 'Ikuti arah gerak'
+                        : 'Kunci arah utara',
+                    onPressed: widget.onToggleNorthUp,
+                    icon: Icon(
+                      widget.northUpLocked
+                          ? Icons.explore_outlined
+                          : Icons.navigation_rounded,
+                    ),
+                  ),
+                ),
               if (widget.showEmptyMessage &&
                   !hasRoute &&
                   !hasTrack &&
@@ -436,6 +467,11 @@ class _ExploreMapState extends State<ExploreMap> {
     final location = widget.currentLocation ?? _currentLocation;
     if (!_mapReady || !widget.followLocation || location == null) return;
     _mapController.move(location, 16);
+  }
+
+  void _applyMovementBearing() {
+    if (!_mapReady) return;
+    _mapController.rotate(widget.movementBearingDegrees ?? 0);
   }
 }
 

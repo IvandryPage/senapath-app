@@ -214,6 +214,12 @@ void main() {
     expect(find.text('OpenStreetMap'), findsNothing);
     expect(find.byType(RichAttributionWidget), findsOneWidget);
     expect(find.byTooltip('Kompas utara tidak tersedia'), findsOneWidget);
+    expect(find.byTooltip('Kunci arah utara'), findsOneWidget);
+    await tester.tap(find.byTooltip('Kunci arah utara'));
+    await tester.pump();
+    expect(find.byTooltip('Ikuti arah gerak'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ikuti arah gerak'));
+    await tester.pump();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rute tersimpan'));
