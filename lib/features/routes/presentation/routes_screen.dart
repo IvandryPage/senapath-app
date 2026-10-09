@@ -49,109 +49,135 @@ class _RoutesScreenState extends State<RoutesScreen> {
       },
       child: BlocBuilder<RoutesCubit, RoutesState>(
         builder: (context, state) {
-          return BlocBuilder<RideSessionCubit, RideSessionState>(
-            builder: (context, sessionState) {
-              final unitSystem = context
-                  .watch<UnitSettingsCubit>()
-                  .state
-                  .unitSystem;
-              final trackPoints = [
-                for (final location in sessionState.recordedLocations)
-                  LatLng(location.latitude, location.longitude),
-              ];
-              final currentLocation = sessionState.recordedLocations.isEmpty
-                  ? null
-                  : sessionState.recordedLocations.last;
-              final session = sessionState.session;
-              final sessionStatus = session?.status;
-              final hasActiveSession =
-                  sessionStatus == RideSessionStatus.recording ||
-                  sessionStatus == RideSessionStatus.paused;
-              final movementBearing =
-                  sessionStatus == RideSessionStatus.recording &&
-                      !_northUpLocked
-                  ? gpsMovementBearing(
-                      sessionState.recordedLocations,
-                      now: sessionState.now ?? DateTime.now().toUtc(),
-                    )
-                  : null;
-              final activeRoute = state.sessionRoute;
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ExploreMap(
-                        routes: activeRoute == null ? const [] : [activeRoute],
-                        height: constraints.maxHeight,
-                        trackPoints: trackPoints,
-                        currentLocation: currentLocation == null
-                            ? null
-                            : LatLng(
-                                currentLocation.latitude,
-                                currentLocation.longitude,
-                              ),
-                        followLocation:
-                            sessionState.session?.status ==
-                            RideSessionStatus.recording,
-                        movementBearingDegrees: movementBearing,
-                        northUpLocked: _northUpLocked,
-                        onToggleNorthUp: () =>
-                            setState(() => _northUpLocked = !_northUpLocked),
-                        showEmptyMessage: false,
-                      ),
-                      if (hasActiveSession && session != null)
+          return BlocListener<RideSessionCubit, RideSessionState>(
+            listenWhen: (previous, current) =>
+                previous.message != current.message && current.message != null,
+            listener: (context, state) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(content: Text(state.message!)));
+              context.read<RideSessionCubit>().clearMessage();
+            },
+            child: BlocBuilder<RideSessionCubit, RideSessionState>(
+              builder: (context, sessionState) {
+                final unitSystem = context
+                    .watch<UnitSettingsCubit>()
+                    .state
+                    .unitSystem;
+                final trackPoints = [
+                  for (final location in sessionState.recordedLocations)
+                    LatLng(location.latitude, location.longitude),
+                ];
+                final currentLocation = sessionState.recordedLocations.isEmpty
+                    ? null
+                    : sessionState.recordedLocations.last;
+                final session = sessionState.session;
+                final sessionStatus = session?.status;
+                final hasActiveSession =
+                    sessionStatus == RideSessionStatus.recording ||
+                    sessionStatus == RideSessionStatus.paused;
+                final movementBearing =
+                    sessionStatus == RideSessionStatus.recording &&
+                        !_northUpLocked
+                    ? gpsMovementBearing(
+                        sessionState.recordedLocations,
+                        now: sessionState.now ?? DateTime.now().toUtc(),
+                      )
+                    : null;
+                final activeRoute = state.sessionRoute;
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ExploreMap(
+                          routes: activeRoute == null
+                              ? const []
+                              : [activeRoute],
+                          height: constraints.maxHeight,
+                          trackPoints: trackPoints,
+                          currentLocation: currentLocation == null
+                              ? null
+                              : LatLng(
+                                  currentLocation.latitude,
+                                  currentLocation.longitude,
+                                ),
+                          followLocation:
+                              sessionState.session?.status ==
+                              RideSessionStatus.recording,
+                          movementBearingDegrees: movementBearing,
+                          northUpLocked: _northUpLocked,
+                          onToggleNorthUp: () =>
+                              setState(() => _northUpLocked = !_northUpLocked),
+                          showEmptyMessage: false,
+                        ),
+                        if (hasActiveSession && session != null)
+                          Positioned(
+                            right: 16,
+                            bottom: 84,
+                            child: _SessionMetricsOverlay(
+                              speedMetersPerSecond:
+                                  session.currentSpeedMetersPerSecond,
+                              distanceMeters: session.distanceMeters,
+                              unitSystem: unitSystem,
+                            ),
+                          ),
+                        Positioned(
+                          top: 12,
+                          left: 16,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth - 104,
+                            ),
+                            child: activeRoute == null
+                                ? FilledButton.tonalIcon(
+                                    onPressed: state.isLoading
+                                        ? null
+                                        : _openGpxPicker,
+                                    icon: const Icon(Icons.search),
+                                    label: const Text('Cari rute GPX'),
+                                  )
+                                : _SelectedRouteControl(
+                                    route: activeRoute,
+                                    onChange: state.isLoading
+                                        ? null
+                                        : _openGpxPicker,
+                                    onRemove: () => context
+                                        .read<RoutesCubit>()
+                                        .selectSessionRoute(null),
+                                  ),
+                          ),
+                        ),
                         Positioned(
                           right: 16,
-                          bottom: 84,
-                          child: _SessionMetricsOverlay(
-                            speedMetersPerSecond:
-                                session.currentSpeedMetersPerSecond,
-                            distanceMeters: session.distanceMeters,
-                            unitSystem: unitSystem,
-                          ),
-                        ),
-                      Positioned(
-                        top: 12,
-                        left: 16,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: constraints.maxWidth - 104,
-                          ),
-                          child: activeRoute == null
-                              ? FilledButton.tonalIcon(
-                                  onPressed: state.isLoading
-                                      ? null
-                                      : _openGpxPicker,
-                                  icon: const Icon(Icons.search),
-                                  label: const Text('Cari rute GPX'),
+                          bottom: 16,
+                          child: hasActiveSession
+                              ? FloatingActionButton.extended(
+                                  tooltip: 'Detail sesi',
+                                  onPressed: () => _openSessionDetails(context),
+                                  icon: const Icon(
+                                    Icons.monitor_heart_outlined,
+                                  ),
+                                  label: const Text('Detail sesi'),
                                 )
-                              : _SelectedRouteControl(
-                                  route: activeRoute,
-                                  onChange: state.isLoading
+                              : FloatingActionButton.extended(
+                                  key: const Key('start-session-button'),
+                                  tooltip: 'Mulai sesi',
+                                  onPressed: sessionState.isCheckingReadiness
                                       ? null
-                                      : _openGpxPicker,
-                                  onRemove: () => context
-                                      .read<RoutesCubit>()
-                                      .selectSessionRoute(null),
+                                      : () => context
+                                            .read<RideSessionCubit>()
+                                            .start(),
+                                  icon: const Icon(Icons.play_arrow),
+                                  label: const Text('Mulai sesi'),
                                 ),
                         ),
-                      ),
-                      Positioned(
-                        right: 16,
-                        bottom: 16,
-                        child: FloatingActionButton.extended(
-                          tooltip: 'Detail sesi',
-                          onPressed: () => _openSessionDetails(context),
-                          icon: const Icon(Icons.monitor_heart_outlined),
-                          label: const Text('Detail sesi'),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           );
         },
       ),

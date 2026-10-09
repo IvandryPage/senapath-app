@@ -201,6 +201,54 @@ void main() {
     await sessionCubit.pause();
   });
 
+  testWidgets('shows a play action and starts a session when idle', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final routesCubit = RoutesCubit(
+      SavedRouteRepository(
+        database,
+        geometryCodec: EncryptedTelemetryCodec(
+          secureVault: _MemorySecureVault(),
+        ),
+      ),
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = _createSessionCubit(
+      database,
+      locationPermissionGranted: true,
+    );
+    await unitCubit.load();
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: routesCubit),
+          BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: sessionCubit),
+        ],
+        child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final startButton = find.byKey(const Key('start-session-button'));
+    expect(startButton, findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+    expect(find.byTooltip('Detail sesi'), findsNothing);
+    await tester.tap(startButton);
+    await tester.pumpAndSettle();
+
+    expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
+    expect(find.byTooltip('Detail sesi'), findsOneWidget);
+    await sessionCubit.pause();
+  });
+
   testWidgets('selects an imported route from the saved route library', (
     tester,
   ) async {
@@ -501,12 +549,17 @@ void main() {
   });
 }
 
-RideSessionCubit _createSessionCubit(AppDatabase database) => RideSessionCubit(
+RideSessionCubit _createSessionCubit(
+  AppDatabase database, {
+  bool locationPermissionGranted = false,
+}) => RideSessionCubit(
   repository: DriftRideSessionRepository(
     database: database,
     telemetryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
   ),
-  readinessChecker: _TestReadinessChecker(),
+  readinessChecker: _TestReadinessChecker(
+    locationPermissionGranted: locationPermissionGranted,
+  ),
   locationSource: _EmptyLocationSource(),
 );
 
