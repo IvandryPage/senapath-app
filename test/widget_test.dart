@@ -221,8 +221,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ExploreMap), findsOneWidget);
-    expect(find.text('Cari tujuan atau alamat'), findsOneWidget);
+    expect(find.text('Cari rute GPX'), findsOneWidget);
     expect(find.text('SIAP BERSEPEDA'), findsOneWidget);
+    expect(
+      tester.widget<DraggableScrollableSheet>(
+        find.byType(DraggableScrollableSheet),
+      ).initialChildSize,
+      0.25,
+    );
     await tester.drag(find.text('SIAP BERSEPEDA'), const Offset(0, -300));
     await tester.pumpAndSettle();
     expect(find.text('Detail kesiapan & izin'), findsOneWidget);

@@ -10,7 +10,6 @@ import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../domain/saved_route.dart';
-import 'google_directions_map.dart';
 import 'route_guidance_cubit.dart';
 import 'routes_screen.dart';
 
@@ -77,18 +76,12 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            widget.route.source.startsWith('Google Maps')
-                ? GoogleDirectionsMap(
-                    route: widget.route,
-                    currentPosition: positionPoint,
-                    height: null,
-                  )
-                : RouteMapPreview(
-                    points: widget.route.points,
-                    source: widget.route.source,
-                    currentPosition: positionPoint,
-                    height: null,
-                  ),
+            RouteMapPreview(
+              points: widget.route.points,
+              source: widget.route.source,
+              currentPosition: positionPoint,
+              height: null,
+            ),
             Positioned(
               top: 12,
               left: 16,
@@ -130,9 +123,7 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
     if (state.isStarting) return 'Memulai GPS…';
     if (state.currentPosition == null) return 'Menunggu posisi GPS…';
     if (state.isOffRoute) return 'Periksa posisi terhadap jalur';
-    return widget.route.source.startsWith('Google Maps')
-        ? 'Ikuti rute Google Maps'
-        : 'Ikuti jalur GPX';
+    return 'Ikuti jalur GPX';
   }
 
   String? _warningLabel(RouteGuidanceState state) {

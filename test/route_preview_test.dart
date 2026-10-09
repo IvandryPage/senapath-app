@@ -95,7 +95,61 @@ void main() {
 
     expect(routesCubit.state.sessionRoute?.name, 'Loop Utara');
     expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
+    await tester.ensureVisible(find.text('Performa sesi'));
+    expect(find.text('Performa sesi'), findsOneWidget);
     await sessionCubit.pause();
+  });
+
+  testWidgets('searches saved GPX routes by name', (tester) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
+    for (final name in ['Loop Utara', 'Loop Selatan']) {
+      await repository.saveImportedRoute(
+        name: name,
+        points: const [
+          (latitude: -6.2, longitude: 106.8, elevation: 10),
+          (latitude: -6.202, longitude: 106.804, elevation: 24),
+        ],
+      );
+    }
+    final routesCubit = RoutesCubit(
+      repository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final sessionCubit = _createSessionCubit(database);
+    await routesCubit.load();
+    await unitCubit.load();
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(sessionCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: sessionCubit,
+        child: BlocProvider.value(
+          value: routesCubit,
+          child: BlocProvider.value(
+            value: unitCubit,
+            child: const MaterialApp(home: Scaffold(body: SavedRoutesScreen())),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('gpx-route-search')),
+      'Utara',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Loop Utara'), findsOneWidget);
+    expect(find.text('Loop Selatan'), findsNothing);
   });
 
   testWidgets('opens an imported route from the saved route library', (

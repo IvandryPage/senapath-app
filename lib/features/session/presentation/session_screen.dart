@@ -194,7 +194,7 @@ class _SessionScreenState extends State<SessionScreen>
                   ),
                 DraggableScrollableSheet(
                   initialChildSize: widget.initialPanelSize,
-                  minChildSize: 0.28,
+                  minChildSize: 0.2,
                   maxChildSize: 0.92,
                   builder: (context, scrollController) => Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -231,6 +231,18 @@ class _SessionScreenState extends State<SessionScreen>
                           const SizedBox(height: 12),
                           if (widget.compactControls) ...[
                             _buildCompactControls(context, state, unitSystem),
+                            if (session != null &&
+                                session.status !=
+                                    RideSessionStatus.completed) ...[
+                              const SizedBox(height: 24),
+                              _buildLivePerformance(
+                                context,
+                                session,
+                                state.recordedLocations,
+                                state.elapsed,
+                                unitSystem,
+                              ),
+                            ],
                             if (session == null ||
                                 session.status ==
                                     RideSessionStatus.completed) ...[
@@ -581,6 +593,79 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  Widget _buildLivePerformance(
+    BuildContext context,
+    RideSessionSnapshot session,
+    List<TelemetryLocation> locations,
+    Duration elapsed,
+    UnitSystem unitSystem,
+  ) {
+    final metric = unitSystem == UnitSystem.metric;
+    final speedFactor = metric ? 3.6 : 2.236936;
+    final speedUnit = metric ? 'km/j' : 'mph';
+    final speeds = locations
+        .map((location) => location.speedMetersPerSecond)
+        .where((speed) => speed.isFinite && speed >= 0)
+        .map((speed) => speed * speedFactor)
+        .toList(growable: false);
+    final averageSpeed = elapsed.inSeconds > 0
+        ? session.distanceMeters / elapsed.inSeconds * speedFactor
+        : 0.0;
+    final maxSpeed = speeds.isEmpty
+        ? 0.0
+        : speeds.reduce((first, next) => math.max(first, next).toDouble());
+    final elevationSamples = _elevationProfile(
+      locations,
+      source: 'Estimasi GPS',
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Performa sesi',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        _SummaryMetricCard(
+          children: [
+            _MetricValue(
+              label: 'Kecepatan rata-rata',
+              value: averageSpeed.toStringAsFixed(1),
+              unit: speedUnit,
+            ),
+            _MetricValue(
+              label: 'Kecepatan maksimum',
+              value: maxSpeed.toStringAsFixed(1),
+              unit: speedUnit,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Perubahan kecepatan ($speedUnit)',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        if (speeds.length >= 5)
+          _SpeedGraph(values: speeds)
+        else
+          const Text('Grafik muncul setelah terkumpul cukup sampel GPS.'),
+        if (elevationSamples.length >= 2) ...[
+          const SizedBox(height: 20),
+          Text(
+            'Perubahan elevasi GPS',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          _SpeedGraph(values: elevationSamples),
+        ],
+      ],
+    );
+  }
+
   Widget _buildSessionStatus(
     BuildContext context,
     RideSessionSnapshot? session,
@@ -924,10 +1009,8 @@ class _SessionScreenState extends State<SessionScreen>
 
     final routeState = routesCubit.state;
     final availableRoutes = [
-      ?routeState.plannedRoute,
       ...routeState.routes.where(
-        (route) =>
-            route.points.length >= 2 && route.id != routeState.plannedRoute?.id,
+        (route) => route.points.length >= 2,
       ),
     ];
     final choice = await showDialog<_SessionRouteChoice>(
@@ -949,7 +1032,7 @@ class _SessionScreenState extends State<SessionScreen>
                 if (availableRoutes.isEmpty)
                   const Text(
                     'Belum ada rute siap pakai. Impor GPX lewat Profil → '
-                    'Rute tersimpan, atau cari tujuan di Jelajah.',
+                    'Rute tersimpan, atau mulai sesi tanpa rute.',
                   ),
                 for (final route in availableRoutes)
                   SenapathCard(
