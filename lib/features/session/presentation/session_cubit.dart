@@ -35,6 +35,7 @@ class RideSessionState {
     this.routeProgress,
     this.workout,
     this.workoutProgress,
+    this.motion,
     this.now,
     this.message,
   });
@@ -54,6 +55,7 @@ class RideSessionState {
   final RouteProgress? routeProgress;
   final IntervalWorkout? workout;
   final WorkoutIntervalProgress? workoutProgress;
+  final MotionSnapshot? motion;
   final DateTime? now;
   final String? message;
 
@@ -78,6 +80,8 @@ class RideSessionState {
     IntervalWorkout? workout,
     WorkoutIntervalProgress? workoutProgress,
     bool clearWorkout = false,
+    MotionSnapshot? motion,
+    bool clearMotion = false,
     DateTime? now,
     String? message,
     bool clearMessage = false,
@@ -105,6 +109,7 @@ class RideSessionState {
     workoutProgress: clearWorkout
         ? null
         : workoutProgress ?? this.workoutProgress,
+    motion: clearMotion ? null : motion ?? this.motion,
     now: now ?? this.now,
     message: clearMessage ? null : message ?? this.message,
   );
@@ -150,7 +155,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   double? _barometricPressureHpa;
   double? _accelerationMagnitude;
   double? _rotationRateMagnitude;
+  double? _cadenceRpm;
+  final List<double> _accelerationHistory = [];
+  final List<double> _rotationHistory = [];
+  final List<double> _cadenceHistory = [];
   Timer? _ticker;
+  Timer? _motionTicker;
+  final _CadenceEstimator _cadenceEstimator = _CadenceEstimator();
+  static const int _maxMotionSamples = 150;
   int _syncGeneration = 0;
   int _summaryGeneration = 0;
   int _lastNotifiedProgress = 0;
@@ -158,6 +170,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final Set<int> _reachedCheckpoints = {};
   bool _routeNotificationsFailed = false;
   bool _routeNotificationsEnabled = false;
+  bool _routeNotificationPermissionRequested = false;
   RouteProgressCalculator? _routeProgressCalculator;
   WorkoutCheckpoint? _workoutCheckpoint;
   bool _updatingWorkout = false;
@@ -476,9 +489,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           completedSessions: history,
           now: completed.endedAt,
           clearSummary: true,
+          clearMotion: true,
           clearWorkout: true,
-          message: ledgerMessage,
-          clearMessage: ledgerMessage == null,
         ),
       );
       _activeRoute = null;
@@ -645,6 +657,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     final recordedAt = position.timestamp.toUtc();
     final previous = await repository.latestLocation(sessionId);
     var addedDistanceMeters = 0.0;
+    double? derivedSpeed;
     if (previous != null && recordedAt.isAfter(previous.recordedAt)) {
       final distance = Geolocator.distanceBetween(
         previous.latitude,
@@ -657,8 +670,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           Duration.millisecondsPerSecond;
       if (seconds > 0 && distance / seconds <= 45) {
         addedDistanceMeters = distance;
+        if (distance > 0.5) {
+          derivedSpeed = distance / seconds;
+        }
       }
     }
+
+    final reportedSpeed = position.speed.isFinite && position.speed > 0
+        ? position.speed
+        : null;
 
     final location = TelemetryLocation(
       recordedAt: recordedAt,
@@ -670,7 +690,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       barometricPressureHpa: _barometricPressureHpa,
       accelerationMagnitudeMetersPerSecondSquared: _accelerationMagnitude,
       rotationRateMagnitudeRadiansPerSecond: _rotationRateMagnitude,
-      speedMetersPerSecond: position.speed.isFinite ? position.speed : 0,
+      speedMetersPerSecond: reportedSpeed ?? derivedSpeed ?? 0,
     );
     final updated = await repository.recordLocation(
       sessionId: sessionId,
@@ -726,9 +746,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     try {
       final settings = await settingsRepository.load();
       _routeNotificationsEnabled = settings.routeProgressEnabled;
-      if (_routeNotificationsEnabled && !await service.requestPermission()) {
-        _routeNotificationsEnabled = false;
-        _setMessage('Notifikasi rute tidak aktif karena izin belum diberikan.');
+      if (_routeNotificationsEnabled &&
+          !_routeNotificationPermissionRequested) {
+        _routeNotificationPermissionRequested = true;
+        if (!await service.requestPermission()) {
+          _routeNotificationsEnabled = false;
+          _setMessage(
+            'Notifikasi rute tidak aktif karena izin belum diberikan.',
+          );
+        }
       }
     } catch (_) {
       _routeNotificationsEnabled = false;
@@ -836,18 +862,75 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     if (state.session?.status != RideSessionStatus.recording) return;
     _accelerationMagnitude = null;
     _rotationRateMagnitude = null;
-    _accelerometerSubscription = source.accelerometerReadings.listen((event) {
-      final magnitude = math.sqrt(
-        event.x * event.x + event.y * event.y + event.z * event.z,
-      );
-      _accelerationMagnitude = magnitude.isFinite ? magnitude : null;
-    }, onError: (Object _) => _accelerationMagnitude = null);
-    _gyroscopeSubscription = source.gyroscopeReadings.listen((event) {
-      final magnitude = math.sqrt(
-        event.x * event.x + event.y * event.y + event.z * event.z,
-      );
-      _rotationRateMagnitude = magnitude.isFinite ? magnitude : null;
-    }, onError: (Object _) => _rotationRateMagnitude = null);
+    _cadenceRpm = null;
+    _accelerationHistory.clear();
+    _rotationHistory.clear();
+    _cadenceHistory.clear();
+    _cadenceEstimator.reset();
+    _accelerometerSubscription = source.accelerometerReadings.listen(
+      _handleAccelerometerEvent,
+      onError: (Object _) =>
+          _setMessage('Sensor akselerometer tidak tersedia.'),
+    );
+    _gyroscopeSubscription = source.gyroscopeReadings.listen(
+      _handleGyroscopeEvent,
+      onError: (Object _) => _setMessage('Sensor gyroscope tidak tersedia.'),
+    );
+    _startMotionTicker();
+  }
+
+  void _handleAccelerometerEvent(AccelerometerEvent event) {
+    final magnitude = math.sqrt(
+      event.x * event.x + event.y * event.y + event.z * event.z,
+    );
+    if (!magnitude.isFinite) return;
+    _accelerationMagnitude = magnitude;
+    _appendMotionSample(_accelerationHistory, magnitude);
+    _cadenceRpm = _cadenceEstimator.add(magnitude, _clock().toUtc());
+    if (_cadenceRpm != null) {
+      _appendMotionSample(_cadenceHistory, _cadenceRpm!);
+    }
+  }
+
+  void _handleGyroscopeEvent(GyroscopeEvent event) {
+    final magnitude = math.sqrt(
+      event.x * event.x + event.y * event.y + event.z * event.z,
+    );
+    if (!magnitude.isFinite) return;
+    _rotationRateMagnitude = magnitude;
+    _appendMotionSample(_rotationHistory, magnitude);
+  }
+
+  void _appendMotionSample(List<double> history, double value) {
+    history.add(value);
+    if (history.length > _maxMotionSamples) {
+      history.removeRange(0, history.length - _maxMotionSamples);
+    }
+  }
+
+  void _startMotionTicker() {
+    _motionTicker?.cancel();
+    _motionTicker = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      _emitMotion();
+    });
+  }
+
+  void _emitMotion() {
+    if (isClosed || state.session?.status != RideSessionStatus.recording) {
+      return;
+    }
+    emit(
+      state.copyWith(
+        motion: MotionSnapshot(
+          accelerationMagnitude: _accelerationMagnitude,
+          rotationRateMagnitude: _rotationRateMagnitude,
+          cadenceRpm: _cadenceRpm,
+          accelerationHistory: List<double>.of(_accelerationHistory),
+          rotationHistory: List<double>.of(_rotationHistory),
+          cadenceHistory: List<double>.of(_cadenceHistory),
+        ),
+      ),
+    );
   }
 
   Future<void> _stopLocationStream() async {
@@ -863,6 +946,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   }
 
   Future<void> _stopMotionSensorStreams() async {
+    _motionTicker?.cancel();
+    _motionTicker = null;
     final accelerometerSubscription = _accelerometerSubscription;
     final gyroscopeSubscription = _gyroscopeSubscription;
     _accelerometerSubscription = null;
@@ -1033,5 +1118,48 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     await _stopBarometerStream();
     await _stopMotionSensorStreams();
     await super.close();
+  }
+}
+
+class _CadenceEstimator {
+  static const Duration _window = Duration(seconds: 4);
+
+  final List<double> _magnitudes = [];
+  final List<DateTime> _times = [];
+
+  double? add(double magnitude, DateTime at) {
+    if (!magnitude.isFinite) return null;
+    _magnitudes.add(magnitude);
+    _times.add(at);
+    final cutoff = at.subtract(_window);
+    while (_times.isNotEmpty && _times.first.isBefore(cutoff)) {
+      _times.removeAt(0);
+      _magnitudes.removeAt(0);
+    }
+    if (_magnitudes.length < 30 || _times.length < 2) return null;
+
+    final mean = _magnitudes.reduce((a, b) => a + b) / _magnitudes.length;
+    final minValue = _magnitudes.reduce(math.min);
+    final maxValue = _magnitudes.reduce(math.max);
+    if (maxValue - minValue < 0.5) return null;
+
+    var crossings = 0;
+    for (var i = 1; i < _magnitudes.length; i++) {
+      if (_magnitudes[i - 1] <= mean && _magnitudes[i] > mean) {
+        crossings++;
+      }
+    }
+    final spanSeconds =
+        _times.last.difference(_times.first).inMicroseconds /
+        Duration.microsecondsPerSecond;
+    if (spanSeconds <= 0) return null;
+    final rpm = crossings / spanSeconds * 60;
+    if (rpm < 20 || rpm > 220) return null;
+    return rpm;
+  }
+
+  void reset() {
+    _magnitudes.clear();
+    _times.clear();
   }
 }

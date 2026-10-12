@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 enum RideSessionStatus { recording, paused, completed }
 
 enum RideActivityType { ride, commute, training, race }
@@ -107,11 +109,50 @@ class TelemetryLocation {
   );
 }
 
+class MotionSnapshot {
+  const MotionSnapshot({
+    this.accelerationMagnitude,
+    this.rotationRateMagnitude,
+    this.cadenceRpm,
+    this.accelerationHistory = const [],
+    this.rotationHistory = const [],
+    this.cadenceHistory = const [],
+  });
+
+  final double? accelerationMagnitude;
+  final double? rotationRateMagnitude;
+  final double? cadenceRpm;
+  final List<double> accelerationHistory;
+  final List<double> rotationHistory;
+  final List<double> cadenceHistory;
+
+  bool get hasData =>
+      accelerationMagnitude != null ||
+      rotationRateMagnitude != null ||
+      accelerationHistory.isNotEmpty ||
+      rotationHistory.isNotEmpty;
+
+  bool get hasAccelerationGraph => accelerationHistory.length >= 2;
+
+  bool get hasRotationGraph => rotationHistory.length >= 2;
+
+  bool get hasCadenceGraph => cadenceHistory.length >= 2;
+
+  double? get peakAcceleration => accelerationHistory.isEmpty
+      ? null
+      : accelerationHistory.reduce(math.max);
+
+  double? get peakRotation => rotationHistory.isEmpty
+      ? null
+      : rotationHistory.reduce(math.max);
+}
+
 class RideSpeedSample {
   const RideSpeedSample({
     required this.recordedAt,
     required this.speedMetersPerSecond,
   });
+
 
   final DateTime recordedAt;
   final double speedMetersPerSecond;

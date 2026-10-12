@@ -233,9 +233,8 @@ class _SessionScreenState extends State<SessionScreen>
                               const SizedBox(height: 24),
                               _buildLivePerformance(
                                 context,
+                                state,
                                 session,
-                                state.recordedLocations,
-                                state.elapsed,
                                 unitSystem,
                               ),
                             ],
@@ -634,11 +633,13 @@ class _SessionScreenState extends State<SessionScreen>
 
   Widget _buildLivePerformance(
     BuildContext context,
+    RideSessionState state,
     RideSessionSnapshot session,
-    List<TelemetryLocation> locations,
-    Duration elapsed,
     UnitSystem unitSystem,
   ) {
+    final locations = state.recordedLocations;
+    final elapsed = state.elapsed;
+    final motion = state.motion;
     final metric = unitSystem == UnitSystem.metric;
     final speedFactor = metric ? 3.6 : 2.236936;
     final speedUnit = metric ? 'km/j' : 'mph';
@@ -657,6 +658,15 @@ class _SessionScreenState extends State<SessionScreen>
       locations,
       source: 'Estimasi GPS',
     );
+    final accelerationHistory = motion?.accelerationHistory ?? const <double>[];
+    final rotationHistory = motion?.rotationHistory ?? const <double>[];
+    final cadenceHistory = motion?.cadenceHistory ?? const <double>[];
+    final peakAcceleration = accelerationHistory.isEmpty
+        ? null
+        : accelerationHistory.reduce((first, next) => math.max(first, next));
+    final peakRotation = rotationHistory.isEmpty
+        ? null
+        : rotationHistory.reduce((first, next) => math.max(first, next));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -692,14 +702,92 @@ class _SessionScreenState extends State<SessionScreen>
         else
           const Text('Grafik muncul setelah terkumpul cukup sampel GPS.'),
         if (elevationSamples.length >= 2) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text(
-            'Perubahan elevasi GPS',
+            'Profil elevasi (relatif)',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
           _SpeedGraph(values: elevationSamples),
         ],
+        const SizedBox(height: 20),
+        Text(
+          'Sensor gerak & ritme (estimasi)',
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Akselerasi dan rotasi adalah nilai mentah sensor ponsel. '
+          'Cadence adalah estimasi kasar dari getaran ponsel, belum '
+          'tervalidasi, dan bukan pengukuran daya atau lean angle.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 12),
+        _SummaryMetricCard(
+          children: [
+            _MetricValue(
+              label: 'Cadence (estimasi)',
+              value: motion?.cadenceRpm == null
+                  ? '—'
+                  : motion!.cadenceRpm!.toStringAsFixed(0),
+              unit: motion?.cadenceRpm == null ? '' : 'rpm',
+            ),
+            _MetricValue(
+              label: 'Akselerasi kini',
+              value: motion?.accelerationMagnitude == null
+                  ? '—'
+                  : motion!.accelerationMagnitude!.toStringAsFixed(1),
+              unit: motion?.accelerationMagnitude == null ? '' : 'm/s²',
+            ),
+            _MetricValue(
+              label: 'Puncak akselerasi',
+              value: peakAcceleration?.toStringAsFixed(1) ?? '—',
+              unit: peakAcceleration == null ? '' : 'm/s²',
+            ),
+            _MetricValue(
+              label: 'Rotasi',
+              value: motion?.rotationRateMagnitude == null
+                  ? '—'
+                  : motion!.rotationRateMagnitude!.toStringAsFixed(2),
+              unit: motion?.rotationRateMagnitude == null ? '' : 'rad/s',
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Ritme kayuh, estimasi (rpm)',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        if (cadenceHistory.length >= 2)
+          _SpeedGraph(values: cadenceHistory)
+        else
+          const Text(
+            'Estimasi cadence muncul saat sensor mendeteksi gerakan berirama.',
+          ),
+        const SizedBox(height: 16),
+        Text(
+          'Akselerasi ponsel, termasuk gravitasi (m/s²)',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        if (accelerationHistory.length >= 2)
+          _SpeedGraph(values: accelerationHistory)
+        else
+          const Text('Grafik akselerasi muncul setelah sensor terkumpul.'),
+        const SizedBox(height: 16),
+        Text(
+          'Rotasi sudut (rad/s)${peakRotation == null ? '' : ' · puncak '
+              '${peakRotation.toStringAsFixed(2)}'}',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        if (rotationHistory.length >= 2)
+          _SpeedGraph(values: rotationHistory)
+        else
+          const Text('Grafik rotasi muncul setelah sensor terkumpul.'),
       ],
     );
   }
@@ -1356,6 +1444,29 @@ class _SessionScreenState extends State<SessionScreen>
       locations,
       source: summary.elevationSource,
     );
+    final accelerationSamples = locations
+        .map((point) => point.accelerationMagnitudeMetersPerSecondSquared)
+        .whereType<double>()
+        .where((value) => value.isFinite)
+        .toList(growable: false);
+    final rotationSamples = locations
+        .map((point) => point.rotationRateMagnitudeRadiansPerSecond)
+        .whereType<double>()
+        .where((value) => value.isFinite)
+        .toList(growable: false);
+    final averageAcceleration = accelerationSamples.isEmpty
+        ? null
+        : accelerationSamples.reduce((a, b) => a + b) /
+              accelerationSamples.length;
+    final peakAcceleration = accelerationSamples.isEmpty
+        ? null
+        : accelerationSamples.reduce((first, next) => math.max(first, next));
+    final averageRotation = rotationSamples.isEmpty
+        ? null
+        : rotationSamples.reduce((a, b) => a + b) / rotationSamples.length;
+    final peakRotation = rotationSamples.isEmpty
+        ? null
+        : rotationSamples.reduce((first, next) => math.max(first, next));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1512,12 +1623,39 @@ class _SessionScreenState extends State<SessionScreen>
           'Sensor & kualitas data',
           style: Theme.of(context).textTheme.titleMedium,
         ),
+        const SizedBox(height: 12),
+        _SummaryMetricCard(
+          children: [
+            _MetricValue(
+              label: 'Akselerasi rata-rata',
+              value: averageAcceleration?.toStringAsFixed(1) ?? '—',
+              unit: averageAcceleration == null ? '' : 'm/s²',
+            ),
+            _MetricValue(
+              label: 'Akselerasi puncak',
+              value: peakAcceleration?.toStringAsFixed(1) ?? '—',
+              unit: peakAcceleration == null ? '' : 'm/s²',
+            ),
+            _MetricValue(
+              label: 'Rotasi rata-rata',
+              value: averageRotation?.toStringAsFixed(2) ?? '—',
+              unit: averageRotation == null ? '' : 'rad/s',
+            ),
+            _MetricValue(
+              label: 'Rotasi puncak',
+              value: peakRotation?.toStringAsFixed(2) ?? '—',
+              unit: peakRotation == null ? '' : 'rad/s',
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Text(
           'Akselerometer: ${summary.accelerometerSampleCount} dari '
           '${summary.sampleCount} sampel · Gyroscope: '
           '${summary.gyroscopeSampleCount} dari ${summary.sampleCount} sampel. '
-          'Data gerak tidak ditafsirkan sebagai cadence atau lean angle.',
+          'Nilai di atas tersinkron per titik GPS. Cadence tampil sebagai '
+          'estimasi kasar di layar sesi dan belum tervalidasi; bukan daya '
+          'atau lean angle resmi.',
           style: Theme.of(context).textTheme.bodyMedium
               ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
