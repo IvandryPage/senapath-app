@@ -160,15 +160,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Belum ada sesi'), findsOneWidget);
 
-    final leaderboardShortcut = find.byKey(
-      const Key('home-shortcut-leaderboard'),
-    );
+    final leaderboardShortcut = find.byKey(const Key('home-open-leaderboard'));
     await tester.scrollUntilVisible(leaderboardShortcut, 400);
     expect(find.text('Papan peringkat mingguan'), findsOneWidget);
     await tester.tap(leaderboardShortcut);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Peringkat mingguan bersepeda'), findsOneWidget);
-    expect(find.text('Partisipasi dan privasi'), findsOneWidget);
+    expect(find.text('Peringkat mingguan'), findsOneWidget);
+    expect(find.text('Partisipasi dan privasi'), findsNothing);
+    expect(find.text('Alias publik'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 

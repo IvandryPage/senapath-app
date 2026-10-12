@@ -82,8 +82,7 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: intervalWorkoutCubit),
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
-        listenWhen: (previous, current) =>
-            previous.email != current.email,
+        listenWhen: (previous, current) => previous.email != current.email,
         listener: (context, state) {
           aiChatCubit.clearConversation();
           sessionCubit.cancelPendingSync();
@@ -93,11 +92,12 @@ class SenapathApp extends StatelessWidget {
           unawaited(profileCubit.reloadProfile());
           if (state.isSignedIn) {
             unawaited(
-              sessionCubit.initialize().then(
-                (_) => riderGamificationCubit.load(
+              sessionCubit.initialize().then((_) async {
+                await riderGamificationCubit.load(
                   sessionCubit.state.completedSessions,
-                ),
-              ),
+                );
+                await sessionCubit.syncPendingSessions();
+              }),
             );
           }
         },

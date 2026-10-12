@@ -27,6 +27,7 @@ import 'features/session/data/encrypted_telemetry_codec.dart';
 import 'features/session/data/readiness_checker.dart';
 import 'features/session/data/ride_session_repository.dart';
 import 'features/session/data/session_sync_coordinator.dart';
+import 'features/session/data/session_sync_settings_repository.dart';
 import 'features/session/data/supabase_session_sync_gateway.dart';
 import 'features/session/presentation/session_cubit.dart';
 import 'features/logistics/data/logistics_repository.dart';
@@ -164,6 +165,7 @@ Future<void> main() async {
             authSessionManager,
           ),
         ),
+        syncSettingsRepository: SessionSyncSettingsRepository(database),
       ),
     ),
   );

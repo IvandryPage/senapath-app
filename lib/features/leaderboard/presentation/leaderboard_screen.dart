@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../app/theme/senapath_design.dart';
-import '../../session/domain/ride_session.dart';
 import '../domain/leaderboard_models.dart';
 import 'leaderboard_cubit.dart';
 
 class LeaderboardScreen extends StatefulWidget {
-  const LeaderboardScreen({this.summary, super.key});
-
-  final RideSessionSummary? summary;
+  const LeaderboardScreen({super.key});
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-  final _aliasController = TextEditingController();
   bool _loaded = false;
 
   @override
@@ -28,22 +23,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   @override
-  void dispose() {
-    _aliasController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return BlocListener<LeaderboardCubit, LeaderboardState>(
       listenWhen: (previous, current) =>
-          previous.settings != current.settings ||
           previous.error != current.error ||
           previous.message != current.message,
       listener: (context, state) {
-        if (state.settings != null) {
-          _aliasController.text = state.settings!.alias ?? '';
-        }
         final notice = state.error ?? state.message;
         if (notice != null) {
           ScaffoldMessenger.of(context)
@@ -55,130 +40,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         builder: (context, state) {
           final cubit = context.read<LeaderboardCubit>();
           final settings = state.settings;
-          final summary = widget.summary;
-          final canSubmit =
-              summary != null &&
-              summary.session.status == RideSessionStatus.completed &&
-              summary.session.syncStatus == 'synced' &&
-              settings?.isOptedIn == true &&
-              !state.isSaving;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               Text(
-                'Peringkat mingguan bersepeda · pekan berjalan UTC',
+                'Peringkat mingguan',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Peringkat memakai durasi aktif terpanjang dan jarak terjauh '
-                'dari satu sesi selesai. Skor berasal dari ringkasan yang '
-                'dikirim pengguna dan tidak diverifikasi independen.',
-              ),
-              const SizedBox(height: 8),
               Text(
-                'Hanya alias dan nilai kategori yang ditampilkan. Lokasi, '
-                'rute, email, dan telemetri mentah tidak dipublikasikan.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 20),
-              SenapathCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Partisipasi dan privasi',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        settings?.isOptedIn == true
-                            ? 'Partisipasi aktif. Alias Anda terlihat pada '
-                                  'peringkat mingguan.'
-                            : 'Leaderboard bersifat opsional. Anda dapat '
-                                  'menarik partisipasi dan menghapus skor kapan saja.',
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _aliasController,
-                        maxLength: 24,
-                        decoration: const InputDecoration(
-                          labelText: 'Alias publik',
-                          helperText: '3–24 karakter; tanpa nama/email wajib.',
-                        ),
-                      ),
-                      FilledButton(
-                        onPressed: state.isSaving || state.isLoading
-                            ? null
-                            : () => cubit.saveConsent(
-                                alias: _aliasController.text,
-                                isOptedIn: true,
-                              ),
-                        child: Text(
-                          settings?.isOptedIn == true
-                              ? 'Simpan alias'
-                              : 'Aktifkan partisipasi',
-                        ),
-                      ),
-                      if (settings?.isOptedIn == true) ...[
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          onPressed: state.isSaving
-                              ? null
-                              : () => cubit.saveConsent(
-                                  alias: '',
-                                  isOptedIn: false,
-                                ),
-                          child: const Text('Keluar dan hapus skor saya'),
-                        ),
-                      ],
-                    ],
-                  ),
+                'Minggu berjalan · UTC',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (summary != null) ...[
-                const SizedBox(height: 12),
-                SenapathCard(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Sesi terpilih',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          summary.session.syncStatus == 'synced'
-                              ? 'Ringkasan tersinkron; hanya durasi dan jarak '
-                                    'akan dipakai.'
-                              : 'Sinkronkan ringkasan sesi terlebih dahulu. '
-                                    'Koordinat dan telemetri tidak dikirim ke leaderboard.',
-                        ),
-                        const SizedBox(height: 8),
-                        FilledButton.tonalIcon(
-                          onPressed: canSubmit
-                              ? () => cubit.submitSession(summary.session.id)
-                              : null,
-                          icon: state.isSaving
-                              ? const SizedBox.square(
-                                  dimension: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.leaderboard_outlined),
-                          label: const Text('Kirim skor sesi ini'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
               const SizedBox(height: 20),
               Wrap(
                 spacing: 8,
@@ -207,31 +82,53 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               if (state.isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (state.error != null)
-                OutlinedButton.icon(
-                  onPressed: cubit.load,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Coba lagi'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(state.error!),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: cubit.load,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Coba lagi'),
+                    ),
+                  ],
                 )
               else if (settings?.isOptedIn != true)
-                const Text('Aktifkan partisipasi untuk melihat peringkat.')
+                const Text(
+                  'Partisipasi belum aktif. Atur partisipasi di Profil > Pengaturan.',
+                )
               else if (state.entries.isEmpty)
-                const Text('Belum ada skor untuk kategori ini pada pekan ini.')
-              else
-                for (final entry in state.entries)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      child: Text(
-                        '${entry.rank}',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
+                const Text(
+                  'Belum ada skor yang dikirim untuk kategori ini minggu ini.',
+                )
+              else ...[
+                _LeaderboardTopThree(
+                  entries: state.entries.take(3).toList(growable: false),
+                  category: state.category,
+                  formatScore: _formatScore,
+                ),
+                for (final entry in state.entries.skip(3))
+                  Card(
+                    margin: const EdgeInsets.only(top: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        child: Text(
+                          '${entry.rank}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                       ),
+                      title: Text('${entry.alias} · Lv.${entry.riderLevel}'),
+                      subtitle: Text(
+                        '${entry.riderStyle.label} · ${entry.riderExperience} XP',
+                      ),
+                      trailing: Text(_formatScore(entry, state.category)),
                     ),
-                    title: Text('${entry.alias} · Lv.${entry.riderLevel}'),
-                    subtitle: Text(
-                      '${entry.riderStyle.label} · ${entry.riderExperience} XP',
-                    ),
-                    trailing: Text(_formatScore(entry, state.category)),
                   ),
+              ],
             ],
           );
         },
@@ -247,5 +144,68 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final hours = seconds ~/ 3600;
     final minutes = seconds % 3600 ~/ 60;
     return hours > 0 ? '${hours}j ${minutes}m' : '${minutes}m ${seconds % 60}d';
+  }
+}
+
+class _LeaderboardTopThree extends StatelessWidget {
+  const _LeaderboardTopThree({
+    required this.entries,
+    required this.category,
+    required this.formatScore,
+  });
+
+  final List<LeaderboardEntry> entries;
+  final LeaderboardCategory category;
+  final String Function(LeaderboardEntry, LeaderboardCategory) formatScore;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        for (final entry in entries)
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: switch (entry.rank) {
+              1 => const Color(0xFFFFF5D6),
+              2 => const Color(0xFFF0F2F4),
+              3 => const Color(0xFFF8EAE2),
+              _ => colors.surface,
+            },
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: switch (entry.rank) {
+                  1 => const Color(0xFFFFE8A3),
+                  2 => const Color(0xFFDCE1E5),
+                  3 => const Color(0xFFE8C3AD),
+                  _ => colors.surfaceContainerHighest,
+                },
+                child: Icon(
+                  entry.rank == 1
+                      ? Icons.emoji_events_rounded
+                      : Icons.directions_bike_outlined,
+                  color: switch (entry.rank) {
+                    1 => const Color(0xFFB77900),
+                    2 => const Color(0xFF68727D),
+                    3 => const Color(0xFF9C5A36),
+                    _ => colors.primary,
+                  },
+                ),
+              ),
+              title: Text(
+                '${entry.rank} · ${entry.alias}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                'Lv.${entry.riderLevel} · ${entry.riderStyle.label}',
+              ),
+              trailing: Text(
+                formatScore(entry, category),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

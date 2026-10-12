@@ -15,6 +15,7 @@ import '../../routes/presentation/routes_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
+import '../../leaderboard/presentation/leaderboard_cubit.dart';
 import '../../workouts/domain/interval_workout.dart';
 import '../../workouts/presentation/interval_workout_cubit.dart';
 import '../data/readiness_checker.dart';
@@ -1670,11 +1671,7 @@ class _SessionScreenState extends State<SessionScreen>
         const SizedBox(height: 20),
         _buildSummarySync(context, summary),
         const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: () => context.push('/leaderboard', extra: summary),
-          icon: const Icon(Icons.leaderboard_outlined),
-          label: const Text('Papan peringkat'),
-        ),
+        _LeaderboardSessionActions(summary: summary),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -1807,9 +1804,11 @@ class _SessionScreenState extends State<SessionScreen>
 
   Widget _buildSummarySync(BuildContext context, RideSessionSummary summary) {
     final session = summary.session;
-    final cubit = context.read<RideSessionCubit>();
     final isSyncing = context.select<RideSessionCubit, bool>(
-      (value) => value.state.syncingSessionId == session.id,
+      (cubit) => cubit.state.syncingSessionId == session.id,
+    );
+    final autoSyncEnabled = context.select<RideSessionCubit, bool>(
+      (cubit) => cubit.state.autoSyncEnabled,
     );
 
     if (session.syncStatus == 'synced') {
@@ -1821,68 +1820,38 @@ class _SessionScreenState extends State<SessionScreen>
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          !cubit.canSyncSessions
-              ? 'Masuk ke akun online untuk menyinkronkan ringkasan. Data tetap lokal.'
-              : session.syncStatus == 'failed'
-              ? 'Sinkronisasi terakhir gagal. Ringkasan masih tersimpan lokal.'
-              : 'Ringkasan belum disinkronkan. Tidak ada koordinat atau titik GPS yang akan dikirim.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: !cubit.canSyncSessions || isSyncing
-              ? null
-              : () => _confirmSummarySync(context, summary),
-          icon: isSyncing
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.cloud_upload_outlined),
-          label: Text(isSyncing ? 'Menyinkronkan…' : 'Sinkronkan ringkasan'),
-        ),
-      ],
-    );
-  }
+    final cubit = context.read<RideSessionCubit>();
+    final message = !autoSyncEnabled
+        ? 'Aktifkan “Sinkronkan sesi otomatis” di Profil > Pengaturan untuk '
+              'mengirim ringkasan sesi. Data tetap tersimpan lokal.'
+        : !cubit.canSyncSessions
+        ? 'Menunggu koneksi akun online. Ringkasan tetap tersimpan lokal dan '
+              'akan dicoba kembali otomatis.'
+        : isSyncing || session.syncStatus == 'syncing'
+        ? 'Ringkasan sedang disinkronkan secara otomatis.'
+        : session.syncStatus == 'failed'
+        ? 'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal dan akan '
+              'dicoba kembali otomatis.'
+        : 'Ringkasan menunggu sinkronisasi otomatis. Koordinat GPS dan '
+              'telemetri mentah tidak dikirim.';
 
-  Future<void> _confirmSummarySync(
-    BuildContext context,
-    RideSessionSummary summary,
-  ) async {
-    final session = summary.session;
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Sinkronkan ringkasan sesi?'),
-        content: Text(
-          'Data yang dikirim ke akun Supabase milikmu: waktu mulai/selesai, '
-          'durasi, jarak, jumlah sampel, sumber/elevasi, dan jumlah sampel '
-          'sensor. Koordinat GPS, rute, dan telemetri mentah tidak dikirim. '
-          'Sesi ${session.id} dapat diperbarui secara idempoten dan akan '
-          'terhapus saat akun Supabase dihapus.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Setujui & sinkronkan'),
-          ),
-        ],
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: isSyncing || session.syncStatus == 'syncing'
+          ? const SizedBox.square(
+              dimension: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.cloud_upload_outlined),
+      title: Text(
+        isSyncing || session.syncStatus == 'syncing'
+            ? 'Menyinkronkan otomatis'
+            : session.syncStatus == 'failed'
+            ? 'Belum tersinkron'
+            : 'Tersimpan lokal',
       ),
+      subtitle: Text(message),
     );
-    if (approved == true && context.mounted) {
-      await context.read<RideSessionCubit>().syncSummary(
-        session.id,
-        consented: true,
-      );
-    }
   }
 
   String _syncStatusLabel(String status) => switch (status) {
@@ -1986,6 +1955,102 @@ class _SessionScreenState extends State<SessionScreen>
         ? '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}'
         : '${twoDigits(duration.inMinutes)}:${twoDigits(seconds)}';
   }
+}
+
+class _LeaderboardSessionActions extends StatefulWidget {
+  const _LeaderboardSessionActions({required this.summary});
+
+  final RideSessionSummary summary;
+
+  @override
+  State<_LeaderboardSessionActions> createState() =>
+      _LeaderboardSessionActionsState();
+}
+
+class _LeaderboardSessionActionsState
+    extends State<_LeaderboardSessionActions> {
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loaded) return;
+    _loaded = true;
+    final cubit = context.read<LeaderboardCubit>();
+    if (cubit.state.settings == null && !cubit.state.isLoading) {
+      unawaited(cubit.load());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      BlocConsumer<LeaderboardCubit, LeaderboardState>(
+        listenWhen: (previous, current) =>
+            previous.error != current.error ||
+            previous.message != current.message,
+        listener: (context, state) {
+          final notice = state.error ?? state.message;
+          if (notice != null) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(notice)));
+          }
+        },
+        builder: (context, state) {
+          final cubit = context.read<LeaderboardCubit>();
+          final canSubmit =
+              widget.summary.session.status == RideSessionStatus.completed &&
+              widget.summary.session.syncStatus == 'synced' &&
+              state.settings?.isOptedIn == true &&
+              !state.isSaving;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.tonalIcon(
+                    onPressed: canSubmit
+                        ? () => cubit.submitSession(widget.summary.session.id)
+                        : null,
+                    icon: state.isSaving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send_outlined),
+                    label: const Text('Kirim skor'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/leaderboard'),
+                    icon: const Icon(Icons.leaderboard_outlined),
+                    label: const Text('Lihat peringkat'),
+                  ),
+                ],
+              ),
+              if (state.settings?.isOptedIn != true)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Aktifkan partisipasi di Profil > Pengaturan untuk mengirim skor.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                )
+              else if (widget.summary.session.syncStatus != 'synced')
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Aktifkan sinkronisasi otomatis di Profil > Pengaturan, '
+                    'lalu pastikan sesi tersinkron sebelum mengirim skor.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          );
+        },
+      );
 }
 
 class _ReadinessLine extends StatelessWidget {

@@ -20,26 +20,56 @@ class RideCoachCubit extends Cubit<RideCoachState> {
   RideCoachCubit(this._gateway) : super(const RideCoachState());
 
   final RideCoachGateway _gateway;
+  int _requestGeneration = 0;
+  String? _activeSessionId;
+  String? _consentedSessionId;
+  DateTime? _lastRequestAt;
 
   bool get isConfigured => _gateway.isConfigured;
   bool get isSignedIn => _gateway.isSignedIn;
+  DateTime? get lastRequestAt => _lastRequestAt;
+
+  bool hasConsentForSession(String sessionId) =>
+      _consentedSessionId == sessionId;
+
+  bool grantConsentForSession(String sessionId) {
+    if (_activeSessionId != sessionId) return false;
+    _consentedSessionId = sessionId;
+    return true;
+  }
+
+  void setActiveSession(String? sessionId) {
+    if (_activeSessionId == sessionId) return;
+    _activeSessionId = sessionId;
+    _consentedSessionId = null;
+    _lastRequestAt = null;
+    clearRecommendation();
+  }
+
+  void markRequestStarted(String sessionId) {
+    if (_activeSessionId == sessionId) _lastRequestAt = DateTime.now();
+  }
 
   Future<void> recommend({
     required Map<String, Object?> rideContext,
     required bool consent,
   }) async {
     if (state.isLoading) return;
-    emit(const RideCoachState(isLoading: true));
+    final generation = ++_requestGeneration;
+    emit(RideCoachState(recommendation: state.recommendation, isLoading: true));
     try {
       final recommendation = await _gateway.recommend(
         rideContext: rideContext,
         consent: consent,
       );
-      if (!isClosed) emit(RideCoachState(recommendation: recommendation));
+      if (!isClosed && generation == _requestGeneration) {
+        emit(RideCoachState(recommendation: recommendation));
+      }
     } catch (error) {
-      if (!isClosed) {
+      if (!isClosed && generation == _requestGeneration) {
         emit(
           RideCoachState(
+            recommendation: state.recommendation,
             error: error is StateError ? error.message : 'Rekomendasi tidak tersedia. Periksa koneksi dan konfigurasi AI.',
           ),
         );
@@ -47,14 +77,22 @@ class RideCoachCubit extends Cubit<RideCoachState> {
     }
   }
 
+  void clearRecommendation() {
+    _requestGeneration++;
+    emit(const RideCoachState());
+  }
+
   Future<void> diagnoseConfiguration() async {
     if (state.isLoading) return;
+    final generation = ++_requestGeneration;
     emit(const RideCoachState(isLoading: true));
     try {
       final message = await _gateway.diagnoseConfiguration();
-      if (!isClosed) emit(RideCoachState(notice: message));
+      if (!isClosed && generation == _requestGeneration) {
+        emit(RideCoachState(notice: message));
+      }
     } catch (error) {
-      if (!isClosed) {
+      if (!isClosed && generation == _requestGeneration) {
         emit(
           RideCoachState(
             error: error is StateError

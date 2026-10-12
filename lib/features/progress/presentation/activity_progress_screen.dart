@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/senapath_design.dart';
@@ -22,6 +21,7 @@ class ActivityProgressScreen extends StatefulWidget {
 
 class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
   static const _calculator = ActivityProgressCalculator();
+  ProgressPeriod _selectedPeriod = ProgressPeriod.week;
 
   @override
   void didChangeDependencies() {
@@ -34,6 +34,7 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
     return BlocBuilder<RideSessionCubit, RideSessionState>(
       builder: (context, rideState) {
         final now = DateTime.now();
+        final goals = context.watch<ActivityGoalsCubit>().state.goals;
         final week = _calculator.calculate(
           rideState.completedSessions,
           now: now,
@@ -69,18 +70,35 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            _ProgressPeriodCard(
-              title: 'Minggu ini',
-              progress: week,
-              previousProgress: previousWeek,
-              sourceSessions: rideState.completedSessions,
+            SegmentedButton<ProgressPeriod>(
+              segments: const [
+                ButtonSegment(
+                  value: ProgressPeriod.week,
+                  label: Text('Minggu ini'),
+                ),
+                ButtonSegment(
+                  value: ProgressPeriod.month,
+                  label: Text('Bulan ini'),
+                ),
+              ],
+              selected: {_selectedPeriod},
+              onSelectionChanged: (selection) =>
+                  setState(() => _selectedPeriod = selection.first),
+              showSelectedIcon: false,
             ),
             const SizedBox(height: 12),
             _ProgressPeriodCard(
-              title: 'Bulan ini',
-              progress: month,
-              previousProgress: previousMonth,
-              sourceSessions: rideState.completedSessions,
+              title: _selectedPeriod == ProgressPeriod.week
+                  ? 'Minggu ini'
+                  : 'Bulan ini',
+              progress: _selectedPeriod == ProgressPeriod.week ? week : month,
+              previousProgress: _selectedPeriod == ProgressPeriod.week
+                  ? previousWeek
+                  : previousMonth,
+              sessions: rideState.completedSessions,
+              goals: goals
+                  .where((goal) => goal.period == _selectedPeriod)
+                  .toList(growable: false),
             ),
             const SizedBox(height: 24),
             Row(
@@ -176,13 +194,15 @@ class _ProgressPeriodCard extends StatelessWidget {
     required this.title,
     required this.progress,
     required this.previousProgress,
-    required this.sourceSessions,
+    required this.sessions,
+    required this.goals,
   });
 
   final String title;
   final ActivityProgress progress;
   final ActivityProgress previousProgress;
-  final List<RideSessionSnapshot> sourceSessions;
+  final List<RideSessionSnapshot> sessions;
+  final List<ActivityGoal> goals;
 
   @override
   Widget build(BuildContext context) {
@@ -194,9 +214,6 @@ class _ProgressPeriodCard extends StatelessWidget {
     final durationText = duration.inHours > 0
         ? '${duration.inHours}j ${duration.inMinutes.remainder(60)}m'
         : '${duration.inMinutes}m';
-    final sessionsById = {
-      for (final session in sourceSessions) session.id: session,
-    };
     final periodLabel =
         '${DateFormat('d MMM').format(progress.startsAt)} – '
         '${DateFormat('d MMM').format(progress.endsAt.subtract(const Duration(days: 1)))}';
@@ -219,37 +236,225 @@ class _ProgressPeriodCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            _PeriodDistanceChart(
+              progress: progress,
+              sessions: sessions,
+              unit: unit,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Target & progres',
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            if (goals.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Belum ada target untuk periode ini. Buat target di bagian Target pribadi.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              )
+            else
+              for (final goal in goals)
+                _GameGoalProgressBar(goal: goal, progress: progress),
+            const SizedBox(height: 12),
             _Comparison(
               current: progress,
               previous: previousProgress,
               unit: unit,
             ),
-            const Divider(height: 24),
-            Text(
-              'Sumber: ${progress.sessionIds.length} sesi selesai',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            if (progress.sessionIds.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text('Belum ada aktivitas selesai pada periode ini.'),
-              )
-            else
-              for (final id in progress.sessionIds)
-                if (sessionsById[id] case final session?)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('Sesi bersepeda'),
-                    subtitle: Text(
-                      DateFormat('d MMM yyyy · HH:mm')
-                          .format(session.startedAt.toLocal()),
-                    ),
-                    trailing: const Icon(Icons.open_in_new, size: 18),
-                    onTap: () => context.push('/profile/sessions/$id'),
-                  ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PeriodDistanceChart extends StatelessWidget {
+  const _PeriodDistanceChart({
+    required this.progress,
+    required this.sessions,
+    required this.unit,
+  });
+
+  final ActivityProgress progress;
+  final List<RideSessionSnapshot> sessions;
+  final UnitSystem unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final bucketCount = progress.period == ProgressPeriod.week ? 7 : 5;
+    final values = List<double>.filled(bucketCount, 0);
+    final sessionsById = {
+      for (final session in sessions) session.id: session,
+    };
+    for (final id in progress.sessionIds) {
+      final session = sessionsById[id];
+      if (session == null) continue;
+      final startedAt = session.startedAt.toLocal();
+      final index = progress.period == ProgressPeriod.week
+          ? startedAt.weekday - DateTime.monday
+          : (startedAt.day - 1) ~/ 7;
+      values[index.clamp(0, bucketCount - 1)] += session.distanceMeters;
+    }
+
+    final maximum = values.fold<double>(
+      0,
+      (current, value) => value > current ? value : current,
+    );
+    final divisor = unit == UnitSystem.metric ? 1000.0 : 1609.344;
+    final labels = progress.period == ProgressPeriod.week
+        ? const ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
+        : const ['P1', 'P2', 'P3', 'P4', 'P5'];
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          progress.period == ProgressPeriod.week
+              ? 'Jarak per hari'
+              : 'Jarak per pekan',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 126,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var index = 0; index < bucketCount; index++)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          values[index] == 0
+                              ? '–'
+                              : (values[index] / divisor).toStringAsFixed(1),
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: colors.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: maximum == 0
+                                  ? 0.04
+                                  : (values[index] / maximum)
+                                        .clamp(0.04, 1)
+                                        .toDouble(),
+                              child: Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: values[index] == 0
+                                      ? colors.surfaceContainerHighest
+                                      : colors.primary,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(6),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          labels[index],
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GameGoalProgressBar extends StatelessWidget {
+  const _GameGoalProgressBar({required this.goal, required this.progress});
+
+  final ActivityGoal goal;
+  final ActivityProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
+    final current = progress.valueFor(goal.metric);
+    final fraction = progress.progressFor(goal);
+    final remaining = (goal.target - current).clamp(0, goal.target).toDouble();
+    final completed = current >= goal.target;
+    final elapsed = DateTime.now().difference(progress.startsAt).inSeconds;
+    final periodLength = progress.endsAt
+        .difference(progress.startsAt)
+        .inSeconds;
+    final expectedFraction = periodLength <= 0
+        ? 1.0
+        : (elapsed / periodLength).clamp(0, 1).toDouble();
+    final onTrack = completed || fraction >= expectedFraction;
+    final status = completed
+        ? 'TARGET TERCAPAI'
+        : onTrack
+        ? 'ON TRACK · SISA ${_formatGoalValue(remaining, goal.metric, unit)}'
+        : 'AYO TAMBAH KAYUHAN · SISA ${_formatGoalValue(remaining, goal.metric, unit)}';
+    final color = completed
+        ? Theme.of(context).colorScheme.primary
+        : onTrack
+        ? Theme.of(context).colorScheme.secondary
+        : Theme.of(context).colorScheme.tertiary;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _goalLabel(goal.metric),
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                '${_formatGoalValue(current, goal.metric, unit)} / '
+                '${_formatGoalValue(goal.target, goal.metric, unit)}',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 11,
+              color: color,
+              backgroundColor: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            status,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.25,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -361,8 +566,6 @@ class _GoalCard extends StatelessWidget {
               ],
             ),
             Text(displayValue),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: progress.progressFor(goal)),
           ],
         ),
       ),
@@ -501,6 +704,15 @@ String _goalLabel(GoalMetric metric) => switch (metric) {
   GoalMetric.distanceMeters => 'Jarak',
   GoalMetric.activeSeconds => 'Durasi aktif',
 };
+
+String _formatGoalValue(double value, GoalMetric metric, UnitSystem unit) =>
+    switch (metric) {
+      GoalMetric.completedSessions => '${value.toStringAsFixed(0)} sesi',
+      GoalMetric.distanceMeters => unit == UnitSystem.metric
+          ? '${(value / 1000).toStringAsFixed(1)} km'
+          : '${(value / 1609.344).toStringAsFixed(1)} mi',
+      GoalMetric.activeSeconds => '${(value / 3600).toStringAsFixed(1)} jam',
+    };
 
 String _targetLabel(GoalMetric metric) => switch (metric) {
   GoalMetric.completedSessions => 'Target sesi',

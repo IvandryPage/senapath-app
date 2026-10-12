@@ -12,6 +12,9 @@ import 'package:senapath/features/routes/domain/saved_route.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
+import 'package:senapath/features/session/data/session_sync_coordinator.dart';
+import 'package:senapath/features/session/data/session_sync_gateway.dart';
+import 'package:senapath/features/session/data/session_sync_settings_repository.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
 import 'package:senapath/features/workouts/data/interval_workout_repository.dart';
@@ -44,6 +47,36 @@ void main() {
     await accelerometerReadings.close();
     await gyroscopeReadings.close();
     await database.close();
+  });
+
+  test('finished sessions sync automatically when opted in', () async {
+    final settingsRepository = SessionSyncSettingsRepository(database);
+    await settingsRepository.saveAutoSyncEnabled(true);
+    final gateway = _TestSessionSyncGateway();
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      syncCoordinator: SessionSyncCoordinator(
+        repository: repository,
+        gateway: gateway,
+      ),
+      syncSettingsRepository: settingsRepository,
+    );
+
+    await sessionCubit!.initialize();
+    await sessionCubit!.start();
+    final sessionId = sessionCubit!.state.session!.id;
+    await sessionCubit!.finish();
+    await sessionCubit!.stream.firstWhere(
+      (state) =>
+          state.completedSessions.any(
+            (session) =>
+                session.id == sessionId && session.syncStatus == 'synced',
+          ),
+    ).timeout(const Duration(seconds: 2));
+
+    expect(gateway.uploadedSummary?.session.id, sessionId);
   });
 
   test('motion sensors keep recording after session resume', () async {
@@ -551,6 +584,24 @@ class _TestLocationSource implements LocationSource {
 
   @override
   Stream<Position> get positions => _positions;
+}
+
+class _TestSessionSyncGateway implements SessionSyncGateway {
+  RideSessionSummary? uploadedSummary;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  bool get isSignedIn => true;
+
+  @override
+  Future<void> uploadSummary(
+    RideSessionSummary summary, {
+    String? shareWithTeamId,
+  }) async {
+    uploadedSummary = summary;
+  }
 }
 
 class _TestMotionSensorSource implements MotionSensorSource {

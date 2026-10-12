@@ -15,7 +15,6 @@ import '../../features/authentication/presentation/cloud_account_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
-import '../../features/session/domain/ride_session.dart';
 import '../../features/progress/presentation/activity_progress_screen.dart';
 import '../../features/teams/presentation/cycling_team_screen.dart';
 import '../../features/notifications/presentation/notification_settings_screen.dart';
@@ -58,9 +57,7 @@ final appRouter = GoRouter(
                 ),
                 GoRoute(
                   path: 'leaderboard',
-                  builder: (context, state) => LeaderboardScreen(
-                    summary: state.extra as RideSessionSummary?,
-                  ),
+                  builder: (context, state) => const LeaderboardScreen(),
                 ),
                 GoRoute(
                   path: 'progress',

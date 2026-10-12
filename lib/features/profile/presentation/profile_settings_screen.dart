@@ -9,6 +9,8 @@ import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../../core/storage/offline_storage_manager.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../leaderboard/presentation/leaderboard_settings_section.dart';
+import '../../session/presentation/session_cubit.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -31,6 +33,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     if (_initialized) return;
     _initialized = true;
     unawaited(context.read<UnitSettingsCubit>().load());
+    unawaited(context.read<RideSessionCubit>().loadSyncSettings());
     unawaited(_loadStorageUsage());
   }
 
@@ -51,6 +54,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       const SizedBox(height: 12),
       _biometricSettings(),
       const SizedBox(height: 12),
+      _sessionSyncSettings(),
+      const SizedBox(height: 12),
       SenapathCard(
         child: ListTile(
           leading: const Icon(Icons.notifications_active_outlined),
@@ -62,6 +67,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           onTap: () => context.push('/profile/notifications'),
         ),
       ),
+      const SizedBox(height: 12),
+      _sectionHeading(
+        context,
+        icon: Icons.emoji_events_outlined,
+        title: 'Papan peringkat',
+        subtitle: 'Atur partisipasi dan alias yang terlihat orang lain.',
+      ),
+      const SizedBox(height: 12),
+      const LeaderboardSettingsSection(),
       const SizedBox(height: 28),
       _sectionHeading(
         context,
@@ -196,6 +210,31 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                 ),
             ],
+          ),
+        ),
+      );
+
+  Widget _sessionSyncSettings() =>
+      BlocBuilder<RideSessionCubit, RideSessionState>(
+        builder: (context, state) => SenapathCard(
+          child: SwitchListTile(
+            title: const Text('Sinkronkan sesi otomatis'),
+            subtitle: const Text(
+              'Setelah sesi selesai, sinkronkan waktu, durasi, jarak, jumlah '
+              'sampel, elevasi, dan jumlah sampel sensor ke akun Supabase. '
+              'Koordinat GPS, rute, dan telemetri mentah tidak dikirim. '
+              'Sesi tetap tersimpan di perangkat jika sinkronisasi gagal.',
+            ),
+            value: state.autoSyncEnabled,
+            onChanged: state.isSavingAutoSync
+                ? null
+                : context.read<RideSessionCubit>().setAutoSyncEnabled,
+            secondary: state.isSavingAutoSync
+                ? const SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.cloud_sync_outlined),
           ),
         ),
       );

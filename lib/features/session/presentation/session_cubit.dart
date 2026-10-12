@@ -9,6 +9,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../data/readiness_checker.dart';
 import '../data/ride_session_repository.dart';
 import '../data/session_sync_coordinator.dart';
+import '../data/session_sync_settings_repository.dart';
 import '../../notifications/data/notification_settings_repository.dart';
 import '../../notifications/data/ride_notification_service.dart';
 import '../../ledger/data/ride_ledger_repository.dart';
@@ -30,6 +31,8 @@ class RideSessionState {
     this.summary,
     this.summaryLocations = const [],
     this.isLoadingSummary = false,
+    this.autoSyncEnabled = false,
+    this.isSavingAutoSync = false,
     this.syncingSessionId,
     this.activeRoute,
     this.routeProgress,
@@ -50,6 +53,8 @@ class RideSessionState {
   final RideSessionSummary? summary;
   final List<TelemetryLocation> summaryLocations;
   final bool isLoadingSummary;
+  final bool autoSyncEnabled;
+  final bool isSavingAutoSync;
   final String? syncingSessionId;
   final RouteRecord? activeRoute;
   final RouteProgress? routeProgress;
@@ -70,6 +75,8 @@ class RideSessionState {
     RideSessionSummary? summary,
     List<TelemetryLocation>? summaryLocations,
     bool? isLoadingSummary,
+    bool? autoSyncEnabled,
+    bool? isSavingAutoSync,
     String? syncingSessionId,
     bool clearSummary = false,
     bool clearSyncingSession = false,
@@ -98,6 +105,8 @@ class RideSessionState {
         ? const []
         : summaryLocations ?? this.summaryLocations,
     isLoadingSummary: isLoadingSummary ?? this.isLoadingSummary,
+    autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
+    isSavingAutoSync: isSavingAutoSync ?? this.isSavingAutoSync,
     syncingSessionId: clearSyncingSession
         ? null
         : syncingSessionId ?? this.syncingSessionId,
@@ -129,6 +138,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     this.barometerSource,
     this.motionSensorSource,
     this.syncCoordinator,
+    this.syncSettingsRepository,
     this.notificationService,
     this.notificationSettingsRepository,
     this.ledgerRepository,
@@ -143,6 +153,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final BarometerSource? barometerSource;
   final MotionSensorSource? motionSensorSource;
   final SessionSyncCoordinator? syncCoordinator;
+  final SessionSyncSettingsRepository? syncSettingsRepository;
   final RideNotificationService? notificationService;
   final NotificationSettingsRepository? notificationSettingsRepository;
   final RideLedgerRepository? ledgerRepository;
@@ -161,6 +172,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final List<double> _cadenceHistory = [];
   Timer? _ticker;
   Timer? _motionTicker;
+  Timer? _autoSyncRetryTimer;
   final _CadenceEstimator _cadenceEstimator = _CadenceEstimator();
   static const int _maxMotionSamples = 150;
   int _syncGeneration = 0;
@@ -174,6 +186,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   RouteProgressCalculator? _routeProgressCalculator;
   WorkoutCheckpoint? _workoutCheckpoint;
   bool _updatingWorkout = false;
+  bool _syncSettingsLoaded = false;
 
   bool get canSyncSessions =>
       syncCoordinator?.gateway.isConfigured == true &&
@@ -183,6 +196,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     if (state.isInitialized || state.isLoading) return;
     emit(state.copyWith(isLoading: true, clearMessage: true));
     try {
+      final autoSyncEnabled = await _loadAutoSyncSetting();
       final results = await Future.wait([
         readinessChecker.check(checkGpsFix: false),
         repository.recoverCurrentSession(),
@@ -237,12 +251,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           session: session,
           recordedLocations: recordedLocations,
           completedSessions: completedSessions,
+          autoSyncEnabled: autoSyncEnabled,
           workout: workout,
           workoutProgress: workoutProgress,
           now: _clock().toUtc(),
           message: locationMessage,
         ),
       );
+      if (autoSyncEnabled) _startAutoSyncRetry();
       if (session?.status == RideSessionStatus.recording) {
         await _startLocationStream(session!.id);
         await _startBarometerStream();
@@ -377,12 +393,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
               ? null
               : _calculateWorkoutProgress(workout, _workoutCheckpoint!, 0, 0),
           clearWorkout: workout == null || _workoutCheckpoint == null,
-          message: workoutStartMessage ??
+          message:
+              workoutStartMessage ??
               (!startReadiness.backgroundLocationGranted
                   ? 'Perjalanan ini hanya bisa terus direkam di latar belakang '
-                      'jika izin lokasi “Sepanjang waktu” aktif.'
+                        'jika izin lokasi “Sepanjang waktu” aktif.'
                   : null),
-          clearMessage: workoutStartMessage == null &&
+          clearMessage:
+              workoutStartMessage == null &&
               startReadiness.backgroundLocationGranted,
         ),
       );
@@ -495,6 +513,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       );
       _activeRoute = null;
       _routeProgressCalculator = null;
+      if (state.autoSyncEnabled) unawaited(_syncCompletedSession(completed.id));
     } catch (_) {
       _setMessage('Sesi belum dapat diakhiri. Data lokal tetap tersedia.');
     }
@@ -601,6 +620,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       if (isClosed || generation != _syncGeneration) return;
       emit(
         state.copyWith(
+          session: state.session?.id == sessionId
+              ? summary.session
+              : state.session,
           completedSessions: history,
           summary: summary,
           summaryLocations: summaryLocations,
@@ -621,6 +643,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       if (isClosed || generation != _syncGeneration) return;
       emit(
         state.copyWith(
+          session: state.session?.id == sessionId
+              ? summary.session
+              : state.session,
           completedSessions: history,
           summary: summary,
           summaryLocations: summaryLocations,
@@ -629,6 +654,89 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         ),
       );
     }
+  }
+
+  Future<bool> _loadAutoSyncSetting() async {
+    final repository = syncSettingsRepository;
+    if (repository == null) {
+      _syncSettingsLoaded = true;
+      return false;
+    }
+    final enabled = await repository.loadAutoSyncEnabled();
+    _syncSettingsLoaded = true;
+    return enabled;
+  }
+
+  Future<void> loadSyncSettings() async {
+    if (_syncSettingsLoaded || state.isLoading) return;
+    try {
+      final enabled = await _loadAutoSyncSetting();
+      if (isClosed) return;
+      emit(state.copyWith(autoSyncEnabled: enabled));
+      if (enabled) _startAutoSyncRetry();
+    } catch (_) {
+      _setMessage('Pengaturan sinkronisasi otomatis tidak dapat dimuat.');
+    }
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) async {
+    final repository = syncSettingsRepository;
+    if (repository == null || state.isSavingAutoSync) return;
+    emit(state.copyWith(isSavingAutoSync: true, clearMessage: true));
+    try {
+      await repository.saveAutoSyncEnabled(enabled);
+      _syncSettingsLoaded = true;
+      if (isClosed) return;
+      emit(state.copyWith(autoSyncEnabled: enabled, isSavingAutoSync: false));
+      if (enabled) {
+        _startAutoSyncRetry();
+        unawaited(syncPendingSessions());
+      } else {
+        _autoSyncRetryTimer?.cancel();
+        _autoSyncRetryTimer = null;
+      }
+    } catch (_) {
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          isSavingAutoSync: false,
+          message: 'Pengaturan sinkronisasi otomatis tidak dapat disimpan.',
+        ),
+      );
+    }
+  }
+
+  Future<void> syncPendingSessions() async {
+    if (!state.autoSyncEnabled || !canSyncSessions || isClosed) return;
+    final pendingSessions = state.completedSessions
+        .where(
+          (session) =>
+              session.syncStatus == 'pending' ||
+              session.syncStatus == 'failed',
+        )
+        .toList(growable: false);
+    for (final session in pendingSessions) {
+      if (isClosed || !state.autoSyncEnabled || !canSyncSessions) return;
+      if (state.syncingSessionId != null) return;
+      await _syncCompletedSession(session.id);
+    }
+  }
+
+  void _startAutoSyncRetry() {
+    _autoSyncRetryTimer ??= Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => unawaited(syncPendingSessions()),
+    );
+    unawaited(syncPendingSessions());
+  }
+
+  Future<void> _syncCompletedSession(String sessionId) async {
+    if (!state.autoSyncEnabled ||
+        !canSyncSessions ||
+        state.syncingSessionId != null) {
+      return;
+    }
+    await syncSummary(sessionId, consented: true);
   }
 
   void cancelPendingSync() {
@@ -1114,6 +1222,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   @override
   Future<void> close() async {
     _ticker?.cancel();
+    _autoSyncRetryTimer?.cancel();
     await _stopLocationStream();
     await _stopBarometerStream();
     await _stopMotionSensorStreams();
