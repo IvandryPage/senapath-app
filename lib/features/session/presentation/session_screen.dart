@@ -30,10 +30,9 @@ class SessionScreen extends StatefulWidget {
     this.showSummary = true,
     this.historyOnly = false,
     this.summarySessionId,
-    this.initialPanelSize = 0.7,
+    this.panelHeightFactor = 0.7,
     this.compactControls = false,
     this.hideReadinessDetails = false,
-    this.panelDraggable = true,
     super.key,
   });
 
@@ -42,10 +41,9 @@ class SessionScreen extends StatefulWidget {
   final bool showSummary;
   final bool historyOnly;
   final String? summarySessionId;
-  final double initialPanelSize;
+  final double panelHeightFactor;
   final bool compactControls;
   final bool hideReadinessDetails;
-  final bool panelDraggable;
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -191,49 +189,31 @@ class _SessionScreenState extends State<SessionScreen>
                         session?.status == RideSessionStatus.recording,
                     showEmptyMessage: false,
                   ),
-                DraggableScrollableSheet(
-                  initialChildSize: widget.panelDraggable
-                      ? widget.initialPanelSize
-                      : 1,
-                  minChildSize: widget.panelDraggable ? 0.2 : 1,
-                  maxChildSize: widget.panelDraggable ? 0.92 : 1,
-                  builder: (context, scrollController) => Padding(
-                    padding: EdgeInsets.only(
-                      top: widget.panelDraggable ? 8 : 0,
-                    ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SizedBox(
+                    height:
+                        constraints.maxHeight *
+                        (widget.showMap
+                            ? widget.panelHeightFactor.clamp(0.2, 1.0)
+                            : 1.0),
                     child: Material(
-                      color: Theme.of(context).colorScheme.surface
-                          .withValues(alpha: 0.97),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.97),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(widget.panelDraggable ? 4 : 0),
+                          top: Radius.circular(widget.showMap ? 4 : 0),
                         ),
                         side: BorderSide(
                           color: Theme.of(context).colorScheme.outline,
-                          width: widget.panelDraggable ? 2 : 0,
+                          width: widget.showMap ? 2 : 0,
                         ),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: ListView(
-                        controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                         children: [
-                          if (widget.panelDraggable) ...[
-                            Center(
-                              child: Container(
-                                width: 36,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.35),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
                           if (widget.compactControls) ...[
                             _buildCompactControls(context, state, unitSystem),
                             if (session != null &&
@@ -1413,9 +1393,7 @@ class _SessionScreenState extends State<SessionScreen>
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(
-        SnackBar(content: Text('Ekspor aktivitas gagal: $error')),
-      );
+      ).showSnackBar(SnackBar(content: Text('Ekspor aktivitas gagal: $error')));
     }
   }
 
@@ -1504,17 +1482,15 @@ class _SessionScreenState extends State<SessionScreen>
                 children: [
                   Text(
                     session.title.isEmpty ? 'Ringkasan sesi' : session.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${_activityTypeLabel(session.activityType)} · '
                     '${_formatSessionDate(session.startedAt)}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -1629,9 +1605,8 @@ class _SessionScreenState extends State<SessionScreen>
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               'Jejak peta perlu setidaknya dua titik GPS.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: colors.onSurfaceVariant),
             ),
           ),
         const SizedBox(height: 24),
@@ -1671,9 +1646,8 @@ class _SessionScreenState extends State<SessionScreen>
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       'Belum cukup sampel untuk menampilkan grafik.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.onSurfaceVariant),
                     ),
                   ),
               ],
@@ -1696,9 +1670,8 @@ class _SessionScreenState extends State<SessionScreen>
                   const SizedBox(height: 4),
                   Text(
                     'Sumber: ${summary.elevationSource.toLowerCase()}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: colors.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
                   _SpeedGraph(values: elevationSamples),
@@ -1771,9 +1744,8 @@ class _SessionScreenState extends State<SessionScreen>
                 Text(
                   'Sampel sensor disimpan bersama titik GPS. Angka sensor '
                   'bersifat estimasi, bukan pengukuran daya atau sudut kemiringan.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1987,16 +1959,13 @@ class _SessionScreenState extends State<SessionScreen>
       if (!saved) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Berkas ${asGpx ? 'GPX' : 'JSON'} berhasil diekspor.',
-          ),
+          content: Text('Berkas ${asGpx ? 'GPX' : 'JSON'} berhasil diekspor.'),
         ),
       );
     } on Exception catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ekspor gagal: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Ekspor gagal: $error')));
     }
   }
 
@@ -2051,6 +2020,19 @@ class _SessionScreenState extends State<SessionScreen>
         ? '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}'
         : '${twoDigits(duration.inMinutes)}:${twoDigits(seconds)}';
   }
+}
+
+bool _isInCurrentUtcWeek(DateTime date) {
+  DateTime mondayOfUtcWeek(DateTime value) {
+    final utcDate = value.toUtc();
+    return DateTime.utc(
+      utcDate.year,
+      utcDate.month,
+      utcDate.day,
+    ).subtract(Duration(days: utcDate.weekday - DateTime.monday));
+  }
+
+  return mondayOfUtcWeek(date) == mondayOfUtcWeek(DateTime.now().toUtc());
 }
 
 class _ActivityMetadataDialog extends StatefulWidget {
@@ -2129,10 +2111,8 @@ class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
         child: const Text('Batal'),
       ),
       FilledButton(
-        onPressed: () => Navigator.pop(
-          context,
-          (_nameController.text, _activityType),
-        ),
+        onPressed: () =>
+            Navigator.pop(context, (_nameController.text, _activityType)),
         child: const Text('Simpan'),
       ),
     ],
@@ -2172,74 +2152,112 @@ class _LeaderboardSessionActionsState
   }
 
   @override
-  Widget build(BuildContext context) =>
-      BlocConsumer<LeaderboardCubit, LeaderboardState>(
-        listenWhen: (previous, current) =>
-            previous.error != current.error ||
-            previous.message != current.message,
-        listener: (context, state) {
-          final notice = state.error ?? state.message;
-          if (notice != null) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(notice)));
-          }
-        },
-        builder: (context, state) {
-          final cubit = context.read<LeaderboardCubit>();
-          final canSubmit =
-              widget.summary.session.status == RideSessionStatus.completed &&
-              widget.summary.session.syncStatus == 'synced' &&
-              state.settings?.isOptedIn == true &&
-              !state.isSaving;
+  Widget build(
+    BuildContext context,
+  ) => BlocConsumer<LeaderboardCubit, LeaderboardState>(
+    listenWhen: (previous, current) =>
+        previous.error != current.error || previous.message != current.message,
+    listener: (context, state) {
+      final notice = state.error ?? state.message;
+      if (notice != null) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(notice)));
+      }
+    },
+    builder: (context, state) {
+      final cubit = context.read<LeaderboardCubit>();
+      final hasCompletedSession =
+          widget.summary.session.status == RideSessionStatus.completed;
+      final isSynced = widget.summary.session.syncStatus == 'synced';
+      final isOptedIn = state.settings?.isOptedIn == true;
+      final session = widget.summary.session;
+      final sessionEnd = session.endedAt ?? session.startedAt;
+      final durationSeconds = session.durationAt(sessionEnd).inSeconds;
+      final hasValidLeaderboardValues =
+          durationSeconds >= 1 &&
+          durationSeconds <= 172800 &&
+          session.distanceMeters > 0 &&
+          session.distanceMeters < 1000000;
+      final isInCurrentLeaderboardWeek = _isInCurrentUtcWeek(sessionEnd);
+      final canSubmit =
+          hasCompletedSession &&
+          isSynced &&
+          isOptedIn &&
+          hasValidLeaderboardValues &&
+          !state.isSaving;
+      final settingsUnavailable = state.settings == null && state.error != null;
+      final unavailableReason = state.isLoading && state.settings == null
+          ? 'Memeriksa partisipasi papan peringkat…'
+          : settingsUnavailable
+          ? state.error
+          : !isOptedIn
+          ? 'Sinkronisasi otomatis dan partisipasi papan peringkat adalah '
+                'pengaturan terpisah. Aktifkan partisipasi untuk mengirim skor.'
+          : !hasCompletedSession
+          ? 'Hanya sesi yang sudah selesai yang bisa dikirim.'
+          : !isSynced
+          ? 'Skor bisa dikirim setelah ringkasan sesi tersinkron ke akun.'
+          : !hasValidLeaderboardValues
+          ? 'Sesi perlu berdurasi 1 detik–48 jam dan memiliki jarak lebih '
+                'dari 0 km serta kurang dari 1.000 km.'
+          : !isInCurrentLeaderboardWeek
+          ? 'Sesi ini masuk ke peringkat minggu UTC saat selesai. '
+                'Halaman papan peringkat hanya menampilkan minggu berjalan, '
+                'jadi skornya tidak akan terlihat di daftar saat ini.'
+          : null;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.tonalIcon(
-                    onPressed: canSubmit
-                        ? () => cubit.submitSession(widget.summary.session.id)
-                        : null,
-                    icon: state.isSaving
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send_outlined),
-                    label: const Text('Kirim skor'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => context.push('/leaderboard'),
-                    icon: const Icon(Icons.leaderboard_outlined),
-                    label: const Text('Lihat peringkat'),
-                  ),
-                ],
+              FilledButton.tonalIcon(
+                onPressed: canSubmit
+                    ? () => cubit.submitSession(widget.summary.session.id)
+                    : null,
+                icon: state.isSaving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_outlined),
+                label: const Text('Kirim skor'),
               ),
-              if (state.settings?.isOptedIn != true)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Aktifkan partisipasi di Profil > Pengaturan untuk mengirim skor.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+              if (settingsUnavailable)
+                OutlinedButton.icon(
+                  onPressed: state.isLoading ? null : cubit.load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Coba lagi'),
                 )
-              else if (widget.summary.session.syncStatus != 'synced')
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Aktifkan sinkronisasi otomatis di Profil > Pengaturan, '
-                    'lalu pastikan sesi tersinkron sebelum mengirim skor.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+              else if (!isOptedIn)
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/profile/settings'),
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const Text('Aktifkan di Pengaturan'),
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/leaderboard'),
+                  icon: const Icon(Icons.leaderboard_outlined),
+                  label: const Text('Lihat peringkat'),
                 ),
             ],
-          );
-        },
+          ),
+          if (unavailableReason != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                unavailableReason,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
       );
+    },
+  );
 }
 
 class _ReadinessLine extends StatelessWidget {
@@ -2394,9 +2412,8 @@ class _HeroSessionMetric extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: SenapathColors.accent,
-          ),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(color: SenapathColors.accent),
         ),
         const SizedBox(height: 4),
         Text(
@@ -2426,17 +2443,15 @@ class _SessionSectionHeading extends StatelessWidget {
       Expanded(
         child: Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
       ),
       if (trailing != null)
         Text(
           trailing!,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.labelMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
     ],
   );

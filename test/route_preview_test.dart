@@ -81,7 +81,7 @@ void main() {
               showHistory: false,
               showSummary: false,
               compactControls: true,
-              initialPanelSize: 0.92,
+              panelHeightFactor: 0.92,
             ),
           ),
         ),
@@ -89,6 +89,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(DraggableScrollableSheet), findsNothing);
+    expect(find.byType(ListView), findsWidgets);
     await tester.tap(find.text('Mulai sesi'));
     await tester.pumpAndSettle();
     expect(find.text('Pakai rute untuk sesi ini?'), findsNothing);
@@ -563,6 +565,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sessionCubit.state.summary?.session.title, 'Gowes pagi');
+    await tester.ensureVisible(
+      find.textContaining('Sinkronisasi otomatis dan partisipasi'),
+    );
+    expect(
+      find.textContaining('Sinkronisasi otomatis dan partisipasi'),
+      findsOneWidget,
+    );
+    expect(find.text('Aktifkan di Pengaturan'), findsOneWidget);
   });
 }
 
@@ -582,10 +592,10 @@ RideSessionCubit _createSessionCubit(
 
 class _TestLeaderboardGateway implements LeaderboardGateway {
   @override
-  bool get isConfigured => false;
+  bool get isConfigured => true;
 
   @override
-  bool get isSignedIn => false;
+  bool get isSignedIn => true;
 
   @override
   Future<LeaderboardSettings> loadSettings() async =>
