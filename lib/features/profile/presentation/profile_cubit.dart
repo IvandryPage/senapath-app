@@ -48,35 +48,68 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   static const maximumContacts = 3;
   final UserProfileRepository _repository;
+  int _loadGeneration = 0;
+  CloudUserProfileRepository? get _cloudRepository {
+    if (_repository is! CloudUserProfileRepository) return null;
+    return _repository as CloudUserProfileRepository;
+  }
+
+  Future<void> reloadProfile() async {
+    emit(state.copyWith(isLoaded: false, clearMessage: true));
+    await load();
+  }
 
   Future<void> load() async {
     if (state.isLoaded) return;
+    final generation = ++_loadGeneration;
     try {
-      final profile = await _repository.loadProfile();
+      var profile = await _repository.loadProfile();
       final contacts = await _repository.loadContacts();
       Uint8List? avatar;
+      String? message;
       try {
         avatar = await _repository.loadAvatar();
       } catch (_) {
-        emit(
-          state.copyWith(
-            profile: profile,
-            contacts: contacts,
-            isLoaded: true,
-            message: 'Foto profil tidak dapat dibuka.',
-          ),
-        );
-        return;
+        message = 'Foto profil tidak dapat dibuka.';
       }
+
+      final cloudRepository = _cloudRepository;
+      if (cloudRepository?.isCloudSignedIn == true) {
+        try {
+          final cloudProfile = await cloudRepository!.loadCloudProfile();
+          if (cloudProfile != null) {
+            profile = UserProfile(
+              displayName: cloudProfile.displayName.isNotEmpty
+                  ? cloudProfile.displayName
+                  : profile.displayName,
+              riderStyle: cloudProfile.riderStyle,
+            );
+            if (cloudProfile.displayName.isNotEmpty) {
+              await _repository.saveProfile(profile);
+            } else if (profile.displayName.trim().isNotEmpty) {
+              await cloudRepository.saveCloudProfile(profile);
+            }
+          } else if (profile.displayName.trim().isNotEmpty) {
+            await cloudRepository.saveCloudProfile(profile);
+          }
+        } on CloudProfileSyncException catch (error) {
+          message =
+              'Profil lokal ditampilkan, tetapi sinkronisasi akun online gagal: $error';
+        }
+      }
+
+      if (isClosed || generation != _loadGeneration) return;
       emit(
         ProfileState(
           profile: profile,
           contacts: contacts,
           avatarBytes: avatar,
           isLoaded: true,
+          message: message,
         ),
       );
     } catch (_) {
+      if (isClosed || generation != _loadGeneration) return;
       emit(
         state.copyWith(
           isLoaded: true,
@@ -86,24 +119,62 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
-  Future<void> saveProfile(UserProfile profile) async {
+  Future<bool> saveProfile(UserProfile profile) async {
     final cleanedName = profile.displayName.trim();
     if (cleanedName.isEmpty) {
       emit(state.copyWith(message: 'Nama tidak boleh kosong.'));
-      return;
+      return false;
+    }
+    if (cleanedName.length > 60) {
+      emit(state.copyWith(message: 'Nama maksimal 60 karakter.'));
+      return false;
     }
 
     final updated = UserProfile(
       displayName: cleanedName,
-      teamName: profile.teamName.trim(),
+      riderStyle: profile.riderStyle,
     );
-    await _save(
-      () => _repository.saveProfile(updated),
-      successMessage: 'Profil disimpan di perangkat.',
-    );
-    if (state.message == 'Profil disimpan di perangkat.') {
-      emit(state.copyWith(profile: updated));
+    emit(state.copyWith(isSaving: true, clearMessage: true));
+    try {
+      await _repository.saveProfile(updated);
+    } catch (_) {
+      emit(
+        state.copyWith(
+          isSaving: false,
+          message: 'Profil tidak dapat disimpan di perangkat.',
+        ),
+      );
+      return false;
     }
+    final cloudRepository = _cloudRepository;
+    final shouldSyncCloud = cloudRepository?.isCloudSignedIn == true;
+    emit(
+      state.copyWith(profile: updated, isSaving: shouldSyncCloud),
+    );
+    if (shouldSyncCloud) {
+      try {
+        await cloudRepository!.saveCloudProfile(updated);
+        emit(
+          state.copyWith(
+            profile: updated,
+            isSaving: false,
+            message: 'Profil tersimpan dan tersinkron ke akun online.',
+          ),
+        );
+      } on CloudProfileSyncException catch (error) {
+        emit(
+          state.copyWith(
+            profile: updated,
+            isSaving: false,
+            message:
+                'Profil tersimpan di perangkat, tetapi sinkronisasi akun online gagal: $error',
+          ),
+        );
+      }
+    } else {
+      emit(state.copyWith(message: 'Profil disimpan di perangkat.'));
+    }
+    return true;
   }
 
   Future<void> saveContact(EmergencyContact contact) async {

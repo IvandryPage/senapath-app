@@ -54,6 +54,8 @@ Migrasi mempertahankan UUID akun lama dari `auth.users`, tetapi password Supabas
 
 Di **Profil → Akun & keamanan**, pengguna dapat mendaftar/masuk dengan email dan password serta keluar dari akun cloud. Password dikirim via HTTPS ke Edge Function; token sesi disimpan di secure storage dan refresh token selalu dirotasi. Setelah pernah login, sesi tersimpan dapat dipulihkan dari layar akun memakai biometrik perangkat—password tidak disimpan, dan biometrik bukan gerbang unlock seluruh aplikasi. Login biometrik hanya tersedia jika sesi masih tersimpan; logout cloud mencabut sesi itu. Keluar dari akun cloud mempertahankan data lokal.
 
+Nama dan tipe pesepeda di **Edit profil** disinkronkan ke profil akun Supabase saat masuk. Perubahan nama juga memperbarui nama anggota di semua tim; keanggotaan tim tetap dikelola di **Profil → Tim saya**. Saat offline, perubahan profil tetap tersimpan lokal dan aplikasi memberi tahu jika sinkronisasi cloud gagal. Foto profil dan kontak darurat tetap tersimpan terenkripsi di perangkat.
+
 ## Tema tampilan
 
 Senapath menggunakan **tema terang** di seluruh aplikasi, terlepas dari pengaturan tampilan perangkat.

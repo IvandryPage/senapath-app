@@ -105,6 +105,8 @@ Future<void> main() async {
         SecureUserProfileRepository(
           secureVault: secureVault,
           avatarStore: EncryptedAvatarStore(secureVault: secureVault),
+          cloudClient: supabaseClient,
+          sessionManager: authSessionManager,
         ),
       ),
       routesCubit: RoutesCubit(

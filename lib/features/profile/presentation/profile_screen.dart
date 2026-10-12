@@ -16,6 +16,7 @@ import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../gamification/presentation/rider_gamification_cubit.dart';
 import '../../gamification/presentation/rider_avatar.dart';
+import '../../gamification/domain/rider_progress.dart';
 import '../../progress/domain/activity_progress.dart';
 import '../../progress/presentation/activity_goals_cubit.dart';
 import '../domain/user_profile.dart';
@@ -140,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Edit nama dan foto profil',
+                        tooltip: 'Edit profil',
                         onPressed: () =>
                             _editProfile(profile, state.avatarBytes),
                         visualDensity: VisualDensity.compact,
@@ -158,6 +159,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : 'Memuat tim…',
                     style: Theme.of(context).textTheme.bodyMedium
                         ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                  BlocBuilder<RiderGamificationCubit, RiderGamificationState>(
+                    builder: (context, riderState) {
+                      final style = riderState.progress?.style;
+                      if (style == null) return const SizedBox.shrink();
+                      return Text(
+                        'Tipe pesepeda · ${style.label}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      );
+                    },
                   ),
                   BlocBuilder<RiderGamificationCubit, RiderGamificationState>(
                     builder: (context, riderState) {
@@ -417,16 +430,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _editProfile(UserProfile profile, Uint8List? avatarBytes) async {
+    final currentCyclistType =
+        context.read<RiderGamificationCubit>().state.progress?.style ??
+        profile.riderStyle;
+    final profileToEdit = UserProfile(
+      displayName: profile.displayName,
+      riderStyle: currentCyclistType,
+    );
     final result = await showDialog<(UserProfile, Uint8List?)>(
       context: context,
       builder: (context) => _ProfileEditor(
-        profile: profile,
+        profile: profileToEdit,
         avatarBytes: avatarBytes,
         onChooseAvatar: _chooseAvatar,
       ),
     );
     if (result == null || !mounted) return;
-    await context.read<ProfileCubit>().saveProfile(result.$1);
+    final saved = await context.read<ProfileCubit>().saveProfile(result.$1);
+    if (saved && mounted) {
+      await context.read<RiderGamificationCubit>().applyCyclistType(
+        result.$1.riderStyle,
+      );
+    }
     if (result.$2 != null && mounted) {
       await context.read<ProfileCubit>().saveAvatar(result.$2!);
     }
@@ -827,6 +852,7 @@ class _ProfileEditor extends StatefulWidget {
 class _ProfileEditorState extends State<_ProfileEditor> {
   late final TextEditingController _nameController;
   final _formKey = GlobalKey<FormState>();
+  late RiderStyle _riderStyle;
   late Uint8List? _avatarBytes;
   Uint8List? _updatedAvatarBytes;
 
@@ -834,6 +860,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile.displayName);
+    _riderStyle = widget.profile.riderStyle;
     _avatarBytes = widget.avatarBytes;
   }
 
@@ -880,10 +907,31 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             TextFormField(
               controller: _nameController,
               autofocus: true,
+              maxLength: 60,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(labelText: 'Nama'),
               validator: (value) =>
                   value == null || value.trim().isEmpty ? 'Isi nama.' : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<RiderStyle>(
+              initialValue: _riderStyle,
+              decoration: const InputDecoration(labelText: 'Tipe pesepeda'),
+              items: [
+                for (final style in RiderStyle.values)
+                  DropdownMenuItem(
+                    value: style,
+                    child: Text(style.label),
+                  ),
+              ],
+              onChanged: (style) {
+                if (style != null) setState(() => _riderStyle = style);
+              },
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _riderStyle.description,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -899,7 +947,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             Navigator.pop(context, (
               UserProfile(
                 displayName: _nameController.text,
-                teamName: widget.profile.teamName,
+                riderStyle: _riderStyle,
               ),
               _updatedAvatarBytes,
             ));

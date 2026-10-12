@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
-import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
@@ -133,21 +132,43 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
       );
 
   Future<void> _createTeam() async {
+    final displayName = _currentProfileDisplayName();
+    if (displayName == null) return;
     final form = await _showTeamForm(join: false);
     if (form == null || !mounted) return;
     await context.read<CyclingTeamCubit>().createTeam(
       name: form.name,
-      displayName: form.displayName,
+      displayName: displayName,
     );
   }
 
   Future<void> _joinTeam() async {
+    final displayName = _currentProfileDisplayName();
+    if (displayName == null) return;
     final form = await _showTeamForm(join: true);
     if (form == null || !mounted) return;
     await context.read<CyclingTeamCubit>().joinTeam(
       inviteCode: form.inviteCode,
-      displayName: form.displayName,
+      displayName: displayName,
     );
+  }
+
+  String? _currentProfileDisplayName() {
+    final displayName = context
+        .read<ProfileCubit>()
+        .state
+        .profile
+        .displayName
+        .trim();
+    if (displayName.isNotEmpty) return displayName;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Atur nama di Edit profil sebelum membuat atau bergabung dengan tim.'),
+        ),
+      );
+    return null;
   }
 
   Future<_TeamFormResult?> _showTeamForm({required bool join}) {
@@ -159,12 +180,6 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
         .profile
         .displayName
         .trim();
-    final email = context.read<CloudAccountCubit>().state.email;
-    final displayNameController = TextEditingController(
-      text: currentDisplayName.isNotEmpty
-          ? currentDisplayName
-          : email?.split('@').first ?? '',
-    );
     final formKey = GlobalKey<FormState>();
 
     return showDialog<_TeamFormResult>(
@@ -201,16 +216,11 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
                       : null,
                 ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: displayNameController,
-                maxLength: 60,
-                decoration: const InputDecoration(
-                  labelText: 'Nama yang terlihat oleh anggota tim',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Masukkan nama tampilan.'
-                    : null,
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Nama anggota tim'),
+                subtitle: Text(currentDisplayName),
               ),
             ],
           ),
@@ -227,7 +237,6 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
                 _TeamFormResult(
                   name: nameController.text.trim(),
                   inviteCode: inviteController.text.trim().toUpperCase(),
-                  displayName: displayNameController.text.trim(),
                 ),
               );
             },
@@ -238,7 +247,6 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
     ).whenComplete(() {
       nameController.dispose();
       inviteController.dispose();
-      displayNameController.dispose();
     });
   }
 }
@@ -847,12 +855,10 @@ class _TeamFormResult {
   const _TeamFormResult({
     required this.name,
     required this.inviteCode,
-    required this.displayName,
   });
 
   final String name;
   final String inviteCode;
-  final String displayName;
 }
 
 String _durationLabel(int seconds) {

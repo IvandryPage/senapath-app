@@ -15,6 +15,7 @@ import 'package:senapath/features/authentication/presentation/cloud_account_cubi
 import 'package:senapath/features/emergency/data/emergency_contact_actions.dart';
 import 'package:senapath/features/emergency/presentation/emergency_cubit.dart';
 import 'package:senapath/features/gamification/data/rider_profile_repository.dart';
+import 'package:senapath/features/gamification/domain/rider_progress.dart';
 import 'package:senapath/features/gamification/presentation/rider_gamification_cubit.dart';
 import 'package:senapath/features/progress/data/activity_goals_repository.dart';
 import 'package:senapath/features/progress/presentation/activity_goals_cubit.dart';
@@ -35,7 +36,6 @@ void main() {
     tester,
   ) async {
     final repository = _TestProfileRepository()
-      ..profile = const UserProfile(teamName: 'Nama tim manual lama')
       ..contacts = const [
         EmergencyContact(
           id: 'saved-contact',
@@ -91,22 +91,26 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Tim dari akun'), findsOneWidget);
-    expect(find.text('Nama tim manual lama'), findsNothing);
 
-    await tester.tap(find.byTooltip('Edit nama dan foto profil'));
+    await tester.tap(find.byTooltip('Edit profil'));
     await tester.pumpAndSettle();
     expect(find.byType(TextFormField), findsOneWidget);
+    expect(find.text('Tipe pesepeda'), findsOneWidget);
     expect(find.text('Tim (opsional)'), findsNothing);
     expect(find.text('Ubah foto'), findsOneWidget);
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
     expect(find.text('Isi nama.'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField), 'Rider Baru');
+    await tester.tap(find.byType(DropdownButtonFormField<RiderStyle>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Climber').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
     expect(repository.profile.displayName, 'Rider Baru');
-    expect(repository.profile.teamName, 'Nama tim manual lama');
-    expect(find.byTooltip('Edit nama dan foto profil'), findsOneWidget);
+    expect(repository.profile.riderStyle, RiderStyle.climber);
+    expect(find.byTooltip('Edit profil'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
     await tester.pumpAndSettle();

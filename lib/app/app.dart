@@ -90,6 +90,7 @@ class SenapathApp extends StatelessWidget {
           leaderboardCubit.clearForAccountChange();
           cyclingTeamCubit.clearForAccountChange();
           riderGamificationCubit.clearForAccountChange();
+          unawaited(profileCubit.reloadProfile());
           if (state.isSignedIn) {
             unawaited(
               sessionCubit.initialize().then(

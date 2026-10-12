@@ -1,17 +1,22 @@
+import '../../gamification/domain/rider_progress.dart';
+
 class UserProfile {
-  const UserProfile({this.displayName = '', this.teamName = ''});
+  const UserProfile({
+    this.displayName = '',
+    this.riderStyle = RiderStyle.explorer,
+  });
 
   final String displayName;
-  final String teamName;
+  final RiderStyle riderStyle;
 
   Map<String, Object?> toJson() => {
     'displayName': displayName,
-    'teamName': teamName,
+    'riderStyle': riderStyle.name,
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
     displayName: json['displayName'] as String? ?? '',
-    teamName: json['teamName'] as String? ?? '',
+    riderStyle: RiderStyle.fromName(json['riderStyle']),
   );
 }
 

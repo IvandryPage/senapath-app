@@ -9,9 +9,6 @@ import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../../core/storage/offline_storage_manager.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
-import '../../gamification/domain/rider_progress.dart';
-import '../../gamification/presentation/rider_gamification_cubit.dart';
-import '../../session/presentation/session_cubit.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -35,16 +32,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     _initialized = true;
     unawaited(context.read<UnitSettingsCubit>().load());
     unawaited(_loadStorageUsage());
-    unawaited(_loadRider());
-  }
-
-  Future<void> _loadRider() async {
-    final sessions = context.read<RideSessionCubit>();
-    await sessions.initialize();
-    if (!mounted) return;
-    await context.read<RiderGamificationCubit>().load(
-      sessions.state.completedSessions,
-    );
   }
 
   @override
@@ -59,8 +46,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
       const SizedBox(height: 12),
       _unitSettings(),
-      const SizedBox(height: 12),
-      _riderStyleSettings(),
       const SizedBox(height: 12),
       _themeModeInfo(),
       const SizedBox(height: 12),
@@ -171,64 +156,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
     ),
   );
-
-  Widget _riderStyleSettings() =>
-      BlocBuilder<RiderGamificationCubit, RiderGamificationState>(
-        builder: (context, state) {
-          final progress = state.progress;
-          return SenapathCard(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    leading: const Icon(Icons.sports_score_outlined),
-                    title: const Text('Gaya rider'),
-                    subtitle: Text(
-                      progress?.style.label ?? 'Memuat karakter rider…',
-                    ),
-                  ),
-                  RadioGroup<RiderStyle>(
-                    groupValue: progress?.style ?? RiderStyle.explorer,
-                    onChanged: (style) {
-                      if (!state.isSaving && style != null) {
-                        context
-                            .read<RiderGamificationCubit>()
-                            .setStyle(style);
-                      }
-                    },
-                    child: Column(
-                      children: [
-                        for (final style in RiderStyle.values)
-                          RadioListTile<RiderStyle>(
-                            value: style,
-                            title: Text(style.label),
-                            subtitle: Text(style.description),
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 4),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (state.isSaving) const LinearProgressIndicator(),
-                  if (state.error != null)
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(
-                        state.error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
 
   Widget _biometricSettings() =>
       BlocBuilder<CloudAccountCubit, CloudAccountState>(

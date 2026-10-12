@@ -28,6 +28,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
 
   final RiderProfileRepository _repository;
   List<RideSessionSnapshot> _sessions = const [];
+  RiderStyle? _pendingCyclistType;
 
   Future<void> load(List<RideSessionSnapshot> sessions) async {
     _sessions = sessions;
@@ -63,6 +64,11 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
         }
         return;
       }
+    }
+    final pendingCyclistType = _pendingCyclistType;
+    if (pendingCyclistType != null) {
+      style = pendingCyclistType;
+      _pendingCyclistType = null;
     }
     try {
       appearance = await _repository.loadAppearance();
@@ -116,9 +122,27 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     emit(const RiderGamificationState());
   }
 
-  Future<void> setStyle(RiderStyle style) async {
+  Future<void> applyCyclistType(RiderStyle style) async {
     final current = state.progress;
-    if (current == null || state.isSaving) return;
+    if (state.isSaving) return;
+    _pendingCyclistType = style;
+    if (current == null) {
+      try {
+        await _repository.saveStyle(style);
+        _pendingCyclistType = null;
+      } catch (_) {
+        if (!isClosed) {
+          emit(
+            RiderGamificationState(
+              appearance: state.appearance,
+              error:
+                  'Tipe pesepeda tersimpan di profil, tetapi rider tidak dapat diperbarui.',
+            ),
+          );
+        }
+      }
+      return;
+    }
     emit(
       RiderGamificationState(
         progress: current,
@@ -128,6 +152,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     );
     try {
       await _repository.saveStyle(style);
+      _pendingCyclistType = null;
       final updated = RiderProgress.fromSessions(_sessions, style: style);
       if (!isClosed) {
         emit(
@@ -137,19 +162,13 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
           ),
         );
       }
-      await _repository.saveCloudProfile(
-        style: updated.style,
-        level: updated.level,
-        experience: updated.experience,
-      );
     } catch (_) {
-      final updated = RiderProgress.fromSessions(_sessions, style: style);
       if (!isClosed) {
         emit(
           RiderGamificationState(
-            progress: updated,
+            progress: current,
             appearance: state.appearance,
-            error: 'Gaya tersimpan lokal; sinkronisasi ke cloud gagal.',
+            error: 'Tipe pesepeda tersimpan di profil, tetapi progres rider tidak dapat diperbarui.',
           ),
         );
       }

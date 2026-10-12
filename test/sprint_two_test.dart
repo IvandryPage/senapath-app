@@ -10,6 +10,7 @@ import 'package:senapath/features/authentication/presentation/device_auth_cubit.
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
+import 'package:senapath/features/gamification/domain/rider_progress.dart';
 
 void main() {
   group('DeviceAuthCubit', () {
@@ -46,7 +47,10 @@ void main() {
       final cubit = ProfileCubit(repository);
       await cubit.load();
       await cubit.saveProfile(
-        const UserProfile(displayName: '  Rina  ', teamName: '  Senapath  '),
+        const UserProfile(
+          displayName: '  Rina  ',
+          riderStyle: RiderStyle.climber,
+        ),
       );
 
       for (var index = 0; index < 3; index++) {
@@ -69,7 +73,7 @@ void main() {
       );
 
       expect(repository.profile.displayName, 'Rina');
-      expect(repository.profile.teamName, 'Senapath');
+      expect(repository.profile.riderStyle, RiderStyle.climber);
       expect(cubit.state.contacts, hasLength(3));
       expect(cubit.state.message, 'Maksimal tiga kontak darurat.');
       await cubit.close();
@@ -83,6 +87,46 @@ void main() {
 
       expect(cubit.state.profile.displayName, isEmpty);
       expect(cubit.state.message, 'Nama tidak boleh kosong.');
+      await cubit.close();
+    });
+
+    test(
+      'synchronizes a saved name and cyclist type to the online account',
+      () async {
+        final repository = _FakeProfileRepository()..cloudSignedIn = true;
+        final cubit = ProfileCubit(repository);
+        await cubit.load();
+
+        await cubit.saveProfile(
+          const UserProfile(
+            displayName: 'Rina',
+            riderStyle: RiderStyle.sprinter,
+          ),
+        );
+
+        expect(repository.cloudProfile?.displayName, 'Rina');
+        expect(repository.cloudProfile?.riderStyle, RiderStyle.sprinter);
+        expect(
+          cubit.state.message,
+          'Profil tersimpan dan tersinkron ke akun online.',
+        );
+        await cubit.close();
+      },
+    );
+
+    test('loads the online profile as the account source of truth', () async {
+      final repository = _FakeProfileRepository()
+        ..cloudSignedIn = true
+        ..cloudProfile = const UserProfile(
+          displayName: 'Nama akun',
+          riderStyle: RiderStyle.ace,
+        );
+      final cubit = ProfileCubit(repository);
+      await cubit.load();
+
+      expect(cubit.state.profile.displayName, 'Nama akun');
+      expect(cubit.state.profile.riderStyle, RiderStyle.ace);
+      expect(repository.profile.displayName, 'Nama akun');
       await cubit.close();
     });
   });
@@ -118,9 +162,23 @@ class _FakeDeviceAuthenticator implements DeviceAuthenticator {
   }
 }
 
-class _FakeProfileRepository implements UserProfileRepository {
+class _FakeProfileRepository
+    implements UserProfileRepository, CloudUserProfileRepository {
   UserProfile profile = const UserProfile();
+  UserProfile? cloudProfile;
+  bool cloudSignedIn = false;
   List<EmergencyContact> contacts = [];
+
+  @override
+  bool get isCloudSignedIn => cloudSignedIn;
+
+  @override
+  Future<UserProfile?> loadCloudProfile() async => cloudProfile;
+
+  @override
+  Future<void> saveCloudProfile(UserProfile profile) async {
+    cloudProfile = profile;
+  }
 
   @override
   Future<List<EmergencyContact>> loadContacts() async => contacts;
