@@ -1,12 +1,18 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../session/data/session_file_service.dart';
 
 class RouteFileExchange {
   const RouteFileExchange(this.fileService);
+
+  static const _androidFileExportChannel = MethodChannel(
+    'senapath/file_export',
+  );
 
   final SessionFileService fileService;
 
@@ -30,6 +36,35 @@ class RouteFileExchange {
     required String extension,
     required String mimeType,
   }) async {
+    final bytes = Uint8List.fromList(utf8.encode(content));
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return await _androidFileExportChannel.invokeMethod<bool>(
+            'saveFile',
+            {
+              'bytes': bytes,
+              'fileName': suggestedName,
+              'mimeType': mimeType,
+            },
+          ) ??
+          false;
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          title: suggestedName,
+          files: [
+            XFile.fromData(
+              bytes,
+              name: suggestedName,
+              mimeType: mimeType,
+            ),
+          ],
+        ),
+      );
+      return result.status != ShareResultStatus.dismissed;
+    }
+
     final location = await getSaveLocation(
       suggestedName: suggestedName,
       acceptedTypeGroups: [
@@ -38,7 +73,7 @@ class RouteFileExchange {
     );
     if (location == null) return false;
     await XFile.fromData(
-      Uint8List.fromList(utf8.encode(content)),
+      bytes,
       name: suggestedName,
       mimeType: mimeType,
     ).saveTo(location.path);

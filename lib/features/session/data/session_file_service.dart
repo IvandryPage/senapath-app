@@ -67,7 +67,28 @@ class SessionFileService {
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
-  String toGpx(List<TelemetryLocation> locations) {
+  String toGpx(
+    List<TelemetryLocation> locations, {
+    String trackName = 'Senapath session',
+  }) {
+    if (locations.isEmpty) {
+      throw ArgumentError.value(
+        locations,
+        'locations',
+        'A GPX track must contain at least one GPS point.',
+      );
+    }
+    for (final location in locations) {
+      if (!location.latitude.isFinite ||
+          !location.longitude.isFinite ||
+          location.latitude < -90 ||
+          location.latitude > 90 ||
+          location.longitude < -180 ||
+          location.longitude > 180) {
+        throw const FormatException('Sesi memiliki titik GPS yang tidak valid.');
+      }
+    }
+
     final builder = XmlBuilder();
     builder.processing('xml', 'version="1.0" encoding="UTF-8"');
     builder.element(
@@ -81,7 +102,7 @@ class SessionFileService {
         builder.element(
           'trk',
           nest: () {
-            builder.element('name', nest: 'Senapath session');
+              builder.element('name', nest: trackName);
             builder.element(
               'trkseg',
               nest: () {
@@ -93,10 +114,12 @@ class SessionFileService {
                       'lon': location.longitude.toString(),
                     },
                     nest: () {
-                      builder.element(
-                        'ele',
-                        nest: location.altitudeMeters.toString(),
-                      );
+                      if (location.altitudeMeters.isFinite) {
+                        builder.element(
+                          'ele',
+                          nest: location.altitudeMeters.toString(),
+                        );
+                      }
                       builder.element(
                         'time',
                         nest: location.recordedAt.toUtc().toIso8601String(),

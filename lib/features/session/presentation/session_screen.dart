@@ -1397,15 +1397,19 @@ class _SessionScreenState extends State<SessionScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            saved ? 'Ekspor aktivitas selesai.' : 'Ekspor dibatalkan.',
+            saved
+                ? 'Berkas aktivitas siap dibagikan atau disimpan.'
+                : 'Ekspor dibatalkan.',
           ),
         ),
       );
-    } catch (_) {
+    } on Exception catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Ekspor aktivitas gagal.')));
+      ).showSnackBar(
+        SnackBar(content: Text('Ekspor aktivitas gagal: $error')),
+      );
     }
   }
 
@@ -1878,28 +1882,49 @@ class _SessionScreenState extends State<SessionScreen>
       final locations = await sessionCubit.repository.loadTelemetryLocations(
         summary.session.id,
       );
+      if (asGpx && locations.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Jejak GPX belum tersedia karena sesi ini tidak memiliki titik GPS.',
+            ),
+          ),
+        );
+        return;
+      }
       final content = asGpx
-          ? _fileExchange.fileService.toGpx(locations)
+          ? _fileExchange.fileService.toGpx(
+              locations,
+              trackName: summary.session.title.trim().isEmpty
+                  ? 'Senapath session'
+                  : summary.session.title.trim(),
+            )
           : _fileExchange.fileService.toJson(
               session: summary.session,
               locations: locations,
             );
       final saved = await _fileExchange.exportText(
         content: content,
-        suggestedName: asGpx ? 'senapath-session.gpx' : 'senapath-session.json',
+        suggestedName: asGpx
+            ? 'senapath-session-${summary.session.id}.gpx'
+            : 'senapath-session-${summary.session.id}.json',
         extension: asGpx ? 'gpx' : 'json',
         mimeType: asGpx ? 'application/gpx+xml' : 'application/json',
       );
-      if (!context.mounted || !saved) return;
+      if (!context.mounted) return;
+      if (!saved) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Berkas ${asGpx ? 'GPX' : 'JSON'} berhasil disimpan.'),
+          content: Text(
+            'Berkas ${asGpx ? 'GPX' : 'JSON'} berhasil diekspor.',
+          ),
         ),
       );
-    } catch (_) {
+    } on Exception catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ekspor gagal atau dibatalkan.')),
+        SnackBar(content: Text('Ekspor gagal: $error')),
       );
     }
   }

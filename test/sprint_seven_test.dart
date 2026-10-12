@@ -97,6 +97,30 @@ void main() {
     },
   );
 
+  test('GPX export uses the activity name and skips invalid elevation', () {
+    final points = [
+      TelemetryLocation(
+        recordedAt: DateTime.utc(2026, 10, 1, 8),
+        latitude: -6.2,
+        longitude: 106.8,
+        accuracyMeters: 5,
+        altitudeMeters: double.nan,
+        speedMetersPerSecond: 3,
+      ),
+    ];
+
+    final gpx = service.toGpx(points, trackName: 'Gowes Pagi');
+    final parsed = service.parseGpxDocument(gpx);
+
+    expect(parsed.name, 'Gowes Pagi');
+    expect(parsed.locations.single.altitudeMeters, 0);
+    expect(gpx, isNot(contains('<ele>NaN</ele>')));
+  });
+
+  test('GPX export rejects sessions with no GPS points', () {
+    expect(() => service.toGpx(const []), throwsArgumentError);
+  });
+
   test('GPX import preserves track name and description', () {
     const gpx = '''
 <gpx version="1.1">

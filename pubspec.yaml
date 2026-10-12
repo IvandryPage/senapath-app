@@ -31,6 +31,7 @@ dependencies:
   permission_handler: ^13.0.2
   phone_form_field: ^3.0.1
   sensors_plus: ^7.1.0
+  share_plus: ^13.3.1
   supabase_flutter: ^2.18.0
   timezone: ^0.11.1
   url_launcher: ^6.3.2
