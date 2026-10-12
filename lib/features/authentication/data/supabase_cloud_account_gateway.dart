@@ -43,24 +43,5 @@ class SupabaseCloudAccountGateway implements CloudAccountGateway {
       _sessionManager.restoreForBiometricSignIn();
 
   @override
-  Future<void> sendPasswordReset(String email) async {
-    await _sessionManager.authenticate(
-      'password-reset-request',
-      values: {'email': email},
-    );
-  }
-
-  @override
-  Future<void> completePasswordReset({
-    required String token,
-    required String password,
-  }) async {
-    await _sessionManager.authenticate(
-      'password-reset-complete',
-      values: {'token': token, 'password': password},
-    );
-  }
-
-  @override
   Future<void> signOut() => _sessionManager.signOut();
 }

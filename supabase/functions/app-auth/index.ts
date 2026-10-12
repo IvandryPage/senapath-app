@@ -22,9 +22,7 @@ type AuthAction =
   | "register"
   | "sign-in"
   | "refresh"
-  | "sign-out"
-  | "password-reset-request"
-  | "password-reset-complete";
+  | "sign-out";
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -53,27 +51,15 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "Invalid request." }, 400);
     }
     const action = input.action as AuthAction;
-    if (
-      action === "password-reset-request" &&
-      !passwordRecoveryConfigured()
-    ) {
-      return jsonResponse({
-        error:
-          "Password recovery needs RESEND_API_KEY, AUTH_EMAIL_FROM, and AUTH_PASSWORD_RESET_URL in Supabase Edge Function secrets.",
-      }, 503);
-    }
-    if (["register", "sign-in", "password-reset-request"].includes(action)) {
+    if (["register", "sign-in"].includes(action)) {
       const email = normalizeEmail(input.email);
       if (email) {
         const clientIp = request.headers.get("cf-connecting-ip") ??
           request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
           "unknown";
-        const limits = action === "password-reset-request"
-          ? { email: 3, ip: 20 }
-          : { email: 5, ip: 30 };
         const [emailAllowed, ipAllowed] = await Promise.all([
-          consumeRateLimit(`email:${email}:${clientIp}`, limits.email),
-          consumeRateLimit(`ip:${clientIp}`, limits.ip),
+          consumeRateLimit(`email:${email}:${clientIp}`, 5),
+          consumeRateLimit(`ip:${clientIp}`, 30),
         ]);
         if (!emailAllowed || !ipAllowed) {
           return jsonResponse(
@@ -92,10 +78,6 @@ Deno.serve(async (request) => {
         return await refreshSession(input);
       case "sign-out":
         return await signOut(input);
-      case "password-reset-request":
-        return await requestPasswordReset(input);
-      case "password-reset-complete":
-        return await completePasswordReset(input);
       default:
         return jsonResponse({ error: "Unsupported auth action." }, 400);
     }
@@ -251,114 +233,6 @@ async function signOut(input: Record<string, unknown>): Promise<Response> {
     if (error) throw error;
   }
   return jsonResponse({ success: true });
-}
-
-async function requestPasswordReset(
-  input: Record<string, unknown>,
-): Promise<Response> {
-  const email = normalizeEmail(input.email);
-  if (!email) {
-    return jsonResponse({ error: "Enter a valid email address." }, 400);
-  }
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  const sender = Deno.env.get("AUTH_EMAIL_FROM");
-  const resetUrl = Deno.env.get("AUTH_PASSWORD_RESET_URL");
-  if (!resendApiKey || !sender || !resetUrl) {
-    return jsonResponse({ error: "Password recovery is not configured." }, 503);
-  }
-
-  const { data: user, error: lookupError } = await supabase!.from("app_users")
-    .select("id")
-    .eq("email", email)
-    .not("password_hash", "is", null)
-    .maybeSingle();
-  if (lookupError) throw lookupError;
-  if (user) {
-    const token = randomToken();
-    const { error } = await supabase!.from("app_auth_password_resets").insert({
-      user_id: user.id,
-      token_hash: await sha256(token),
-      expires_at: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
-    });
-    if (error) throw error;
-
-    const link = new URL(resetUrl);
-    link.searchParams.set("token", token);
-    await sendEmail({
-      apiKey: resendApiKey,
-      sender,
-      recipient: email,
-      subject: "Reset password Senapath",
-      text:
-        `Buka tautan ini untuk mengatur ulang password Senapath. Tautan berlaku 20 menit:\n${link.toString()}\n\nJika kamu tidak meminta reset, abaikan email ini.`,
-    });
-  }
-  return jsonResponse({ success: true });
-}
-
-async function completePasswordReset(
-  input: Record<string, unknown>,
-): Promise<Response> {
-  const token = input.token;
-  const password = input.password;
-  if (
-    typeof token !== "string" ||
-    token.length > 200 ||
-    typeof password !== "string" ||
-    password.length < 8 ||
-    password.length > 128
-  ) {
-    return jsonResponse(
-      { error: "Reset token or new password is invalid." },
-      400,
-    );
-  }
-  const { data, error } = await supabase!.rpc("complete_app_password_reset", {
-    p_token_hash: await sha256(token),
-    p_password_hash: await hashPassword(password),
-  });
-  if (error) throw error;
-  if (data !== true) {
-    return jsonResponse({ error: "Reset link expired or already used." }, 400);
-  }
-  return jsonResponse({ success: true });
-}
-
-async function sendEmail({
-  apiKey,
-  sender,
-  recipient,
-  subject,
-  text,
-}: {
-  apiKey: string;
-  sender: string;
-  recipient: string;
-  subject: string;
-  text: string;
-}): Promise<void> {
-  if (!sender) throw new Error("AUTH_EMAIL_FROM is not configured.");
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: sender, to: [recipient], subject, text }),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) {
-    console.error("Auth email delivery failed", { status: response.status });
-    throw new Error("Auth email could not be sent.");
-  }
-}
-
-function passwordRecoveryConfigured(): boolean {
-  return Boolean(
-    Deno.env.get("RESEND_API_KEY") &&
-      Deno.env.get("AUTH_EMAIL_FROM") &&
-      Deno.env.get("AUTH_PASSWORD_RESET_URL"),
-  );
 }
 
 async function createSession(

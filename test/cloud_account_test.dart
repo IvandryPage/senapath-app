@@ -30,7 +30,7 @@ void main() {
   );
 
   test(
-    'sign-in, password reset, and sign-out use cloud auth gateway',
+    'sign-in and sign-out use cloud auth gateway',
     () async {
       final gateway = _FakeCloudAccountGateway();
       final cubit = CloudAccountCubit(gateway);
@@ -38,10 +38,6 @@ void main() {
 
       await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
       expect(cubit.state.email, 'rider@example.com');
-
-      await cubit.sendPasswordReset('rider@example.com');
-      expect(gateway.resetEmail, 'rider@example.com');
-      expect(cubit.state.status, contains('Jika email terdaftar'));
 
       await cubit.signOut();
       expect(gateway.signOutCalls, 1);
@@ -218,7 +214,6 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   String? currentEmail;
   String? registeredEmail;
   String? registeredPassword;
-  String? resetEmail;
   String? rememberedEmail;
   bool rememberedSession = false;
   bool registrationHasSession = true;
@@ -248,17 +243,6 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
     }
     return CloudAccountRegistrationResult(hasSession: registrationHasSession);
   }
-
-  @override
-  Future<void> sendPasswordReset(String email) async {
-    resetEmail = email;
-  }
-
-  @override
-  Future<void> completePasswordReset({
-    required String token,
-    required String password,
-  }) async {}
 
   @override
   Future<void> signIn({required String email, required String password}) async {

@@ -32,6 +32,7 @@ class SessionScreen extends StatefulWidget {
     this.initialPanelSize = 0.7,
     this.compactControls = false,
     this.hideReadinessDetails = false,
+    this.panelDraggable = true,
     super.key,
   });
 
@@ -43,6 +44,7 @@ class SessionScreen extends StatefulWidget {
   final double initialPanelSize;
   final bool compactControls;
   final bool hideReadinessDetails;
+  final bool panelDraggable;
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -189,21 +191,25 @@ class _SessionScreenState extends State<SessionScreen>
                     showEmptyMessage: false,
                   ),
                 DraggableScrollableSheet(
-                  initialChildSize: widget.initialPanelSize,
-                  minChildSize: 0.2,
-                  maxChildSize: 0.92,
+                  initialChildSize: widget.panelDraggable
+                      ? widget.initialPanelSize
+                      : 1,
+                  minChildSize: widget.panelDraggable ? 0.2 : 1,
+                  maxChildSize: widget.panelDraggable ? 0.92 : 1,
                   builder: (context, scrollController) => Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: EdgeInsets.only(
+                      top: widget.panelDraggable ? 8 : 0,
+                    ),
                     child: Material(
                       color: Theme.of(context).colorScheme.surface
                           .withValues(alpha: 0.97),
                       shape: RoundedRectangleBorder(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(4),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(widget.panelDraggable ? 4 : 0),
                         ),
                         side: BorderSide(
                           color: Theme.of(context).colorScheme.outline,
-                          width: 2,
+                          width: widget.panelDraggable ? 2 : 0,
                         ),
                       ),
                       clipBehavior: Clip.antiAlias,
@@ -211,20 +217,22 @@ class _SessionScreenState extends State<SessionScreen>
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                         children: [
-                          Center(
-                            child: Container(
-                              width: 36,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.35),
-                                borderRadius: BorderRadius.circular(4),
+                          if (widget.panelDraggable) ...[
+                            Center(
+                              child: Container(
+                                width: 36,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
+                            const SizedBox(height: 12),
+                          ],
                           if (widget.compactControls) ...[
                             _buildCompactControls(context, state, unitSystem),
                             if (session != null &&
@@ -780,7 +788,7 @@ class _SessionScreenState extends State<SessionScreen>
         const SizedBox(height: 16),
         Text(
           'Rotasi sudut (rad/s)${peakRotation == null ? '' : ' · puncak '
-              '${peakRotation.toStringAsFixed(2)}'}',
+                    '${peakRotation.toStringAsFixed(2)}'}',
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 8),

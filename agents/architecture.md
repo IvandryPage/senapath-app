@@ -58,7 +58,7 @@ lib/
     units/             # unit_settings_cubit/repository, unit_system
     widgets/           # feature_state_view (loading/empty/offline/error)
   features/
-    authentication/    # custom auth, biometrik, password reset
+    authentication/    # custom auth dan biometrik
     session/           # ride capture, telemetry, sync, recovery, summary
     routes/            # GPX, peta, panduan rute
     emergency/         # SOS manual, kontak darurat

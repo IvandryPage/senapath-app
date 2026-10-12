@@ -89,12 +89,18 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: canvas,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: surface,
+        backgroundColor: canvas,
         foregroundColor: ink,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: textTheme.titleLarge?.copyWith(color: ink),
-        shape: Border(bottom: outline),
+        toolbarHeight: 64,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: ink,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: const Border(),
+        actionsIconTheme: const IconThemeData(color: SenapathColors.navy),
         scrolledUnderElevation: 0,
       ),
       navigationBarTheme: NavigationBarThemeData(

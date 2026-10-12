@@ -241,15 +241,6 @@ class _TestCloudAccountGateway implements CloudAccountGateway {
   Future<void> signInWithRememberedSession() async {}
 
   @override
-  Future<void> sendPasswordReset(String email) async {}
-
-  @override
-  Future<void> completePasswordReset({
-    required String token,
-    required String password,
-  }) async {}
-
-  @override
   Future<void> signOut() async {}
 }
 

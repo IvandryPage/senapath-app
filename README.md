@@ -16,7 +16,7 @@ Jalankan `Copy-Item` hanya saat `.env` belum ada agar konfigurasi lokal tidak te
 
 ## Pemeriksaan kualitas
 
-Isi konfigurasi klien di `.env` lokal. Runner membuat asset `assets/config/client.env` yang hanya memuat URL dan publishable key; `.env` sumber tidak pernah dimasukkan ke APK. Signing secret JWT, Resend key, service-role key, dan Gemini key hanya dipakai Supabase Edge Functions.
+Isi konfigurasi klien di `.env` lokal. Runner membuat asset `assets/config/client.env` yang hanya memuat URL dan publishable key; `.env` sumber tidak pernah dimasukkan ke APK. Signing secret JWT, service-role key, dan Gemini key hanya dipakai Supabase Edge Functions.
 dart format lib test
 flutter analyze
 flutter test
@@ -29,7 +29,7 @@ GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests
 
 Layar **Akun & keamanan** memakai endpoint custom `app-auth`, bukan Supabase Auth. Hanya pendaftaran/login email-password yang tersedia. Password diverifikasi server-side dan disimpan hanya sebagai PBKDF2-HMAC-SHA256 hash dengan salt acak, bukan plaintext atau ciphertext yang dapat didekripsi.
 
-Pendaftaran langsung membuat sesi; verifikasi email dan Resend tidak diperlukan untuk daftar atau login. Alamat email tidak diverifikasi kepemilikannya, jadi salah ketik dapat membuat akun yang tidak bisa dipulihkan. Fitur lupa password hanya berfungsi bila provider email recovery dikonfigurasi.
+Pendaftaran langsung membuat sesi; verifikasi email dan layanan email eksternal tidak diperlukan untuk daftar atau login. Alamat email tidak diverifikasi kepemilikannya. Fitur pemulihan/lupa password tidak tersedia; simpan password dengan aman karena akun yang passwordnya terlupa tidak dapat dipulihkan.
 
 1. Pastikan project Supabase mengizinkan custom HS256 JWT dengan secret yang sama dengan `APP_AUTH_JWT_SECRET`. Token menggunakan `role=authenticated`, `aud=authenticated`, dan `sub=<app_users.id>` agar policy `auth.uid()` berlaku. Jangan gunakan sembarang secret yang tidak dipercaya API project. Project yang hanya menerima asymmetric signing keys perlu signer yang cocok.
 2. Atur secret Edge Function `APP_AUTH_JWT_SECRET`. Jangan pernah memasukkan nilai ini ke aplikasi atau Git:
@@ -38,8 +38,8 @@ Pendaftaran langsung membuat sesi; verifikasi email dan Resend tidak diperlukan 
    supabase secrets set APP_AUTH_JWT_SECRET="<signing secret yang sama dengan Supabase API>"
    ```
 
-   `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` disediakan otomatis untuk Supabase Edge Functions. Untuk mengaktifkan lupa password saja, tambahkan `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, dan `AUTH_PASSWORD_RESET_URL`.
-3. Terapkan semua migrasi (termasuk migrasi auth yang menghapus tabel verifikasi email yang tidak dipakai dan membuat pendaftaran+sesi atomik), lalu deploy function:
+   `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` disediakan otomatis untuk Supabase Edge Functions. Tidak diperlukan secret atau provider email untuk autentikasi.
+3. Terapkan semua migrasi (termasuk migrasi auth yang menghapus tabel verifikasi email dan pemulihan password yang tidak dipakai serta membuat pendaftaran+sesi atomik), lalu deploy function:
 
    ```sh
    supabase db push
@@ -52,7 +52,7 @@ Jika pendaftaran gagal, periksa pesan error yang tampil terlebih dahulu. Error s
 
 Migrasi mempertahankan UUID akun lama dari `auth.users`, tetapi password Supabase Auth tidak dapat dipakai oleh custom auth. Akun lama yang belum memiliki password custom tidak dapat diklaim melalui daftar tanpa verifikasi kepemilikan; hubungi operator untuk migrasi aman. Ini sengaja mencegah orang lain mengambil alih data lama hanya dengan mengetik alamat email yang sama.
 
-Di **Profil → Akun & keamanan**, pengguna dapat mendaftar/masuk dengan email dan password, meminta reset password, serta keluar dari akun cloud. Password dikirim via HTTPS ke Edge Function; token sesi disimpan di secure storage dan refresh token selalu dirotasi. Setelah pernah login, sesi tersimpan dapat dipulihkan dari layar akun memakai biometrik perangkat—password tidak disimpan, dan biometrik bukan gerbang unlock seluruh aplikasi. Login biometrik hanya tersedia jika sesi masih tersimpan; logout cloud mencabut sesi itu. Reset password menampilkan konfirmasi generik agar keberadaan suatu email tidak diungkapkan. Keluar dari akun cloud mempertahankan data lokal.
+Di **Profil → Akun & keamanan**, pengguna dapat mendaftar/masuk dengan email dan password serta keluar dari akun cloud. Password dikirim via HTTPS ke Edge Function; token sesi disimpan di secure storage dan refresh token selalu dirotasi. Setelah pernah login, sesi tersimpan dapat dipulihkan dari layar akun memakai biometrik perangkat—password tidak disimpan, dan biometrik bukan gerbang unlock seluruh aplikasi. Login biometrik hanya tersedia jika sesi masih tersimpan; logout cloud mencabut sesi itu. Keluar dari akun cloud mempertahankan data lokal.
 
 ## Tema tampilan
 
@@ -116,7 +116,7 @@ Setelah sesi selesai, buka ringkasannya lalu pilih **Sinkronkan ringkasan** dan 
 
 Chat hanya mengirim pesan setelah pengguna menyetujui. Rute lokal dan preferensi latihan hanya disertakan bila dipilih. Percakapan tidak disimpan di riwayat lokal; permintaan diteruskan melalui Supabase ke Google Gemini. Jangan masukkan kontak darurat atau informasi sensitif.
 
-1. Buat proyek Supabase. Supabase Auth email provider tidak digunakan untuk daftar/login custom ini. Atur provider email hanya jika ingin mengaktifkan lupa password; redirect reset harus mengarah ke aplikasi.
+1. Buat proyek Supabase. Supabase Auth email provider tidak digunakan untuk daftar/login custom ini.
 2. Login dan tautkan proyek lokal sebelum menerapkan migrasi:
 
 ```sh
@@ -179,4 +179,4 @@ Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi s
 .\scripts\flutter_with_env.ps1 build apk --release
 ```
 
-Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, Resend key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Halaman **Profil → Saran dan kesan** saat ini hanya menampilkan teks statis untuk mata kuliah dan tidak mengirim atau menyimpan masukan. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat memerlukan sesi akun. Password reset email opsional memerlukan provider email dan secrets Edge Function sesuai bagian autentikasi.
+Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Halaman **Profil → Saran dan kesan** saat ini hanya menampilkan teks statis untuk mata kuliah dan tidak mengirim atau menyimpan masukan. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat memerlukan sesi akun.

@@ -11,7 +11,6 @@ import '../../features/routes/presentation/routes_screen.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
 import '../../features/authentication/presentation/cloud_account_screen.dart';
-import '../../features/authentication/presentation/password_reset_screen.dart';
 import '../../features/authentication/presentation/cloud_account_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
@@ -38,11 +37,6 @@ const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/reset-password',
-      builder: (context, state) =>
-          PasswordResetScreen(token: state.uri.queryParameters['token'] ?? ''),
-    ),
     GoRoute(path: '/session', redirect: (context, state) => '/routes'),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -195,6 +189,7 @@ class _AppShellState extends State<_AppShell> {
     }
 
     final title = switch (widget.location) {
+      '/' => 'Senapath',
       '/assistant' => 'Chat AI',
       '/feedback' => 'Saran & kesan',
       '/leaderboard' => 'Papan Peringkat',

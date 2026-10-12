@@ -57,7 +57,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
           .updateSessions(state.completedSessions),
       child: BlocBuilder<RideSessionCubit, RideSessionState>(
         builder: (context, state) {
-          final colorScheme = Theme.of(context).colorScheme;
           final sessions = state.completedSessions;
           final activeSession =
               state.session != null &&
@@ -76,41 +75,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _formatLongDate(now),
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Hai, siap gowes?',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      'assets/icons/app_icon.jpg',
-                      width: 42,
-                      height: 42,
-                      semanticLabel: 'Ikon Senapath',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
               _WelcomeCard(
                 title: activeSession ? 'RIDE IN PROGRESS' : 'READY TO RIDE',
                 startLabel: activeSession ? 'Lanjutkan sesi' : 'Mulai sesi',
@@ -204,33 +168,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
   String _formatDistance(double meters) => meters >= 1000
       ? '${(meters / 1000).toStringAsFixed(1)} km'
       : '${meters.toStringAsFixed(0)} m';
-
-  String _formatLongDate(DateTime date) {
-    const weekdays = [
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-      'Minggu',
-    ];
-    const months = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
-    ];
-    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
-  }
 }
 
 class _RideCoachPreview extends StatelessWidget {
@@ -620,71 +557,125 @@ class _LeaderboardPreview extends StatelessWidget {
       final colors = Theme.of(context).colorScheme;
 
       return SenapathCard(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(Icons.emoji_events_outlined, color: colors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Papan peringkat mingguan',
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+            SizedBox(
+              height: 148,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    'assets/images/app_podium_garage.jpg',
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0, 0.38),
+                    semanticLabel: 'Pesepeda dan podium di dalam garasi sepeda',
                   ),
-                ),
-                TextButton(onPressed: onOpen, child: const Text('Lihat semua')),
-              ],
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomLeft,
+                        end: Alignment.topRight,
+                        colors: [
+                          Color(0xE6071122),
+                          Color(0x99071122),
+                          Color(0x1A071122),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.emoji_events_outlined,
+                            color: SenapathColors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Papan peringkat mingguan',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: SenapathColors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: onOpen,
+                            style: TextButton.styleFrom(
+                              foregroundColor: SenapathColors.white,
+                            ),
+                            child: const Text('Lihat semua'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            if (state.isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (!optedIn)
-              _LeaderboardInvitation(
-                message: state.error == null
-                    ? 'Ikut tantangan mingguan dan lihat progres pesepeda lain.'
-                    : 'Tantangan mingguan menunggu akun online. Kamu bisa '
-                          'melihat detail dan pengaturan leaderboard.',
-                onOpen: onOpen,
-              )
-            else if (state.error != null)
-              _LeaderboardInvitation(
-                message: 'Peringkat belum bisa dimuat. Coba lagi nanti.',
-                onOpen: onOpen,
-              )
-            else if (state.entries.isEmpty)
-              _LeaderboardInvitation(
-                message:
-                    'Belum ada skor pekan ini. Selesaikan sesi dan '
-                    'mulai kumpulkan poinmu!',
-                onOpen: onOpen,
-              )
-            else ...[
-              Text(
-                'Pekan ini · ${state.category == LeaderboardCategory.distance ? 'jarak terjauh' : 'durasi aktif'}',
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: colors.onSurfaceVariant),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (state.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (!optedIn)
+                    _LeaderboardInvitation(
+                      message: state.error == null
+                          ? 'Ikut tantangan mingguan dan lihat progres pesepeda lain.'
+                          : 'Tantangan mingguan menunggu akun online. Kamu bisa '
+                                'melihat detail dan pengaturan leaderboard.',
+                      onOpen: onOpen,
+                    )
+                  else if (state.error != null)
+                    _LeaderboardInvitation(
+                      message: 'Peringkat belum bisa dimuat. Coba lagi nanti.',
+                      onOpen: onOpen,
+                    )
+                  else if (state.entries.isEmpty)
+                    _LeaderboardInvitation(
+                      message:
+                          'Belum ada skor pekan ini. Selesaikan sesi dan '
+                          'mulai kumpulkan poinmu!',
+                      onOpen: onOpen,
+                    )
+                  else ...[
+                    Text(
+                      'Pekan ini · ${state.category == LeaderboardCategory.distance ? 'jarak terjauh' : 'durasi aktif'}',
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final entry in state.entries.take(3))
+                      _LeaderboardPreviewRow(
+                        rank: entry.rank,
+                        alias: entry.alias,
+                        score: _leaderboardScoreText(entry, state.category),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Terus gowes, kejar posisi berikutnya!',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 8),
-              for (final entry in state.entries.take(3))
-                _LeaderboardPreviewRow(
-                  rank: entry.rank,
-                  alias: entry.alias,
-                  score: _leaderboardScoreText(entry, state.category),
-                ),
-              const SizedBox(height: 4),
-              Text(
-                'Terus gowes, kejar posisi berikutnya!',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            ),
           ],
         ),
       );

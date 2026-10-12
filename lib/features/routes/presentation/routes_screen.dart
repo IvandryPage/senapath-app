@@ -11,6 +11,8 @@ import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
+import '../../emergency/presentation/emergency_cubit.dart';
+import '../../profile/presentation/profile_cubit.dart';
 import '../domain/gps_movement_bearing.dart';
 import '../domain/saved_route.dart';
 import 'routes_cubit.dart';
@@ -234,48 +236,26 @@ class _RoutesScreenState extends State<RoutesScreen> {
   }
 
   Future<void> _openSessionDetails(BuildContext context) =>
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => FractionallySizedBox(
-          heightFactor: 0.96,
-          child: Material(
-            clipBehavior: Clip.antiAlias,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            color: Theme.of(context).colorScheme.surface,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Detail sesi',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Tutup detail sesi',
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SessionScreen(
-                    showMap: false,
-                    showHistory: false,
-                    showSummary: false,
-                    initialPanelSize: 0.92,
-                    compactControls: true,
-                    hideReadinessDetails: true,
-                  ),
-                ),
-              ],
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: context.read<RideSessionCubit>()),
+              BlocProvider.value(value: context.read<RoutesCubit>()),
+              BlocProvider.value(value: context.read<IntervalWorkoutCubit>()),
+              BlocProvider.value(value: context.read<UnitSettingsCubit>()),
+              BlocProvider.value(value: context.read<ProfileCubit>()),
+              BlocProvider.value(value: context.read<EmergencyCubit>()),
+            ],
+            child: Scaffold(
+              appBar: AppBar(title: const Text('Detail sesi')),
+              body: SessionScreen(
+                showMap: false,
+                showHistory: false,
+                showSummary: false,
+                compactControls: true,
+                hideReadinessDetails: true,
+              ),
             ),
           ),
         ),

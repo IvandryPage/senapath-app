@@ -25,14 +25,6 @@ void main() {
     expect(cubit.state.error, contains('email'));
   });
 
-  test('uses a generic password-reset acknowledgement', () async {
-    await cubit.sendPasswordReset(' person@example.com ');
-
-    expect(gateway.resetEmail, 'person@example.com');
-    expect(cubit.state.status, contains('Jika email terdaftar'));
-    expect(cubit.state.status, isNot(contains('person@example.com')));
-  });
-
   test(
     'sign-out clears online identity while preserving local app access',
     () async {
@@ -56,7 +48,6 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   final StreamController<String?> _authChanges =
       StreamController<String?>.broadcast();
   String? email;
-  String? resetEmail;
   int signInCalls = 0;
 
   @override
@@ -87,17 +78,6 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
 
   @override
   Future<void> signInWithRememberedSession() async {}
-
-  @override
-  Future<void> sendPasswordReset(String email) async {
-    resetEmail = email;
-  }
-
-  @override
-  Future<void> completePasswordReset({
-    required String token,
-    required String password,
-  }) async {}
 
   @override
   Future<void> signOut() async {

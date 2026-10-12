@@ -40,12 +40,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
           if (widget.isEntryFlow) ...[
-            const SizedBox(height: 20),
-            const SenapathBadge(
-              label: 'RIDE YOUR WAY',
-              color: SenapathColors.accent,
-              icon: Icons.directions_bike,
-            ),
+            const SizedBox(height: 36),
             const SizedBox(height: 18),
             Text(
               'Perjalananmu.\nRuangmu.',
@@ -72,8 +67,18 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: SenapathColors.white.withValues(alpha: 0.96),
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: SenapathColors.ink.withValues(alpha: 0.16),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -198,16 +203,6 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                     ],
                   ),
                 ),
-                if (!_isRegistering)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: state.isConfigured && !state.isLoading
-                          ? _sendPasswordReset
-                          : null,
-                      child: const Text('Lupa password?'),
-                    ),
-                  ),
                 const SizedBox(height: 8),
                 SenapathButton(
                   onPressed: state.isConfigured && !state.isLoading
@@ -215,7 +210,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                       : null,
                   icon: _isRegistering ? Icons.person_add_alt_1 : Icons.login,
                   isLoading: state.isLoading,
-                  label: _isRegistering ? 'Buat akun Senapath' : 'Masuk',
+                  label: _isRegistering ? 'Daftar' : 'Masuk',
                 ),
                 if (state.status != null) ...[
                   const SizedBox(height: 16),
@@ -224,13 +219,6 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                 if (state.error != null) ...[
                   const SizedBox(height: 16),
                   _AccountNotice(text: state.error!, isError: true),
-                ],
-                if (_isRegistering) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Kamu langsung masuk setelah daftar tanpa verifikasi email. Pastikan email benar karena kepemilikannya tidak diperiksa. Password disimpan server sebagai hash PBKDF2.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
                 ],
               ],
             ),
@@ -321,16 +309,6 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     if (!mounted || cubit.state.error != null) return;
     _passwordController.clear();
     _confirmationController.clear();
-  }
-
-  Future<void> _sendPasswordReset() async {
-    if (!_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) return;
-    }
-    await context.read<CloudAccountCubit>().sendPasswordReset(
-      _emailController.text,
-    );
   }
 }
 

@@ -358,7 +358,7 @@ void main() {
     await tester.tap(find.text('Akun & keamanan'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Lupa password?'), findsOneWidget);
+    expect(find.text('Lupa password?'), findsNothing);
     expect(find.textContaining('Supabase belum dikonfigurasi'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump();

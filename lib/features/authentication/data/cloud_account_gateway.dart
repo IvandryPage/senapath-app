@@ -17,10 +17,5 @@ abstract interface class CloudAccountGateway {
 
   Future<void> signIn({required String email, required String password});
   Future<void> signInWithRememberedSession();
-  Future<void> sendPasswordReset(String email);
-  Future<void> completePasswordReset({
-    required String token,
-    required String password,
-  });
   Future<void> signOut();
 }
