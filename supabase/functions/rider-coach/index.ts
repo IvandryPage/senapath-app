@@ -73,31 +73,36 @@ Deno.serve(async (request: Request) => {
       });
       if (response.status === 400 || response.status === 404) {
         return jsonResponse(200, {
-          diagnostic: `Model "${model}" tidak ditemukan untuk key ini. Periksa GEMINI_MODEL pada Supabase Secrets dan nama model di daftar API Models.`,
+          diagnostic:
+            `Model "${model}" tidak ditemukan untuk key ini. Periksa GEMINI_MODEL pada Supabase Secrets dan nama model di daftar API Models.`,
         });
       }
       if (response.status === 401 || response.status === 403) {
         return jsonResponse(200, {
-          diagnostic: "Gemini menolak key atau akses project. Periksa GEMINI_API_KEY, aktifkan Gemini API pada project penerbit key, dan periksa project restriction.",
+          diagnostic:
+            "Gemini menolak key atau akses project. Periksa GEMINI_API_KEY, aktifkan Gemini API pada project penerbit key, dan periksa project restriction.",
         });
       }
       return jsonResponse(200, {
-        diagnostic: `Pemeriksaan model gagal (HTTP ${response.status}). Periksa kuota, jaringan, dan log rider-coach.`,
+        diagnostic:
+          `Pemeriksaan model gagal (HTTP ${response.status}). Periksa kuota, jaringan, dan log rider-coach.`,
       });
     }
     const result = await response.json();
     const supported = result?.supportedGenerationMethods;
     if (!Array.isArray(supported) || !supported.includes("generateContent")) {
       return jsonResponse(200, {
-        diagnostic: `Model "${model}" tersedia, tetapi tidak mencantumkan generateContent. Pilih model yang mendukung metode tersebut.`,
+        diagnostic:
+          `Model "${model}" tersedia, tetapi tidak mencantumkan generateContent. Pilih model yang mendukung metode tersebut.`,
       });
     }
-    if (body.consent !== true) {
-      return jsonResponse(400, { error: "Consent is required." });
-    }
     return jsonResponse(200, {
-      diagnostic: `Konfigurasi terlihat baik: "${model}" ditemukan dan mendukung generateContent. Pemeriksaan ini tidak menguji kuota generateContent; minta rekomendasi untuk uji panggilan sebenarnya.`,
+      diagnostic:
+        `Konfigurasi terlihat baik: "${model}" ditemukan dan mendukung generateContent. Pemeriksaan ini tidak menguji kuota generateContent; minta rekomendasi untuk uji panggilan sebenarnya.`,
     });
+  }
+  if (body.consent !== true) {
+    return jsonResponse(400, { error: "Consent is required." });
   }
   const ride = body.ride;
   if (!ride || typeof ride !== "object" || Array.isArray(ride)) {
@@ -136,18 +141,23 @@ Deno.serve(async (request: Request) => {
     return jsonResponse(400, { error: "Invalid ride summary." });
   }
 
-  const quota = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_ai_chat_quota`, {
-    method: "POST",
-    headers: {
-      apikey: serviceKey,
-      authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json",
+  const quota = await fetch(
+    `${supabaseUrl}/rest/v1/rpc/consume_ai_chat_quota`,
+    {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_user_id: user.sub, p_daily_limit: 30 }),
+      signal: AbortSignal.timeout(10000),
     },
-    body: JSON.stringify({ p_user_id: user.sub, p_daily_limit: 30 }),
-    signal: AbortSignal.timeout(10000),
-  });
+  );
   if (!quota.ok) {
-    return jsonResponse(503, { error: "Kuota rekomendasi tidak dapat diperiksa." });
+    return jsonResponse(503, {
+      error: "Kuota rekomendasi tidak dapat diperiksa.",
+    });
   }
   if (await quota.json() !== true) {
     return jsonResponse(429, { error: "Kuota AI harian telah tercapai." });
@@ -197,20 +207,25 @@ Deno.serve(async (request: Request) => {
     });
     if (response.status === 400 || response.status === 404) {
       return jsonResponse(503, {
-        error: "Gemini menolak nama model. Periksa GEMINI_MODEL dan dukungan generateContent pada API key.",
+        error:
+          "Gemini menolak nama model. Periksa GEMINI_MODEL dan dukungan generateContent pada API key.",
       });
     }
     if (response.status === 401 || response.status === 403) {
       return jsonResponse(503, {
-        error: "Gemini menolak API key atau akses project. Periksa GEMINI_API_KEY dan status layanan.",
+        error:
+          "Gemini menolak API key atau akses project. Periksa GEMINI_API_KEY dan status layanan.",
       });
     }
     if (response.status === 429) {
       return jsonResponse(503, {
-        error: "Kuota atau batas laju Gemini tercapai. Periksa kuota project Google AI Studio/Cloud.",
+        error:
+          "Kuota atau batas laju Gemini tercapai. Periksa kuota project Google AI Studio/Cloud.",
       });
     }
-    return jsonResponse(503, { error: "Rekomendasi AI sedang tidak tersedia." });
+    return jsonResponse(503, {
+      error: "Rekomendasi AI sedang tidak tersedia.",
+    });
   }
   const result = await response.json();
   const recommendation = result?.candidates?.[0]?.content?.parts

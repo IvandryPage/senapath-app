@@ -58,8 +58,11 @@ class _NotificationSettingsScreenState
               'Peringatan jarak, checkpoint dekat, dan checkpoint tercapai saat sesi aktif.',
             ),
             value: settings.routeProgressEnabled,
-            onChanged: (enabled) =>
-                cubit.update(settings.copyWith(routeProgressEnabled: enabled)),
+            onChanged: state.isSaving
+                ? null
+                : (enabled) => cubit.update(
+                    settings.copyWith(routeProgressEnabled: enabled),
+                  ),
           ),
           const SizedBox(height: 12),
           SwitchListTile.adaptive(
@@ -69,9 +72,17 @@ class _NotificationSettingsScreenState
               'Dijadwalkan oleh perangkat dan tetap berfungsi saat aplikasi ditutup.',
             ),
             value: settings.remindersEnabled,
-            onChanged: (enabled) =>
-                cubit.update(settings.copyWith(remindersEnabled: enabled)),
+            onChanged: state.isSaving
+                ? null
+                : (enabled) => cubit.update(
+                    settings.copyWith(remindersEnabled: enabled),
+                  ),
           ),
+          if (state.isSaving)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: LinearProgressIndicator(),
+            ),
           if (settings.remindersEnabled) ...[
             const SizedBox(height: 8),
             SenapathCard(
@@ -92,7 +103,9 @@ class _NotificationSettingsScreenState
                         FilterChip(
                           label: Text(_weekdays[day - 1]),
                           selected: settings.reminderWeekdays.contains(day),
-                          onSelected: (selected) {
+                          onSelected: state.isSaving
+                              ? null
+                              : (selected) {
                             final days = {...settings.reminderWeekdays};
                             if (selected) {
                               days.add(day);
@@ -112,7 +125,9 @@ class _NotificationSettingsScreenState
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: () async {
+                    onPressed: state.isSaving
+                        ? null
+                        : () async {
                       final selected = await showTimePicker(
                         context: context,
                         initialTime: TimeOfDay(
@@ -126,8 +141,8 @@ class _NotificationSettingsScreenState
                           reminderHour: selected.hour,
                           reminderMinute: selected.minute,
                         ),
-                      );
-                    },
+                          );
+                        },
                     icon: const Icon(Icons.schedule),
                     label: Text(
                       'Waktu ${TimeOfDay(hour: settings.reminderHour, minute: settings.reminderMinute).format(context)}',

@@ -7,11 +7,13 @@ class NotificationSettingsState {
   const NotificationSettingsState({
     this.settings = const RideNotificationSettings(),
     this.isLoading = false,
+    this.isSaving = false,
     this.error,
   });
 
   final RideNotificationSettings settings;
   final bool isLoading;
+  final bool isSaving;
   final String? error;
 }
 
@@ -23,13 +25,26 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
   final RideNotificationService _notifications;
 
   Future<void> load() async {
-    if (state.isLoading) return;
+    if (state.isLoading || state.isSaving) return;
     emit(NotificationSettingsState(settings: state.settings, isLoading: true));
     try {
       final settings = await _repository.load();
       if (!isClosed) {
         emit(NotificationSettingsState(settings: settings));
-        if (settings.remindersEnabled) await _schedule(settings);
+        if (settings.remindersEnabled) {
+          try {
+            await _schedule(settings);
+          } catch (_) {
+            if (!isClosed) {
+              emit(
+                NotificationSettingsState(
+                  settings: settings,
+                  error: 'Pengingat tersimpan, tetapi jadwal notifikasi gagal dipulihkan.',
+                ),
+              );
+            }
+          }
+        }
       }
     } catch (_) {
       if (!isClosed) {
@@ -44,19 +59,21 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
   }
 
   Future<void> update(RideNotificationSettings settings) async {
+    if (state.isSaving || state.isLoading) return;
     final previous = state.settings;
-    emit(NotificationSettingsState(settings: settings));
+    final needsPermission =
+        settings.remindersEnabled || settings.routeProgressEnabled;
+    emit(NotificationSettingsState(settings: settings, isSaving: true));
     try {
-      if ((settings.remindersEnabled ||
-              settings.routeProgressEnabled ||
-              settings.remindersEnabled) &&
-          !await _notifications.requestPermission()) {
-        emit(
-          NotificationSettingsState(
-            settings: previous,
-            error: 'Izin notifikasi belum diberikan.',
-          ),
-        );
+      if (needsPermission && !await _notifications.requestPermission()) {
+        if (!isClosed) {
+          emit(
+            NotificationSettingsState(
+              settings: previous,
+              error: 'Izin notifikasi belum diberikan.',
+            ),
+          );
+        }
         return;
       }
       await _repository.save(settings);
@@ -65,14 +82,25 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
       } else {
         await _notifications.cancelWeeklyReminders();
       }
+      if (!isClosed) emit(NotificationSettingsState(settings: settings));
     } catch (_) {
       if (!isClosed) {
-        emit(
-          NotificationSettingsState(
-            settings: previous,
-            error: 'Pengaturan notifikasi gagal disimpan.',
-          ),
-        );
+        String? rollbackError;
+        try {
+          await _repository.save(previous);
+          if (previous.remindersEnabled) {
+            await _schedule(previous);
+          } else {
+            await _notifications.cancelWeeklyReminders();
+          }
+        } catch (_) {
+          rollbackError =
+              ' Setelan sebelumnya tidak dapat dipulihkan sepenuhnya.';
+        }
+        emit(NotificationSettingsState(
+          settings: previous,
+          error: 'Pengaturan notifikasi gagal disimpan.$rollbackError',
+        ));
       }
     }
   }
@@ -85,6 +113,17 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
       );
 
   Future<void> sendRecommendation(String recommendation) async {
+    if (recommendation.trim().isEmpty) {
+      if (!isClosed) {
+        emit(
+          NotificationSettingsState(
+            settings: state.settings,
+            error: 'Rekomendasi kosong dan tidak dapat dikirim.',
+          ),
+        );
+      }
+      return;
+    }
     try {
       if (!await _notifications.requestPermission()) {
         emit(

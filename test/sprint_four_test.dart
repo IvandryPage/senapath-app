@@ -6,6 +6,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
+import 'package:senapath/features/notifications/data/notification_settings_repository.dart';
+import 'package:senapath/features/notifications/data/ride_notification_service.dart';
+import 'package:senapath/features/routes/domain/saved_route.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
@@ -93,6 +96,67 @@ void main() {
           .toList(),
       [closeTo(0.3, 0.0001), closeTo(2.0, 0.0001)],
     );
+  });
+
+  test('active GPX sessions notify route progress and checkpoints', () async {
+    final notificationService = _RecordingRideNotificationService();
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      notificationService: notificationService,
+      notificationSettingsRepository: NotificationSettingsRepository(database),
+    );
+    await sessionCubit!.start();
+    sessionCubit!.setActiveRoute(
+      RouteRecord(
+        id: 'notification-route',
+        name: 'Rute Tes',
+        source: 'test',
+        updatedAt: DateTime.utc(2026),
+        availability: 'local',
+        points: const [
+          RoutePoint(latitude: -6.2, longitude: 106.8, elevationMeters: 0),
+          RoutePoint(latitude: -6.2, longitude: 106.81, elevationMeters: 0),
+          RoutePoint(latitude: -6.2, longitude: 106.813, elevationMeters: 0),
+          RoutePoint(latitude: -6.2, longitude: 106.815, elevationMeters: 0),
+          RoutePoint(latitude: -6.2, longitude: 106.83, elevationMeters: 0),
+        ],
+        checkpoints: const [
+          RouteCheckpoint(name: 'Pos Air', latitude: -6.2, longitude: 106.815),
+        ],
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+
+    final startedAt = DateTime.now().toUtc();
+    const longitudes = [106.8, 106.81, 106.813, 106.815];
+    for (var index = 0; index < longitudes.length; index++) {
+      final count = index + 1;
+      final locationRecorded = sessionCubit!.stream.firstWhere(
+        (state) => state.recordedLocations.length == count,
+      );
+      positions.add(
+        _positionAt(
+          startedAt.add(Duration(seconds: index * 10)),
+          longitude: longitudes[index],
+        ),
+      );
+      await locationRecorded.timeout(const Duration(seconds: 2));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+
+    expect(
+      notificationService.notifications.map(
+        (notification) => notification.title,
+      ),
+      containsAll([
+        'Progres rute 25%',
+        'Checkpoint dekat',
+        'Checkpoint tercapai',
+      ]),
+    );
+    expect(notificationService.permissionRequests, 1);
   });
 
   test('interval workout persists and pauses with its recording', () async {
@@ -408,6 +472,47 @@ Position _positionAt(DateTime timestamp, {double longitude = 106.8}) =>
       speed: 0,
       speedAccuracy: 0,
     );
+
+class _RecordedNotification {
+  const _RecordedNotification(this.title, this.body);
+
+  final String title;
+  final String body;
+}
+
+class _RecordingRideNotificationService implements RideNotificationService {
+  final notifications = <_RecordedNotification>[];
+  int permissionRequests = 0;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    return true;
+  }
+
+  @override
+  Future<void> show({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    notifications.add(_RecordedNotification(title, body));
+  }
+
+  @override
+  Future<void> scheduleWeeklyReminder({
+    required Set<int> weekdays,
+    required int hour,
+    required int minute,
+  }) async {}
+
+  @override
+  Future<void> cancelWeeklyReminders() async {}
+}
 
 class _RecordingReadinessChecker implements ReadinessChecker {
   const _RecordingReadinessChecker();
