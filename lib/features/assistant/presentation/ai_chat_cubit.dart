@@ -51,15 +51,10 @@ class AiChatCubit extends Cubit<AiChatState> {
 
   Future<void> sendMessage({
     required String content,
-    required bool consent,
     Map<String, Object?> context = const {},
   }) async {
     final message = content.trim();
     if (state.isSending || message.isEmpty) return;
-    if (!consent) {
-      emit(state.copyWith(error: 'Setujui pengiriman sebelum mengirim pesan.'));
-      return;
-    }
     if (!isConfigured) {
       emit(
         state.copyWith(error: 'Chat AI belum dikonfigurasi untuk proyek ini.'),

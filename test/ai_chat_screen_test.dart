@@ -28,7 +28,11 @@ void main() {
       ),
       const RouteFileExchange(SessionFileService()),
     );
-    final chatCubit = AiChatCubit(_FakeAiChatGateway());
+    final chatCubit = AiChatCubit(
+      _FakeAiChatGateway(
+        reply: '## Strategi\n\n- Jaga ritme\n- Minum teratur',
+      ),
+    );
     addTearDown(routesCubit.close);
     addTearDown(chatCubit.close);
     addTearDown(database.close);
@@ -49,8 +53,7 @@ void main() {
 
     await tester.tap(find.text('Bantu susun strategi untuk tanjakan panjang'));
     await tester.pump();
-    await tester.tap(find.byType(Checkbox));
-    await tester.pump();
+    expect(find.byType(Checkbox), findsNothing);
     await tester.tap(find.byKey(const Key('ai-chat-send')));
     await tester.pumpAndSettle();
 
@@ -58,14 +61,21 @@ void main() {
       find.text('Bantu susun strategi untuk tanjakan panjang'),
       findsOneWidget,
     );
-    expect(
-      find.text('Mulai dari ritme yang nyaman dan jaga tenaga.'),
-      findsOneWidget,
-    );
+    expect(find.text('Strategi'), findsOneWidget);
+    expect(find.text('Jaga ritme'), findsOneWidget);
+    expect(find.text('Minum teratur'), findsOneWidget);
+    expect(find.byTooltip('Salin jawaban'), findsOneWidget);
+    expect(find.textContaining('dikirim ke Gemini'), findsOneWidget);
   });
 }
 
 class _FakeAiChatGateway implements AiChatGateway {
+  _FakeAiChatGateway({
+    this.reply = 'Mulai dari ritme yang nyaman dan jaga tenaga.',
+  });
+
+  final String reply;
+
   @override
   bool get isConfigured => true;
 
@@ -73,7 +83,7 @@ class _FakeAiChatGateway implements AiChatGateway {
   Future<String> send({
     required List<AiChatMessage> messages,
     required Map<String, Object?> context,
-  }) async => 'Mulai dari ritme yang nyaman dan jaga tenaga.';
+  }) async => reply;
 }
 
 class _MemorySecureVault implements SecureVault {

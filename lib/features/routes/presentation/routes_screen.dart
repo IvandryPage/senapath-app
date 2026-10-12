@@ -244,6 +244,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: false,
+      showDragHandle: false,
       builder: (_) =>
           ResupplyCacheSheet(routeName: route.name, checkpoint: checkpoint),
     );

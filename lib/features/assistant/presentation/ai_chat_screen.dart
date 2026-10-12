@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../../routes/domain/saved_route.dart';
 import '../../routes/presentation/routes_cubit.dart';
@@ -19,7 +21,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final _messageController = TextEditingController();
   final _preferencesController = TextEditingController();
   final _scrollController = ScrollController();
-  bool _consent = false;
   bool _includeRoute = false;
   bool _includePreferences = false;
   String? _selectedRouteId;
@@ -52,7 +53,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
         final selectedRoute = _findSelectedRoute(routes);
         final canSend =
             chatState.isConfigured &&
-            _consent &&
             !chatState.isSending &&
             (!_includeRoute || selectedRoute != null) &&
             _messageController.text.trim().isNotEmpty;
@@ -99,14 +99,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
               _ChatNotice(text: chatState.error!, isWarning: true),
             _Composer(
               controller: _messageController,
-              consent: _consent,
               isConfigured: chatState.isConfigured,
               isSending: chatState.isSending,
               canSend: canSend,
               hasContext: _includeRoute || _includePreferences,
               onMessageChanged: (_) => setState(() {}),
-              onConsentChanged: (value) =>
-                  setState(() => _consent = value ?? false),
               onOpenContext: () => _showContextSheet(routes),
               onSend: () => unawaited(_send(context, selectedRoute)),
             ),
@@ -266,7 +263,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final cubit = context.read<AiChatCubit>();
     await cubit.sendMessage(
       content: message,
-      consent: _consent,
       context: contextData,
     );
     if (!mounted) return;
@@ -355,56 +351,127 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.role == 'user';
     final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.84,
+          maxWidth: MediaQuery.sizeOf(context).width * (isUser ? 0.84 : 0.96),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: isUser
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
-              if (!isUser) ...[
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: colors.primaryContainer,
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 17,
-                    color: colors.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? colors.primaryContainer
-                        : colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(isUser ? 20 : 5),
-                      bottomRight: Radius.circular(isUser ? 5 : 20),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isUser) ...[
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: colors.primaryContainer,
+                      child: Icon(
+                        Icons.auto_awesome,
+                        size: 17,
+                        color: colors.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Container(
+                      width: isUser ? null : double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isUser
+                            ? colors.primaryContainer
+                            : colors.surfaceContainerLow,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(20),
+                          topRight: const Radius.circular(20),
+                          bottomLeft: Radius.circular(isUser ? 20 : 5),
+                          bottomRight: Radius.circular(isUser ? 5 : 20),
+                        ),
+                      ),
+                      child: isUser
+                          ? SelectableText(
+                              message.content,
+                              style: TextStyle(
+                                color: colors.onPrimaryContainer,
+                                height: 1.5,
+                              ),
+                            )
+                          : MarkdownBody(
+                              data: message.content,
+                              selectable: true,
+                              imageBuilder: (uri, title, alt) => Text(
+                                alt?.isNotEmpty == true
+                                    ? alt!
+                                    : uri.toString(),
+                              ),
+                              styleSheet: MarkdownStyleSheet.fromTheme(theme)
+                                  .copyWith(
+                                    p: theme.textTheme.bodyMedium?.copyWith(
+                                      height: 1.55,
+                                    ),
+                                    h1: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    h2: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    h3: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    blockquoteDecoration: BoxDecoration(
+                                      color: colors.surfaceContainerHighest,
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: colors.primary,
+                                          width: 3,
+                                        ),
+                                      ),
+                                    ),
+                                    codeblockDecoration: BoxDecoration(
+                                      color: colors.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                            ),
                     ),
                   ),
-                  child: SelectableText(
-                    message.content,
-                    style: TextStyle(
-                      color: isUser ? colors.onPrimaryContainer : null,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
+                ],
               ),
+              if (!isUser)
+                Padding(
+                  padding: const EdgeInsets.only(left: 42, top: 2),
+                  child: IconButton(
+                    tooltip: 'Salin jawaban',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () async {
+                      await Clipboard.setData(
+                        ClipboardData(text: message.content),
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            const SnackBar(
+                              content: Text('Jawaban disalin.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                      }
+                    },
+                    icon: const Icon(Icons.copy_outlined, size: 18),
+                  ),
+                ),
             ],
           ),
         ),
@@ -443,25 +510,21 @@ class _TypingIndicator extends StatelessWidget {
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
-    required this.consent,
     required this.isConfigured,
     required this.isSending,
     required this.canSend,
     required this.hasContext,
     required this.onMessageChanged,
-    required this.onConsentChanged,
     required this.onOpenContext,
     required this.onSend,
   });
 
   final TextEditingController controller;
-  final bool consent;
   final bool isConfigured;
   final bool isSending;
   final bool canSend;
   final bool hasContext;
   final ValueChanged<String> onMessageChanged;
-  final ValueChanged<bool?> onConsentChanged;
   final VoidCallback onOpenContext;
   final VoidCallback onSend;
 
@@ -525,26 +588,28 @@ class _Composer extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Checkbox(
-                value: consent,
-                onChanged: isConfigured && !isSending ? onConsentChanged : null,
-                visualDensity: VisualDensity.compact,
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: isConfigured && !isSending
-                      ? () => onConsentChanged(!consent)
-                      : null,
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: colors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
                   child: Text(
-                    'Setuju mengirim pesan${hasContext ? ' dan konteks pilihan' : ''} ke Gemini. Tidak disimpan sebagai riwayat.',
-                    style: Theme.of(context).textTheme.labelSmall,
+                    'Pesan${hasContext ? ' dan konteks pilihan' : ''} dikirim '
+                    'ke Gemini untuk dijawab. Hindari info sensitif.',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

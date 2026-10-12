@@ -32,6 +32,7 @@ class SupabaseAiChatGateway implements AiChatGateway {
       response = await _sessionManager.invokeAuthenticatedFunction(
         'rider-assistant',
         body: {
+          // Sending a chat message is the user's affirmative action.
           'consent': true,
           'messages': [
             for (final message in messages)

@@ -11,7 +11,7 @@ void main() {
     final cubit = AiChatCubit(gateway);
     addTearDown(cubit.close);
 
-    final send = cubit.sendMessage(content: 'Rute latihan saya', consent: true);
+    final send = cubit.sendMessage(content: 'Rute latihan saya');
     await gateway.started.future;
     expect(cubit.state.messages, hasLength(1));
 

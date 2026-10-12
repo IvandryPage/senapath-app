@@ -4,16 +4,16 @@ import 'package:senapath/features/assistant/domain/ai_chat_message.dart';
 import 'package:senapath/features/assistant/presentation/ai_chat_cubit.dart';
 
 void main() {
-  test('does not send chat data without explicit consent', () async {
+  test('sends messages directly after the user chooses to send them', () async {
     final gateway = _FakeAiChatGateway();
     final cubit = AiChatCubit(gateway);
     addTearDown(cubit.close);
 
-    await cubit.sendMessage(content: 'Strategi?', consent: false);
+    await cubit.sendMessage(content: 'Strategi?');
 
-    expect(gateway.sendCount, 0);
-    expect(cubit.state.messages, isEmpty);
-    expect(cubit.state.error, contains('Setujui'));
+    expect(gateway.sendCount, 1);
+    expect(cubit.state.messages, hasLength(2));
+    expect(cubit.state.error, isNull);
   });
 
   test(
@@ -25,7 +25,6 @@ void main() {
 
       await cubit.sendMessage(
         content: 'Bagaimana pembagian tenaga?',
-        consent: true,
         context: const {
           'route': {'name': 'Loop Utara', 'distanceMeters': 42000},
           'preferences': 'Santai di tanjakan',
@@ -40,6 +39,18 @@ void main() {
     },
   );
 
+  test('keeps the complete long answer in the chat state', () async {
+    final reply = '${'Detail jawaban lengkap. ' * 1200}AKHIR JAWABAN';
+    final gateway = _FakeAiChatGateway(reply: reply);
+    final cubit = AiChatCubit(gateway);
+    addTearDown(cubit.close);
+
+    await cubit.sendMessage(content: 'Jelaskan dengan rinci');
+
+    expect(cubit.state.messages.last.content, reply);
+    expect(cubit.state.messages.last.content, endsWith('AKHIR JAWABAN'));
+  });
+
   test(
     'does not fake an AI response when the backend is unconfigured',
     () async {
@@ -47,7 +58,7 @@ void main() {
       final cubit = AiChatCubit(gateway);
       addTearDown(cubit.close);
 
-      await cubit.sendMessage(content: 'Halo', consent: true);
+      await cubit.sendMessage(content: 'Halo');
 
       expect(gateway.sendCount, 0);
       expect(cubit.state.messages, isEmpty);
@@ -59,7 +70,7 @@ void main() {
     final cubit = AiChatCubit(_FailingAiChatGateway());
     addTearDown(cubit.close);
 
-    await cubit.sendMessage(content: 'Halo', consent: true);
+    await cubit.sendMessage(content: 'Halo');
 
     expect(
       cubit.state.error,
@@ -70,10 +81,14 @@ void main() {
 }
 
 class _FakeAiChatGateway implements AiChatGateway {
-  _FakeAiChatGateway({this.isConfigured = true});
+  _FakeAiChatGateway({
+    this.isConfigured = true,
+    this.reply = 'Saran dari Gemini',
+  });
 
   @override
   final bool isConfigured;
+  final String reply;
   int sendCount = 0;
   Map<String, Object?> lastContext = const {};
 
@@ -84,7 +99,7 @@ class _FakeAiChatGateway implements AiChatGateway {
   }) async {
     sendCount++;
     lastContext = context;
-    return 'Saran dari Gemini';
+    return reply;
   }
 }
 
