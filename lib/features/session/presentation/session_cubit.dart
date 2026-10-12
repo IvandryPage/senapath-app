@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
@@ -14,6 +15,8 @@ import '../../ledger/data/ride_ledger_repository.dart';
 import '../../routes/domain/route_progress.dart';
 import '../../routes/domain/saved_route.dart';
 import '../domain/ride_session.dart';
+import '../../workouts/data/interval_workout_repository.dart';
+import '../../workouts/domain/interval_workout.dart';
 
 class RideSessionState {
   const RideSessionState({
@@ -30,6 +33,8 @@ class RideSessionState {
     this.syncingSessionId,
     this.activeRoute,
     this.routeProgress,
+    this.workout,
+    this.workoutProgress,
     this.now,
     this.message,
   });
@@ -47,6 +52,8 @@ class RideSessionState {
   final String? syncingSessionId;
   final RouteRecord? activeRoute;
   final RouteProgress? routeProgress;
+  final IntervalWorkout? workout;
+  final WorkoutIntervalProgress? workoutProgress;
   final DateTime? now;
   final String? message;
 
@@ -68,6 +75,9 @@ class RideSessionState {
     bool clearActiveRoute = false,
     RouteProgress? routeProgress,
     bool clearRouteProgress = false,
+    IntervalWorkout? workout,
+    WorkoutIntervalProgress? workoutProgress,
+    bool clearWorkout = false,
     DateTime? now,
     String? message,
     bool clearMessage = false,
@@ -91,6 +101,10 @@ class RideSessionState {
     routeProgress: clearRouteProgress
         ? null
         : routeProgress ?? this.routeProgress,
+    workout: clearWorkout ? null : workout ?? this.workout,
+    workoutProgress: clearWorkout
+        ? null
+        : workoutProgress ?? this.workoutProgress,
     now: now ?? this.now,
     message: clearMessage ? null : message ?? this.message,
   );
@@ -113,6 +127,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     this.notificationService,
     this.notificationSettingsRepository,
     this.ledgerRepository,
+    this.intervalWorkoutRepository,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now,
        super(const RideSessionState());
@@ -126,6 +141,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final RideNotificationService? notificationService;
   final NotificationSettingsRepository? notificationSettingsRepository;
   final RideLedgerRepository? ledgerRepository;
+  final IntervalWorkoutRepository? intervalWorkoutRepository;
   final DateTime Function() _clock;
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<double>? _barometerSubscription;
@@ -143,6 +159,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   bool _routeNotificationsFailed = false;
   bool _routeNotificationsEnabled = false;
   RouteProgressCalculator? _routeProgressCalculator;
+  WorkoutCheckpoint? _workoutCheckpoint;
+  bool _updatingWorkout = false;
 
   bool get canSyncSessions =>
       syncCoordinator?.gateway.isConfigured == true &&
@@ -171,6 +189,33 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           locationMessage = 'Jejak sesi lokal tidak dapat dibuka.';
         }
       }
+      IntervalWorkout? workout;
+      WorkoutIntervalProgress? workoutProgress;
+      final workoutRepository = intervalWorkoutRepository;
+      if (session != null && workoutRepository != null) {
+        try {
+          _workoutCheckpoint = await workoutRepository.loadCheckpoint(
+            session.id,
+          );
+          if (_workoutCheckpoint case final checkpoint?) {
+            final workouts = await workoutRepository.loadWorkouts();
+            for (final candidate in workouts) {
+              if (candidate.id == checkpoint.workoutId) {
+                workout = candidate;
+                workoutProgress = _calculateWorkoutProgress(
+                  candidate,
+                  checkpoint,
+                  session.durationAt(_clock().toUtc()).inSeconds,
+                  session.distanceMeters,
+                );
+                break;
+              }
+            }
+          }
+        } catch (_) {
+          locationMessage ??= 'Progres workout lokal tidak dapat dipulihkan.';
+        }
+      }
       emit(
         state.copyWith(
           isInitialized: true,
@@ -179,6 +224,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           session: session,
           recordedLocations: recordedLocations,
           completedSessions: completedSessions,
+          workout: workout,
+          workoutProgress: workoutProgress,
           now: _clock().toUtc(),
           message: locationMessage,
         ),
@@ -253,7 +300,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> start({RouteRecord? route}) async {
+  Future<void> start({RouteRecord? route, IntervalWorkout? workout}) async {
     if (state.session != null &&
         state.session!.status != RideSessionStatus.completed) {
       _setMessage('Selesaikan atau lanjutkan sesi yang sedang tersimpan.');
@@ -279,6 +326,24 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     try {
       final session = await repository.start(_clock().toUtc());
+      _workoutCheckpoint = null;
+      if (workout != null && intervalWorkoutRepository != null) {
+        final checkpoint = WorkoutCheckpoint(
+          sessionId: session.id,
+          workoutId: workout.id,
+          intervalIndex: 0,
+          intervalStartElapsedSeconds: 0,
+          intervalStartDistanceMeters: 0,
+        );
+        try {
+          await intervalWorkoutRepository!.saveCheckpoint(checkpoint);
+          _workoutCheckpoint = checkpoint;
+        } catch (_) {
+          _setMessage(
+            'Workout tidak tersimpan; sesi tetap berjalan tanpa workout.',
+          );
+        }
+      }
       _activeRoute = route;
       _routeProgressCalculator = route == null
           ? null
@@ -292,6 +357,11 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           clearRouteProgress: true,
           recordedLocations: const [],
           now: _clock().toUtc(),
+          workout: _workoutCheckpoint == null ? null : workout,
+          workoutProgress: _workoutCheckpoint == null || workout == null
+              ? null
+              : _calculateWorkoutProgress(workout, _workoutCheckpoint!, 0, 0),
+          clearWorkout: workout == null || _workoutCheckpoint == null,
         ),
       );
       await _prepareRouteNotifications();
@@ -299,6 +369,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       await _startBarometerStream();
       await _startMotionSensorStreams();
       _startTicker();
+      await _updateWorkoutProgress();
     } catch (_) {
       _setMessage('Sesi tidak dapat dimulai. Data sebelumnya tetap tersimpan.');
     }
@@ -351,6 +422,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       await _startBarometerStream();
       await _startMotionSensorStreams();
       _startTicker();
+      await _updateWorkoutProgress();
     } catch (_) {
       _setMessage('Sesi tidak dapat dilanjutkan.');
     }
@@ -368,12 +440,24 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     _ticker?.cancel();
     try {
       final completed = await repository.finish(session.id, _clock().toUtc());
+      var workoutCleanupMessage = false;
+      try {
+        await intervalWorkoutRepository?.clearCheckpoint();
+      } catch (_) {
+        workoutCleanupMessage = true;
+      }
+      _workoutCheckpoint = null;
       final history = await repository.loadCompletedSessions();
       String? ledgerMessage;
       try {
         await ledgerRepository?.appendSession(completed);
       } catch (_) {
         ledgerMessage = 'Sesi selesai, tetapi bukti aktivitas belum tercatat di rantai lokal.';
+      }
+      if (workoutCleanupMessage) {
+        ledgerMessage = ledgerMessage == null
+            ? 'Sesi selesai, tetapi progres workout lokal belum dibersihkan.'
+            : '$ledgerMessage Progres workout lokal juga belum dibersihkan.';
       }
       emit(
         state.copyWith(
@@ -383,6 +467,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           completedSessions: history,
           now: completed.endedAt,
           clearSummary: true,
+          clearWorkout: true,
           message: ledgerMessage,
           clearMessage: ledgerMessage == null,
         ),
@@ -594,6 +679,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           now: _clock().toUtc(),
         ),
       );
+      await _updateWorkoutProgress();
       unawaited(_notifyRouteProgress(location, routeProgress));
     }
   }
@@ -773,8 +859,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     _accelerometerSubscription = null;
     _gyroscopeSubscription = null;
     await Future.wait([
-      if (accelerometerSubscription != null)
-        accelerometerSubscription.cancel(),
+      if (accelerometerSubscription != null) accelerometerSubscription.cancel(),
       if (gyroscopeSubscription != null) gyroscopeSubscription.cancel(),
     ]);
   }
@@ -784,8 +869,148 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (state.session?.status == RideSessionStatus.recording) {
         emit(state.copyWith(now: _clock().toUtc()));
+        unawaited(_updateWorkoutProgress());
       }
     });
+  }
+
+  Future<void> _updateWorkoutProgress() async {
+    if (_updatingWorkout || isClosed) return;
+    final workout = state.workout;
+    final checkpoint = _workoutCheckpoint;
+    final session = state.session;
+    if (workout == null || checkpoint == null || session == null) return;
+    _updatingWorkout = true;
+    try {
+      final elapsedSeconds = state.elapsed.inSeconds;
+      final progress = _calculateWorkoutProgress(
+        workout,
+        checkpoint,
+        elapsedSeconds,
+        session.distanceMeters,
+      );
+      if (session.status != RideSessionStatus.recording) {
+        emit(state.copyWith(workoutProgress: progress));
+        return;
+      }
+      if (progress.remainingValue > 0) {
+        emit(state.copyWith(workoutProgress: progress));
+        return;
+      }
+
+      final nextIndex = checkpoint.intervalIndex + 1;
+      if (nextIndex >= workout.intervals.length) {
+        String? message;
+        try {
+          await intervalWorkoutRepository?.clearCheckpoint();
+        } catch (_) {
+          message = 'Workout selesai, tetapi progres lokal belum dibersihkan.';
+        }
+        _workoutCheckpoint = null;
+        emit(
+          state.copyWith(
+            workoutProgress: WorkoutIntervalProgress(
+              interval: null,
+              index: workout.intervals.length,
+              total: workout.intervals.length,
+              remainingValue: 0,
+              isComplete: true,
+            ),
+            clearWorkout: true,
+            message: message ?? 'Workout selesai.',
+          ),
+        );
+        await _playWorkoutCue(workout);
+        return;
+      }
+
+      final nextCheckpoint = WorkoutCheckpoint(
+        sessionId: checkpoint.sessionId,
+        workoutId: checkpoint.workoutId,
+        intervalIndex: nextIndex,
+        intervalStartElapsedSeconds: elapsedSeconds,
+        intervalStartDistanceMeters: session.distanceMeters,
+      );
+      _workoutCheckpoint = nextCheckpoint;
+      String? message;
+      try {
+        await intervalWorkoutRepository?.saveCheckpoint(nextCheckpoint);
+      } catch (_) {
+        message = 'Progres workout belum tersimpan untuk pemulihan aplikasi.';
+      }
+      final nextProgress = _calculateWorkoutProgress(
+        workout,
+        nextCheckpoint,
+        elapsedSeconds,
+        session.distanceMeters,
+      );
+      emit(
+        state.copyWith(
+          workoutProgress: nextProgress,
+          message: message,
+          clearMessage: message == null,
+        ),
+      );
+      await _playWorkoutCue(workout);
+    } finally {
+      _updatingWorkout = false;
+    }
+  }
+
+  WorkoutIntervalProgress _calculateWorkoutProgress(
+    IntervalWorkout workout,
+    WorkoutCheckpoint checkpoint,
+    int elapsedSeconds,
+    double distanceMeters,
+  ) {
+    if (checkpoint.intervalIndex >= workout.intervals.length) {
+      return WorkoutIntervalProgress(
+        interval: null,
+        index: workout.intervals.length,
+        total: workout.intervals.length,
+        remainingValue: 0,
+        isComplete: true,
+      );
+    }
+    final interval = workout.intervals[checkpoint.intervalIndex];
+    final progress = interval.targetType == WorkoutTargetType.duration
+        ? elapsedSeconds - checkpoint.intervalStartElapsedSeconds
+        : (distanceMeters - checkpoint.intervalStartDistanceMeters).floor();
+    return WorkoutIntervalProgress(
+      interval: interval,
+      index: checkpoint.intervalIndex,
+      total: workout.intervals.length,
+      remainingValue: (interval.targetValue - progress)
+          .clamp(0, interval.targetValue)
+          .toDouble(),
+      isComplete: false,
+    );
+  }
+
+  Future<void> _playWorkoutCue(IntervalWorkout workout) async {
+    // Cue channels are best-effort and must never interrupt ride capture.
+    var cueFailed = false;
+    if (workout.audioCueEnabled) {
+      try {
+        await SystemSound.play(SystemSoundType.alert);
+      } on Object {
+        cueFailed = true;
+      }
+    }
+    if (workout.hapticCueEnabled) {
+      try {
+        await HapticFeedback.mediumImpact();
+      } on Object {
+        cueFailed = true;
+      }
+    }
+    if (cueFailed && !isClosed) {
+      emit(
+        state.copyWith(
+          message: 'Cue workout tidak tersedia; perekaman tetap berjalan.',
+        ),
+      );
+    }
   }
 
   void _setMessage(String message) => emit(state.copyWith(message: message));

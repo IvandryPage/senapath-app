@@ -11,6 +11,8 @@ import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
+import 'package:senapath/features/workouts/data/interval_workout_repository.dart';
+import 'package:senapath/features/workouts/domain/interval_workout.dart';
 
 void main() {
   late AppDatabase database;
@@ -90,6 +92,152 @@ void main() {
           .map((location) => location.rotationRateMagnitudeRadiansPerSecond)
           .toList(),
       [closeTo(0.3, 0.0001), closeTo(2.0, 0.0001)],
+    );
+  });
+
+  test('interval workout persists and pauses with its recording', () async {
+    final workoutRepository = IntervalWorkoutRepository(database);
+    const workout = IntervalWorkout(
+      id: 'test-workout',
+      name: 'Tes interval',
+      intervals: [
+        WorkoutInterval(
+          name: 'Pemanasan',
+          targetType: WorkoutTargetType.duration,
+          targetValue: 1,
+        ),
+        WorkoutInterval(
+          name: 'Pemulihan',
+          targetType: WorkoutTargetType.duration,
+          targetValue: 5,
+          isRecovery: true,
+        ),
+      ],
+    );
+    await workoutRepository.saveWorkouts([workout]);
+    final loadedWorkout = (await workoutRepository.loadWorkouts()).single;
+    expect(loadedWorkout.name, workout.name);
+    expect(
+      loadedWorkout.intervals.map((interval) => interval.toJson()).toList(),
+      workout.intervals.map((interval) => interval.toJson()).toList(),
+    );
+
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      intervalWorkoutRepository: workoutRepository,
+    );
+    await sessionCubit!.start(workout: loadedWorkout);
+    expect(sessionCubit!.state.workoutProgress?.index, 0);
+
+    await sessionCubit!.stream
+        .firstWhere((state) => state.workoutProgress?.index == 1)
+        .timeout(const Duration(seconds: 4));
+    expect(sessionCubit!.state.session?.status, RideSessionStatus.recording);
+    await sessionCubit!.pause();
+    final pausedRemaining = sessionCubit!.state.workoutProgress!.remainingValue;
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    expect(
+      sessionCubit!.state.workoutProgress!.remainingValue,
+      pausedRemaining,
+    );
+
+    await sessionCubit!.close();
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      intervalWorkoutRepository: workoutRepository,
+    );
+    await sessionCubit!.initialize();
+    expect(sessionCubit!.state.session?.status, RideSessionStatus.paused);
+    expect(sessionCubit!.state.workoutProgress?.index, 1);
+    expect(
+      sessionCubit!.state.workoutProgress!.remainingValue,
+      pausedRemaining,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    expect(
+      sessionCubit!.state.workoutProgress!.remainingValue,
+      pausedRemaining,
+    );
+
+    await sessionCubit!.resume();
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(sessionCubit!.state.workoutProgress?.index, 1);
+    final checkpoint = await workoutRepository.loadCheckpoint(
+      sessionCubit!.state.session!.id,
+    );
+    expect(checkpoint?.intervalIndex, 1);
+  });
+
+  test('distance workout advances only with accepted GPS distance', () async {
+    final workoutRepository = IntervalWorkoutRepository(database);
+    const workout = IntervalWorkout(
+      id: 'distance-workout',
+      name: 'Jarak tervalidasi',
+      intervals: [
+        WorkoutInterval(
+          name: 'Interval jarak',
+          targetType: WorkoutTargetType.distance,
+          targetValue: 20,
+        ),
+        WorkoutInterval(
+          name: 'Pemulihan',
+          targetType: WorkoutTargetType.duration,
+          targetValue: 30,
+          isRecovery: true,
+        ),
+      ],
+      audioCueEnabled: false,
+      hapticCueEnabled: false,
+    );
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      intervalWorkoutRepository: workoutRepository,
+    );
+    await sessionCubit!.start(workout: workout);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(sessionCubit!.state.workoutProgress?.index, 0);
+    expect(sessionCubit!.state.session?.distanceMeters, 0);
+
+    final recordedAt = DateTime.now().toUtc();
+    positions.add(_positionAt(recordedAt));
+    await sessionCubit!.stream
+        .firstWhere((state) => state.recordedLocations.length == 1)
+        .timeout(const Duration(seconds: 2));
+    positions.add(
+      _positionAt(
+        recordedAt.add(const Duration(seconds: 10)),
+        longitude: 106.80025,
+      ),
+    );
+    await sessionCubit!.stream
+        .firstWhere((state) => state.workoutProgress?.index == 1)
+        .timeout(const Duration(seconds: 2));
+
+    expect(
+      sessionCubit!.state.session!.distanceMeters,
+      greaterThanOrEqualTo(20),
+    );
+    expect(sessionCubit!.state.workoutProgress?.index, 1);
+  });
+
+  test('interval model rejects invalid targets and empty plans', () {
+    expect(
+      () => WorkoutInterval.create(
+        name: 'Tidak valid',
+        targetType: WorkoutTargetType.distance,
+        targetValue: 0,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => IntervalWorkout.create(id: 'empty', name: 'Kosong', intervals: []),
+      throwsArgumentError,
     );
   });
 
@@ -247,18 +395,19 @@ void main() {
   });
 }
 
-Position _positionAt(DateTime timestamp) => Position(
-  latitude: -6.2,
-  longitude: 106.8,
-  timestamp: timestamp,
-  accuracy: 5,
-  altitude: 20,
-  altitudeAccuracy: 5,
-  heading: 0,
-  headingAccuracy: 0,
-  speed: 0,
-  speedAccuracy: 0,
-);
+Position _positionAt(DateTime timestamp, {double longitude = 106.8}) =>
+    Position(
+      latitude: -6.2,
+      longitude: longitude,
+      timestamp: timestamp,
+      accuracy: 5,
+      altitude: 20,
+      altitudeAccuracy: 5,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0,
+    );
 
 class _RecordingReadinessChecker implements ReadinessChecker {
   const _RecordingReadinessChecker();

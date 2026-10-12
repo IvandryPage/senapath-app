@@ -15,6 +15,8 @@ import '../../routes/presentation/routes_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
+import '../../workouts/domain/interval_workout.dart';
+import '../../workouts/presentation/interval_workout_cubit.dart';
 import '../data/readiness_checker.dart';
 import '../data/session_file_service.dart';
 import '../domain/ride_session.dart';
@@ -263,6 +265,11 @@ class _SessionScreenState extends State<SessionScreen>
                           ] else ...[
                             _buildSessionStatus(context, session),
                             if (session != null) ...[
+                              if (state.workout?.visualCueEnabled == true &&
+                                  state.workoutProgress != null) ...[
+                                const SizedBox(height: 16),
+                                _buildWorkoutProgress(context, state),
+                              ],
                               const SizedBox(height: 24),
                               _buildMetrics(
                                 context,
@@ -276,6 +283,8 @@ class _SessionScreenState extends State<SessionScreen>
                               const SizedBox(height: 24),
                               _buildReadiness(context, readiness, state),
                               const SizedBox(height: 20),
+                              _buildWorkoutPicker(context),
+                              const SizedBox(height: 10),
                               _buildStartControl(context, state),
                             ],
                           ],
@@ -476,6 +485,8 @@ class _SessionScreenState extends State<SessionScreen>
         if (session == null) ...[
           if (widget.hideReadinessDetails) ...[
             const SizedBox(height: 14),
+            _buildWorkoutPicker(context),
+            const SizedBox(height: 8),
             Text(
               'Mulai rekam perjalananmu. Izin lokasi akan diminta saat '
               'diperlukan.',
@@ -483,7 +494,9 @@ class _SessionScreenState extends State<SessionScreen>
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: state.isCheckingReadiness
+              onPressed:
+                  state.isCheckingReadiness ||
+                      context.watch<IntervalWorkoutCubit>().state.isLoading
                   ? null
                   : () => _requestLocationAndStart(context),
               icon: state.isCheckingReadiness
@@ -496,6 +509,8 @@ class _SessionScreenState extends State<SessionScreen>
             ),
           ] else ...[
             const SizedBox(height: 14),
+            _buildWorkoutPicker(context),
+            const SizedBox(height: 8),
             if (state.readiness?.gpsMessage case final gpsMessage?)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -579,6 +594,11 @@ class _SessionScreenState extends State<SessionScreen>
               ),
             ),
           ),
+          if (state.workout?.visualCueEnabled == true &&
+              state.workoutProgress != null) ...[
+            const SizedBox(height: 12),
+            _buildWorkoutProgress(context, state),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
@@ -947,14 +967,77 @@ class _SessionScreenState extends State<SessionScreen>
   }
 
   Widget _buildStartControl(BuildContext context, RideSessionState state) {
+    final isLoadingWorkout = context
+        .watch<IntervalWorkoutCubit>()
+        .state
+        .isLoading;
     return SenapathButton(
-      onPressed: state.canStart
+      onPressed: state.canStart && !isLoadingWorkout
           ? () => context.read<RideSessionCubit>().start(
               route: context.read<RoutesCubit>().state.sessionRoute,
+              workout: context
+                  .read<IntervalWorkoutCubit>()
+                  .state
+                  .selectedWorkout,
             )
           : null,
       icon: Icons.play_arrow,
       label: 'Mulai sesi',
+    );
+  }
+
+  Widget _buildWorkoutPicker(BuildContext context) {
+    final workout = context.watch<IntervalWorkoutCubit>().state.selectedWorkout;
+    return OutlinedButton.icon(
+      onPressed: () => context.push('/routes/workouts'),
+      icon: const Icon(Icons.timer_outlined),
+      label: Text(
+        workout == null
+            ? 'Pilih workout interval (opsional)'
+            : 'Workout: ${workout.name}',
+      ),
+    );
+  }
+
+  Widget _buildWorkoutProgress(BuildContext context, RideSessionState state) {
+    final progress = state.workoutProgress!;
+    final interval = progress.interval;
+    if (interval == null) return const SizedBox.shrink();
+    final remaining = switch (interval.targetType) {
+      WorkoutTargetType.duration =>
+        '${progress.remainingValue.ceil()} detik tersisa',
+      WorkoutTargetType.distance =>
+        '${(progress.remainingValue / 1000).toStringAsFixed(2)} km tersisa',
+    };
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const Icon(Icons.timer_outlined),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Workout · ${progress.index + 1}/${progress.total}',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  Text(
+                    interval.name,
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    '${interval.isRecovery ? 'Pemulihan · ' : ''}$remaining',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -967,6 +1050,10 @@ class _SessionScreenState extends State<SessionScreen>
             onPressed: state.canStart
                 ? () => context.read<RideSessionCubit>().start(
                     route: context.read<RoutesCubit>().state.sessionRoute,
+                    workout: context
+                        .read<IntervalWorkoutCubit>()
+                        .state
+                        .selectedWorkout,
                   )
                 : null,
             icon: Icons.add,
@@ -1049,6 +1136,7 @@ class _SessionScreenState extends State<SessionScreen>
     }
     await sessionCubit.start(
       route: context.read<RoutesCubit>().state.sessionRoute,
+      workout: context.read<IntervalWorkoutCubit>().state.selectedWorkout,
     );
   }
 

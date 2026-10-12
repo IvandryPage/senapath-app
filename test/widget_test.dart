@@ -47,6 +47,8 @@ import 'package:senapath/features/ledger/data/ride_ledger_repository.dart';
 import 'package:senapath/features/ledger/presentation/ride_ledger_cubit.dart';
 import 'package:senapath/features/ride_coach/presentation/ride_coach_cubit.dart';
 import 'package:senapath/features/ride_coach/data/ride_coach_gateway.dart';
+import 'package:senapath/features/workouts/data/interval_workout_repository.dart';
+import 'package:senapath/features/workouts/presentation/interval_workout_cubit.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -57,6 +59,9 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
+    final workoutRepository = IntervalWorkoutRepository(database);
+    final intervalWorkoutCubit = IntervalWorkoutCubit(workoutRepository);
+    await intervalWorkoutCubit.load();
     final emergencyCubit = EmergencyCubit(_FakeEmergencyContactActions());
     final routesCubit = RoutesCubit(
       SavedRouteRepository(
@@ -74,6 +79,7 @@ void main() {
       ),
       readinessChecker: _FakeReadinessChecker(),
       locationSource: _FakeLocationSource(),
+      intervalWorkoutRepository: workoutRepository,
     );
     await sessionCubit.initialize();
 
@@ -132,6 +138,7 @@ void main() {
         ),
         rideLedgerCubit: RideLedgerCubit(RideLedgerRepository(database)),
         rideCoachCubit: RideCoachCubit(_UnavailableRideCoachGateway()),
+        intervalWorkoutCubit: intervalWorkoutCubit,
       ),
     );
     await tester.pumpAndSettle();
@@ -242,6 +249,23 @@ void main() {
     expect(find.byKey(const Key('start-session-button')), findsOneWidget);
     expect(find.byTooltip('Detail sesi'), findsNothing);
     expect(sessionCubit.state.session, isNull);
+    expect(find.text('Workout'), findsOneWidget);
+    await tester.tap(find.text('Workout'));
+    await tester.pumpAndSettle();
+    expect(find.text('Workout interval'), findsAtLeastNWidgets(1));
+    expect(find.text('Buat workout'), findsOneWidget);
+    await tester.tap(find.text('Buat workout'));
+    await tester.pumpAndSettle();
+    final workoutFields = find.byType(TextFormField);
+    await tester.enterText(workoutFields.at(0), 'Latihan singkat');
+    await tester.enterText(workoutFields.at(1), 'Interval awal');
+    await tester.enterText(workoutFields.at(2), '1');
+    await tester.tap(find.text('Simpan workout'));
+    await tester.pumpAndSettle();
+    expect(find.text('Latihan singkat'), findsOneWidget);
+    await tester.tap(find.text('Pilih untuk sesi berikutnya'));
+    await tester.pumpAndSettle();
+    expect(intervalWorkoutCubit.state.selectedWorkout?.name, 'Latihan singkat');
 
     await tester.tap(find.text('Logistik').last);
     await tester.pumpAndSettle();
@@ -351,6 +375,7 @@ void main() {
     await settingsCubit.close();
     await sessionCubit.close();
     await logisticsCubit.close();
+    await intervalWorkoutCubit.close();
   });
 
   testWidgets('loading state is announced with progress', (tester) async {

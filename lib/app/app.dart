@@ -18,6 +18,7 @@ import '../features/notifications/presentation/notification_settings_cubit.dart'
 import '../features/gamification/presentation/rider_gamification_cubit.dart';
 import '../features/ledger/presentation/ride_ledger_cubit.dart';
 import '../features/ride_coach/presentation/ride_coach_cubit.dart';
+import '../features/workouts/presentation/interval_workout_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -38,6 +39,7 @@ class SenapathApp extends StatelessWidget {
     required this.riderGamificationCubit,
     required this.rideLedgerCubit,
     required this.rideCoachCubit,
+    required this.intervalWorkoutCubit,
     super.key,
   });
 
@@ -56,6 +58,7 @@ class SenapathApp extends StatelessWidget {
   final RiderGamificationCubit riderGamificationCubit;
   final RideLedgerCubit rideLedgerCubit;
   final RideCoachCubit rideCoachCubit;
+  final IntervalWorkoutCubit intervalWorkoutCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +79,7 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: riderGamificationCubit),
         BlocProvider.value(value: rideLedgerCubit),
         BlocProvider.value(value: rideCoachCubit),
+        BlocProvider.value(value: intervalWorkoutCubit),
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) =>

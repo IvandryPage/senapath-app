@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -47,6 +49,8 @@ import 'features/ledger/data/ride_ledger_sync_gateway.dart';
 import 'features/ledger/presentation/ride_ledger_cubit.dart';
 import 'features/ride_coach/data/supabase_ride_coach_gateway.dart';
 import 'features/ride_coach/presentation/ride_coach_cubit.dart';
+import 'features/workouts/data/interval_workout_repository.dart';
+import 'features/workouts/presentation/interval_workout_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +82,9 @@ Future<void> main() async {
   final notificationSettingsRepository = NotificationSettingsRepository(
     database,
   );
+  final intervalWorkoutRepository = IntervalWorkoutRepository(database);
+  final intervalWorkoutCubit = IntervalWorkoutCubit(intervalWorkoutRepository);
+  unawaited(intervalWorkoutCubit.load());
   final rideLedgerRepository = RideLedgerRepository(database);
   final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
@@ -137,6 +144,7 @@ Future<void> main() async {
       rideCoachCubit: RideCoachCubit(
         SupabaseRideCoachGateway(supabaseClient, authSessionManager),
       ),
+      intervalWorkoutCubit: intervalWorkoutCubit,
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
         readinessChecker: const DeviceReadinessChecker(),
@@ -146,6 +154,7 @@ Future<void> main() async {
         notificationService: notificationService,
         notificationSettingsRepository: notificationSettingsRepository,
         ledgerRepository: rideLedgerRepository,
+        intervalWorkoutRepository: intervalWorkoutRepository,
         syncCoordinator: SessionSyncCoordinator(
           repository: sessionRepository,
           gateway: SupabaseSessionSyncGateway(

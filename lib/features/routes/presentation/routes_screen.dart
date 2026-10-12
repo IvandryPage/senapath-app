@@ -18,6 +18,7 @@ import 'explore_map.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
 import '../../session/presentation/session_screen.dart';
+import '../../workouts/presentation/interval_workout_cubit.dart';
 
 class RoutesScreen extends StatefulWidget {
   const RoutesScreen({super.key});
@@ -70,6 +71,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     .watch<UnitSettingsCubit>()
                     .state
                     .unitSystem;
+                final workoutState = context
+                    .watch<IntervalWorkoutCubit>()
+                    .state;
                 final trackPoints = [
                   for (final location in sessionState.recordedLocations)
                     LatLng(location.latitude, location.longitude),
@@ -173,11 +177,38 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                       ? null
                                       : () => context
                                             .read<RideSessionCubit>()
-                                            .start(route: activeRoute),
+                                            .start(
+                                              route: activeRoute,
+                                              workout:
+                                                  workoutState.selectedWorkout,
+                                            ),
                                   icon: const Icon(Icons.play_arrow),
                                   label: const Text('Mulai sesi'),
                                 ),
                         ),
+                        if (!hasActiveSession)
+                          Positioned(
+                            left: 16,
+                            bottom: 16,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: constraints.maxWidth * 0.45,
+                              ),
+                              child: OutlinedButton.icon(
+                                onPressed: workoutState.isLoading
+                                    ? null
+                                    : () => context.push('/routes/workouts'),
+                                icon: const Icon(Icons.timer_outlined),
+                                label: Text(
+                                  workoutState.selectedWorkout == null
+                                      ? 'Workout'
+                                      : 'Workout dipilih',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     );
                   },

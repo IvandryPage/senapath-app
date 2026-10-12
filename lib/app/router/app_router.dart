@@ -22,6 +22,7 @@ import '../../features/teams/presentation/cycling_team_screen.dart';
 import '../../features/notifications/presentation/notification_settings_screen.dart';
 import '../../features/gamification/presentation/rider_screen.dart';
 import '../../features/ledger/presentation/ride_ledger_screen.dart';
+import '../../features/workouts/presentation/interval_workout_screen.dart';
 
 const _destinations = <({String label, IconData icon, IconData selectedIcon})>[
   (label: 'Beranda', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -94,6 +95,12 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/routes',
               builder: (context, state) => const RoutesScreen(),
+              routes: [
+                GoRoute(
+                  path: 'workouts',
+                  builder: (context, state) => const IntervalWorkoutScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -204,6 +211,7 @@ class _AppShellState extends State<_AppShell> {
       '/profile/sessions' => 'Riwayat sesi',
       _ when widget.location.startsWith('/profile/sessions/') => 'Detail sesi',
       '/profile/routes' => 'Rute tersimpan',
+      '/routes/workouts' => 'Workout interval',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
     final isSubmenu = switch (widget.location) {
