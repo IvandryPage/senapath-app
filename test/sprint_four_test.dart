@@ -131,6 +131,46 @@ void main() {
     );
   });
 
+  test('performance chart samples every five seconds without dropping GPS', () async {
+    var now = DateTime.utc(2026, 9, 30, 12);
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      clock: () => now,
+    );
+    await sessionCubit!.start();
+
+    var recorded = sessionCubit!.stream.firstWhere(
+      (state) => state.recordedLocations.length == 1,
+    );
+    positions.add(_positionAt(now));
+    await recorded.timeout(const Duration(seconds: 2));
+    expect(sessionCubit!.state.performanceLocations.length, 1);
+
+    now = now.add(const Duration(seconds: 4));
+    recorded = sessionCubit!.stream.firstWhere(
+      (state) => state.recordedLocations.length == 2,
+    );
+    positions.add(_positionAt(now, longitude: 106.8001));
+    await recorded.timeout(const Duration(seconds: 2));
+    expect(sessionCubit!.state.performanceLocations.length, 1);
+
+    now = now.add(const Duration(seconds: 1));
+    recorded = sessionCubit!.stream.firstWhere(
+      (state) => state.recordedLocations.length == 3,
+    );
+    positions.add(_positionAt(now, longitude: 106.8002));
+    await recorded.timeout(const Duration(seconds: 2));
+
+    expect(sessionCubit!.state.recordedLocations, hasLength(3));
+    expect(sessionCubit!.state.performanceLocations, hasLength(2));
+    expect(
+      await repository.loadTelemetryLocations(sessionCubit!.state.session!.id),
+      hasLength(3),
+    );
+  });
+
   test('active GPX sessions notify route progress and checkpoints', () async {
     final notificationService = _RecordingRideNotificationService();
     sessionCubit = RideSessionCubit(

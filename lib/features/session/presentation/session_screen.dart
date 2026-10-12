@@ -627,8 +627,7 @@ class _SessionScreenState extends State<SessionScreen>
     UnitSystem unitSystem,
   ) {
     final locations = state.recordedLocations;
-    final elapsed = state.elapsed;
-    final motion = state.motion;
+    final performanceLocations = state.performanceLocations;
     final metric = unitSystem == UnitSystem.metric;
     final speedFactor = metric ? 3.6 : 2.236936;
     final speedUnit = metric ? 'km/j' : 'mph';
@@ -637,153 +636,79 @@ class _SessionScreenState extends State<SessionScreen>
         .where((speed) => speed.isFinite && speed >= 0)
         .map((speed) => speed * speedFactor)
         .toList(growable: false);
+    final chartSpeeds = performanceLocations
+        .map((location) => location.speedMetersPerSecond)
+        .where((speed) => speed.isFinite && speed >= 0)
+        .map((speed) => speed * speedFactor)
+        .toList(growable: false);
+    final elapsed = state.elapsed;
     final averageSpeed = elapsed.inSeconds > 0
         ? session.distanceMeters / elapsed.inSeconds * speedFactor
         : 0.0;
     final maxSpeed = speeds.isEmpty
         ? 0.0
         : speeds.reduce((first, next) => math.max(first, next).toDouble());
-    final elevationSamples = _elevationProfile(
-      locations,
-      source: 'Estimasi GPS',
-    );
-    final accelerationHistory = motion?.accelerationHistory ?? const <double>[];
-    final rotationHistory = motion?.rotationHistory ?? const <double>[];
-    final cadenceHistory = motion?.cadenceHistory ?? const <double>[];
-    final peakAcceleration = accelerationHistory.isEmpty
-        ? null
-        : accelerationHistory.reduce((first, next) => math.max(first, next));
-    final peakRotation = rotationHistory.isEmpty
-        ? null
-        : rotationHistory.reduce((first, next) => math.max(first, next));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Performa sesi',
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        Row(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _MetricValue(
-                label: 'Kecepatan rata-rata',
-                value: averageSpeed.toStringAsFixed(1),
-                unit: speedUnit,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Performa sesi',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  'Grafik diperbarui tiap 5 dtk',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _MetricValue(
-                label: 'Kecepatan maksimum',
-                value: maxSpeed.toStringAsFixed(1),
-                unit: speedUnit,
-              ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricValue(
+                    label: 'Rata-rata',
+                    value: averageSpeed.toStringAsFixed(1),
+                    unit: speedUnit,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MetricValue(
+                    label: 'Maksimum',
+                    value: maxSpeed.toStringAsFixed(1),
+                    unit: speedUnit,
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+            Text(
+              'Kecepatan $speedUnit',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            if (chartSpeeds.length >= 5)
+              _SpeedGraph(values: chartSpeeds)
+            else
+              Text(
+                'Grafik akan muncul setelah ada beberapa sampel GPS.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
           ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          'Perubahan kecepatan ($speedUnit)',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        if (speeds.length >= 5)
-          _SpeedGraph(values: speeds)
-        else
-          const Text('Grafik muncul setelah terkumpul cukup sampel GPS.'),
-        if (elevationSamples.length >= 2) ...[
-          const SizedBox(height: 16),
-          Text(
-            'Profil elevasi (relatif)',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 8),
-          _SpeedGraph(values: elevationSamples),
-        ],
-        const SizedBox(height: 20),
-        Text(
-          'Sensor gerak & ritme (estimasi)',
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Akselerasi dan rotasi adalah nilai mentah sensor ponsel. '
-          'Cadence adalah estimasi kasar dari getaran ponsel, belum '
-          'tervalidasi, dan bukan pengukuran daya atau lean angle.',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 12),
-        _SummaryMetricCard(
-          children: [
-            _MetricValue(
-              label: 'Cadence (estimasi)',
-              value: motion?.cadenceRpm == null
-                  ? '—'
-                  : motion!.cadenceRpm!.toStringAsFixed(0),
-              unit: motion?.cadenceRpm == null ? '' : 'rpm',
-            ),
-            _MetricValue(
-              label: 'Akselerasi kini',
-              value: motion?.accelerationMagnitude == null
-                  ? '—'
-                  : motion!.accelerationMagnitude!.toStringAsFixed(1),
-              unit: motion?.accelerationMagnitude == null ? '' : 'm/s²',
-            ),
-            _MetricValue(
-              label: 'Puncak akselerasi',
-              value: peakAcceleration?.toStringAsFixed(1) ?? '—',
-              unit: peakAcceleration == null ? '' : 'm/s²',
-            ),
-            _MetricValue(
-              label: 'Rotasi',
-              value: motion?.rotationRateMagnitude == null
-                  ? '—'
-                  : motion!.rotationRateMagnitude!.toStringAsFixed(2),
-              unit: motion?.rotationRateMagnitude == null ? '' : 'rad/s',
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Ritme kayuh, estimasi (rpm)',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        if (cadenceHistory.length >= 2)
-          _SpeedGraph(values: cadenceHistory)
-        else
-          const Text(
-            'Estimasi cadence muncul saat sensor mendeteksi gerakan berirama.',
-          ),
-        const SizedBox(height: 16),
-        Text(
-          'Akselerasi ponsel, termasuk gravitasi (m/s²)',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        if (accelerationHistory.length >= 2)
-          _SpeedGraph(values: accelerationHistory)
-        else
-          const Text('Grafik akselerasi muncul setelah sensor terkumpul.'),
-        const SizedBox(height: 16),
-        Text(
-          'Rotasi sudut (rad/s)${peakRotation == null ? '' : ' · puncak '
-                    '${peakRotation.toStringAsFixed(2)}'}',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        if (rotationHistory.length >= 2)
-          _SpeedGraph(values: rotationHistory)
-        else
-          const Text('Grafik rotasi muncul setelah sensor terkumpul.'),
-      ],
+      ),
     );
   }
 

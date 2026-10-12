@@ -27,6 +27,7 @@ class RideSessionState {
     this.readiness,
     this.session,
     this.recordedLocations = const [],
+    this.performanceLocations = const [],
     this.completedSessions = const [],
     this.summary,
     this.summaryLocations = const [],
@@ -49,6 +50,7 @@ class RideSessionState {
   final ReadinessReport? readiness;
   final RideSessionSnapshot? session;
   final List<TelemetryLocation> recordedLocations;
+  final List<TelemetryLocation> performanceLocations;
   final List<RideSessionSnapshot> completedSessions;
   final RideSessionSummary? summary;
   final List<TelemetryLocation> summaryLocations;
@@ -71,6 +73,7 @@ class RideSessionState {
     ReadinessReport? readiness,
     RideSessionSnapshot? session,
     List<TelemetryLocation>? recordedLocations,
+    List<TelemetryLocation>? performanceLocations,
     List<RideSessionSnapshot>? completedSessions,
     RideSessionSummary? summary,
     List<TelemetryLocation>? summaryLocations,
@@ -99,6 +102,7 @@ class RideSessionState {
     readiness: readiness ?? this.readiness,
     session: session ?? this.session,
     recordedLocations: recordedLocations ?? this.recordedLocations,
+    performanceLocations: performanceLocations ?? this.performanceLocations,
     completedSessions: completedSessions ?? this.completedSessions,
     summary: clearSummary ? null : summary ?? this.summary,
     summaryLocations: clearSummary
@@ -183,10 +187,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   bool _routeNotificationsFailed = false;
   bool _routeNotificationsEnabled = false;
   bool _routeNotificationPermissionRequested = false;
+  DateTime? _lastPerformanceSampleAt;
   RouteProgressCalculator? _routeProgressCalculator;
   WorkoutCheckpoint? _workoutCheckpoint;
   bool _updatingWorkout = false;
   bool _syncSettingsLoaded = false;
+
+  static const Duration _performanceChartSampleInterval = Duration(seconds: 5);
+  static const int _maxPerformanceChartSamples = 60;
 
   bool get canSyncSessions =>
       syncCoordinator?.gateway.isConfigured == true &&
@@ -358,6 +366,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     try {
       final session = await repository.start(_clock().toUtc());
+      _lastPerformanceSampleAt = null;
       _workoutCheckpoint = null;
       if (workout != null && intervalWorkoutRepository != null) {
         final checkpoint = WorkoutCheckpoint(
@@ -387,6 +396,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           clearActiveRoute: route == null,
           clearRouteProgress: true,
           recordedLocations: const [],
+          performanceLocations: const [],
           now: _clock().toUtc(),
           workout: _workoutCheckpoint == null ? null : workout,
           workoutProgress: _workoutCheckpoint == null || workout == null
@@ -445,6 +455,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     try {
       final resumed = await repository.resume(session.id, _clock().toUtc());
+      _lastPerformanceSampleAt = null;
       if (route != null) {
         _activeRoute = route;
         _routeProgressCalculator = RouteProgressCalculator(route);
@@ -807,13 +818,31 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
     if (updated != null && state.session?.id == sessionId) {
       final routeProgress = _routeProgressCalculator?.calculate(location);
+      final now = _clock().toUtc();
+      final lastSample = _lastPerformanceSampleAt;
+      final shouldSamplePerformance =
+          lastSample == null ||
+          now.difference(lastSample) >= _performanceChartSampleInterval;
+      if (shouldSamplePerformance) _lastPerformanceSampleAt = now;
+      final performanceLocations = shouldSamplePerformance
+          ? [...state.performanceLocations, location]
+          : state.performanceLocations;
+      if (performanceLocations.length > _maxPerformanceChartSamples) {
+        performanceLocations.removeRange(
+          0,
+          performanceLocations.length - _maxPerformanceChartSamples,
+        );
+      }
       emit(
         state.copyWith(
           session: updated,
           recordedLocations: [...state.recordedLocations, location],
+          performanceLocations: shouldSamplePerformance
+              ? performanceLocations
+              : null,
           routeProgress: routeProgress,
           clearRouteProgress: routeProgress == null,
-          now: _clock().toUtc(),
+          now: now,
         ),
       );
       await _updateWorkoutProgress();
@@ -1018,7 +1047,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
 
   void _startMotionTicker() {
     _motionTicker?.cancel();
-    _motionTicker = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _motionTicker = Timer.periodic(_performanceChartSampleInterval, (_) {
       _emitMotion();
     });
   }
