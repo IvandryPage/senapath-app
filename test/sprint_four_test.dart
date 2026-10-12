@@ -1,14 +1,24 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
+import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
+import 'package:senapath/features/session/presentation/session_cubit.dart';
 
 void main() {
   late AppDatabase database;
   late DriftRideSessionRepository repository;
+  late StreamController<Position> positions;
+  late StreamController<AccelerometerEvent> accelerometerReadings;
+  late StreamController<GyroscopeEvent> gyroscopeReadings;
+  RideSessionCubit? sessionCubit;
 
   setUp(() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
@@ -18,10 +28,69 @@ void main() {
         secureVault: _MemorySecureVault(),
       ),
     );
+    positions = StreamController<Position>.broadcast();
+    accelerometerReadings = StreamController<AccelerometerEvent>.broadcast();
+    gyroscopeReadings = StreamController<GyroscopeEvent>.broadcast();
   });
 
   tearDown(() async {
+    await sessionCubit?.close();
+    await positions.close();
+    await accelerometerReadings.close();
+    await gyroscopeReadings.close();
     await database.close();
+  });
+
+  test('motion sensors keep recording after session resume', () async {
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      motionSensorSource: _TestMotionSensorSource(
+        accelerometerReadings.stream,
+        gyroscopeReadings.stream,
+      ),
+    );
+
+    await sessionCubit!.start();
+    final startedAt = DateTime.now().toUtc();
+    accelerometerReadings.add(AccelerometerEvent(1, 2, 2, DateTime.now()));
+    gyroscopeReadings.add(GyroscopeEvent(0.1, 0.2, 0.2, DateTime.now()));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final firstSample = sessionCubit!.stream.firstWhere(
+      (state) => state.recordedLocations.length == 1,
+    );
+    positions.add(_positionAt(startedAt));
+    await firstSample.timeout(const Duration(seconds: 2));
+
+    await sessionCubit!.pause();
+    await sessionCubit!.resume();
+    accelerometerReadings.add(AccelerometerEvent(0, 4, 3, DateTime.now()));
+    gyroscopeReadings.add(GyroscopeEvent(0, 0, 2, DateTime.now()));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final secondSample = sessionCubit!.stream.firstWhere(
+      (state) => state.recordedLocations.length == 2,
+    );
+    positions.add(_positionAt(startedAt.add(const Duration(seconds: 10))));
+    await secondSample.timeout(const Duration(seconds: 2));
+
+    final locations = await repository.loadTelemetryLocations(
+      sessionCubit!.state.session!.id,
+    );
+    expect(
+      locations
+          .map(
+            (location) => location.accelerationMagnitudeMetersPerSecondSquared,
+          )
+          .toList(),
+      [3, 5],
+    );
+    expect(
+      locations
+          .map((location) => location.rotationRateMagnitudeRadiansPerSecond)
+          .toList(),
+      [closeTo(0.3, 0.0001), closeTo(2.0, 0.0001)],
+    );
   });
 
   test(
@@ -176,6 +245,70 @@ void main() {
     expect(await repository.loadCompletedSessions(), isEmpty);
     expect(await repository.loadTelemetryLocations(session.id), isEmpty);
   });
+}
+
+Position _positionAt(DateTime timestamp) => Position(
+  latitude: -6.2,
+  longitude: 106.8,
+  timestamp: timestamp,
+  accuracy: 5,
+  altitude: 20,
+  altitudeAccuracy: 5,
+  heading: 0,
+  headingAccuracy: 0,
+  speed: 0,
+  speedAccuracy: 0,
+);
+
+class _RecordingReadinessChecker implements ReadinessChecker {
+  const _RecordingReadinessChecker();
+
+  @override
+  Future<ReadinessReport> check({
+    bool requestLocationPermission = false,
+    bool requestNotificationPermission = false,
+    bool checkGpsFix = false,
+  }) async => const ReadinessReport(
+    locationPermissionGranted: true,
+    locationPermanentlyDenied: false,
+    locationServicesEnabled: true,
+    gpsFixAvailable: true,
+    accelerometerAvailable: true,
+    gyroscopeAvailable: true,
+    notificationsGranted: true,
+    notificationsPermanentlyDenied: false,
+  );
+
+  @override
+  Future<bool> openLocationSettings() async => false;
+
+  @override
+  Future<bool> openLocationServiceSettings() async => false;
+
+  @override
+  Future<bool> openNotificationSettings() async => false;
+}
+
+class _TestLocationSource implements LocationSource {
+  const _TestLocationSource(this._positions);
+
+  final Stream<Position> _positions;
+
+  @override
+  Stream<Position> get positions => _positions;
+}
+
+class _TestMotionSensorSource implements MotionSensorSource {
+  const _TestMotionSensorSource(this._accelerometer, this._gyroscope);
+
+  final Stream<AccelerometerEvent> _accelerometer;
+  final Stream<GyroscopeEvent> _gyroscope;
+
+  @override
+  Stream<AccelerometerEvent> get accelerometerReadings => _accelerometer;
+
+  @override
+  Stream<GyroscopeEvent> get gyroscopeReadings => _gyroscope;
 }
 
 class _MemorySecureVault implements SecureVault {

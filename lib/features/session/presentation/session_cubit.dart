@@ -184,9 +184,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         ),
       );
       if (session?.status == RideSessionStatus.recording) {
-        _startLocationStream(session!.id);
-        _startBarometerStream();
-        _startMotionSensorStreams();
+        await _startLocationStream(session!.id);
+        await _startBarometerStream();
+        await _startMotionSensorStreams();
         _startTicker();
       }
     } catch (_) {
@@ -295,9 +295,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         ),
       );
       await _prepareRouteNotifications();
-      _startLocationStream(session.id);
-      _startBarometerStream();
-      _startMotionSensorStreams();
+      await _startLocationStream(session.id);
+      await _startBarometerStream();
+      await _startMotionSensorStreams();
       _startTicker();
     } catch (_) {
       _setMessage('Sesi tidak dapat dimulai. Data sebelumnya tetap tersimpan.');
@@ -347,9 +347,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         ),
       );
       await _prepareRouteNotifications();
-      _startLocationStream(resumed.id);
-      _startBarometerStream();
-      _startMotionSensorStreams();
+      await _startLocationStream(resumed.id);
+      await _startBarometerStream();
+      await _startMotionSensorStreams();
       _startTicker();
     } catch (_) {
       _setMessage('Sesi tidak dapat dilanjutkan.');
@@ -707,8 +707,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  void _startLocationStream(String sessionId) {
-    unawaited(_stopLocationStream());
+  Future<void> _startLocationStream(String sessionId) async {
+    await _stopLocationStream();
+    if (state.session?.id != sessionId ||
+        state.session?.status != RideSessionStatus.recording) {
+      return;
+    }
     _positionSubscription = locationSource.positions.listen(
       (position) => unawaited(_handlePosition(sessionId, position)),
       onError: (Object _) =>
@@ -716,11 +720,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
   }
 
-  void _startBarometerStream() {
+  Future<void> _startBarometerStream() async {
+    await _stopBarometerStream();
     final source = barometerSource;
     if (source == null) return;
+    if (state.session?.status != RideSessionStatus.recording) return;
     _barometricPressureHpa = null;
-    unawaited(_stopBarometerStream());
     _barometerSubscription = source.pressureHpa.listen((pressure) {
       _barometricPressureHpa =
           pressure.isFinite && pressure >= 300 && pressure <= 1100
@@ -729,12 +734,13 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }, onError: (Object _) => _barometricPressureHpa = null);
   }
 
-  void _startMotionSensorStreams() {
+  Future<void> _startMotionSensorStreams() async {
+    await _stopMotionSensorStreams();
     final source = motionSensorSource;
     if (source == null) return;
+    if (state.session?.status != RideSessionStatus.recording) return;
     _accelerationMagnitude = null;
     _rotationRateMagnitude = null;
-    unawaited(_stopMotionSensorStreams());
     _accelerometerSubscription = source.accelerometerReadings.listen((event) {
       final magnitude = math.sqrt(
         event.x * event.x + event.y * event.y + event.z * event.z,
@@ -750,20 +756,27 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   }
 
   Future<void> _stopLocationStream() async {
-    await _positionSubscription?.cancel();
+    final subscription = _positionSubscription;
     _positionSubscription = null;
+    await subscription?.cancel();
   }
 
   Future<void> _stopBarometerStream() async {
-    await _barometerSubscription?.cancel();
+    final subscription = _barometerSubscription;
     _barometerSubscription = null;
+    await subscription?.cancel();
   }
 
   Future<void> _stopMotionSensorStreams() async {
-    await _accelerometerSubscription?.cancel();
-    await _gyroscopeSubscription?.cancel();
+    final accelerometerSubscription = _accelerometerSubscription;
+    final gyroscopeSubscription = _gyroscopeSubscription;
     _accelerometerSubscription = null;
     _gyroscopeSubscription = null;
+    await Future.wait([
+      if (accelerometerSubscription != null)
+        accelerometerSubscription.cancel(),
+      if (gyroscopeSubscription != null) gyroscopeSubscription.cancel(),
+    ]);
   }
 
   void _startTicker() {
