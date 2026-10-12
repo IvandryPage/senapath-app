@@ -686,17 +686,23 @@ class _SessionScreenState extends State<SessionScreen>
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
-        _SummaryMetricCard(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _MetricValue(
-              label: 'Kecepatan rata-rata',
-              value: averageSpeed.toStringAsFixed(1),
-              unit: speedUnit,
+            Expanded(
+              child: _MetricValue(
+                label: 'Kecepatan rata-rata',
+                value: averageSpeed.toStringAsFixed(1),
+                unit: speedUnit,
+              ),
             ),
-            _MetricValue(
-              label: 'Kecepatan maksimum',
-              value: maxSpeed.toStringAsFixed(1),
-              unit: speedUnit,
+            const SizedBox(width: 12),
+            Expanded(
+              child: _MetricValue(
+                label: 'Kecepatan maksimum',
+                value: maxSpeed.toStringAsFixed(1),
+                unit: speedUnit,
+              ),
             ),
           ],
         ),
@@ -1423,9 +1429,6 @@ class _SessionScreenState extends State<SessionScreen>
     final session = summary.session;
     final distanceLabel = _formatDistance(session.distanceMeters, metric);
     final duration = session.durationAt(session.endedAt ?? session.startedAt);
-    final elevationLabel = summary.elevationGainMeters == null
-        ? 'Tidak tersedia'
-        : '${summary.elevationGainMeters!.toStringAsFixed(0)} m';
     final speedUnit = metric ? 'km/j' : 'mph';
     final speedFactor = metric ? 3.6 : 2.236936;
     final graphSpeeds = summary.speedSamples
@@ -1481,6 +1484,15 @@ class _SessionScreenState extends State<SessionScreen>
         ? null
         : rotationSamples.reduce((first, next) => math.max(first, next));
 
+    final colors = Theme.of(context).colorScheme;
+    final hasSensorData =
+        summary.accelerometerSampleCount > 0 ||
+        summary.gyroscopeSampleCount > 0;
+    final elevationGain = summary.elevationGainMeters;
+    final elevationLabel = elevationGain == null
+        ? '—'
+        : '${elevationGain.toStringAsFixed(0)} m';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1492,14 +1504,16 @@ class _SessionScreenState extends State<SessionScreen>
                 children: [
                   Text(
                     session.title.isEmpty ? 'Ringkasan sesi' : session.title,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${_activityTypeLabel(session.activityType)} · '
                     '${_formatSessionDate(session.startedAt)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -1512,184 +1526,291 @@ class _SessionScreenState extends State<SessionScreen>
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
+        SenapathCard(
+          margin: EdgeInsets.zero,
+          color: SenapathColors.navy,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'JARAK TEMPUH',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: SenapathColors.accent,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  distanceLabel,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _HeroSessionMetric(
+                        label: 'Durasi',
+                        value: _formatDuration(duration),
+                      ),
+                    ),
+                    Expanded(
+                      child: _HeroSessionMetric(
+                        label: 'Elevasi naik',
+                        value: elevationLabel,
+                      ),
+                    ),
+                    Expanded(
+                      child: _HeroSessionMetric(
+                        label: 'Rata-rata',
+                        value: '${averageSpeed.toStringAsFixed(1)} $speedUnit',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _SessionSectionHeading(
+          title: 'Jejak rute',
+          trailing: trackPoints.isEmpty
+              ? null
+              : '${trackPoints.length} titik GPS',
+        ),
+        const SizedBox(height: 10),
         if (trackPoints.isEmpty)
           Container(
             height: 180,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-              borderRadius: BorderRadius.circular(4),
+              color: colors.surfaceContainerHighest,
+              border: Border.all(color: colors.outlineVariant),
+              borderRadius: BorderRadius.circular(SenapathShape.medium),
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(20),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.route_outlined, size: 30),
-                  SizedBox(height: 8),
-                  Text('Tidak ada jejak GPS untuk divisualisasikan.'),
+                  Icon(
+                    Icons.route_outlined,
+                    size: 30,
+                    color: colors.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('Tidak ada jejak GPS untuk sesi ini.'),
                 ],
               ),
             ),
           )
         else
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(SenapathShape.medium),
             child: ExploreMap(
-              height: 260,
-              borderRadius: 4,
+              height: 240,
+              borderRadius: SenapathShape.medium,
               trackPoints: trackPoints,
               currentLocation: trackPoints.last,
               showLocationButton: false,
               showEmptyMessage: false,
             ),
           ),
-        const SizedBox(height: 8),
-        Text(
-          trackPoints.length < 2
-              ? 'Jejak peta tidak tersedia untuk sesi ini.'
-              : '${trackPoints.length} titik GPS pada jejak sesi',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
+        if (trackPoints.length == 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Jejak peta perlu setidaknya dua titik GPS.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+          ),
         const SizedBox(height: 24),
-        Text('Metrik utama', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        _SummaryMetricCard(
-          children: [
-            _MetricValue(
-              label: 'Jarak',
-              value: distanceLabel.split(' ').first,
-              unit: distanceLabel.split(' ').last,
+        _SessionSectionHeading(title: 'Performa'),
+        const SizedBox(height: 10),
+        SenapathCard(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SummaryMetricCard(
+                  children: [
+                    _MetricValue(
+                      label: 'Kecepatan rata-rata',
+                      value: averageSpeed.toStringAsFixed(1),
+                      unit: speedUnit,
+                    ),
+                    _MetricValue(
+                      label: 'Kecepatan maksimum',
+                      value: maxSpeed.toStringAsFixed(1),
+                      unit: speedUnit,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Grafik kecepatan ($speedUnit)',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (summary.hasSpeedGraph) ...[
+                  const SizedBox(height: 8),
+                  _SpeedGraph(values: graphSpeeds),
+                ] else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Belum cukup sampel untuk menampilkan grafik.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            _MetricValue(
-              label: 'Durasi',
-              value: _formatDuration(duration),
-              unit: '',
-            ),
-            _MetricValue(
-              label: 'Elevasi naik',
-              value: elevationLabel.replaceAll(' m', ''),
-              unit: elevationLabel.endsWith(' m') ? 'm' : '',
-            ),
-            _MetricValue(
-              label: 'Sampel GPS',
-              value: '${summary.sampleCount}',
-              unit: '',
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Sumber elevasi: ${summary.elevationSource}. '
-          'Nilai kosong berarti data sensor yang akurat belum tersedia.',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 20),
-        Text('Kecepatan', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        _SummaryMetricCard(
-          children: [
-            _MetricValue(
-              label: 'Rata-rata',
-              value: averageSpeed.toStringAsFixed(1),
-              unit: speedUnit,
-            ),
-            _MetricValue(
-              label: 'Maksimum tercatat',
-              value: maxSpeed.toStringAsFixed(1),
-              unit: speedUnit,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Grafik kecepatan ($speedUnit)',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        if (summary.hasSpeedGraph)
-          _SpeedGraph(values: graphSpeeds)
-        else
-          const Text('Belum cukup sampel untuk menampilkan grafik kecepatan.'),
-        const SizedBox(height: 20),
-        Text('Profil elevasi', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          elevationSamples.length >= 2
-              ? 'Perubahan relatif dari ${summary.elevationSource.toLowerCase()}'
-              : 'Data elevasi belum cukup untuk membuat grafik.',
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
         ),
         if (elevationSamples.length >= 2) ...[
-          const SizedBox(height: 8),
-          _SpeedGraph(values: elevationSamples),
+          const SizedBox(height: 16),
+          SenapathCard(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Profil elevasi',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sumber: ${summary.elevationSource.toLowerCase()}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _SpeedGraph(values: elevationSamples),
+                ],
+              ),
+            ),
+          ),
         ],
-        const SizedBox(height: 20),
-        Text(
-          'Sensor & kualitas data',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        _SummaryMetricCard(
-          children: [
-            _MetricValue(
-              label: 'Akselerasi rata-rata',
-              value: averageAcceleration?.toStringAsFixed(1) ?? '—',
-              unit: averageAcceleration == null ? '' : 'm/s²',
+        if (hasSensorData) ...[
+          const SizedBox(height: 16),
+          SenapathCard(
+            margin: EdgeInsets.zero,
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              leading: const Icon(Icons.sensors_outlined),
+              title: const Text('Detail sensor'),
+              subtitle: Text(
+                '${summary.accelerometerSampleCount} akselerometer · '
+                '${summary.gyroscopeSampleCount} gyroscope',
+              ),
+              children: [
+                Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _MetricValue(
+                            label: 'Akselerasi rata-rata',
+                            value:
+                                averageAcceleration?.toStringAsFixed(1) ?? '—',
+                            unit: averageAcceleration == null ? '' : 'm/s²',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _MetricValue(
+                            label: 'Akselerasi puncak',
+                            value: peakAcceleration?.toStringAsFixed(1) ?? '—',
+                            unit: peakAcceleration == null ? '' : 'm/s²',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _MetricValue(
+                            label: 'Rotasi rata-rata',
+                            value: averageRotation?.toStringAsFixed(2) ?? '—',
+                            unit: averageRotation == null ? '' : 'rad/s',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _MetricValue(
+                            label: 'Rotasi puncak',
+                            value: peakRotation?.toStringAsFixed(2) ?? '—',
+                            unit: peakRotation == null ? '' : 'rad/s',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Sampel sensor disimpan bersama titik GPS. Angka sensor '
+                  'bersifat estimasi, bukan pengukuran daya atau sudut kemiringan.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-            _MetricValue(
-              label: 'Akselerasi puncak',
-              value: peakAcceleration?.toStringAsFixed(1) ?? '—',
-              unit: peakAcceleration == null ? '' : 'm/s²',
-            ),
-            _MetricValue(
-              label: 'Rotasi rata-rata',
-              value: averageRotation?.toStringAsFixed(2) ?? '—',
-              unit: averageRotation == null ? '' : 'rad/s',
-            ),
-            _MetricValue(
-              label: 'Rotasi puncak',
-              value: peakRotation?.toStringAsFixed(2) ?? '—',
-              unit: peakRotation == null ? '' : 'rad/s',
-            ),
-          ],
-        ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        _SessionSectionHeading(title: 'Akun & tantangan'),
         const SizedBox(height: 8),
-        Text(
-          'Akselerometer: ${summary.accelerometerSampleCount} dari '
-          '${summary.sampleCount} sampel · Gyroscope: '
-          '${summary.gyroscopeSampleCount} dari ${summary.sampleCount} sampel. '
-          'Nilai di atas tersinkron per titik GPS. Cadence tampil sebagai '
-          'estimasi kasar di layar sesi dan belum tervalidasi; bukan daya '
-          'atau lean angle resmi.',
-          style: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        SenapathCard(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                _buildSummarySync(context, summary),
+                const Divider(height: 16),
+                _LeaderboardSessionActions(summary: summary),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 20),
-        _buildSummarySync(context, summary),
-        const SizedBox(height: 16),
-        _LeaderboardSessionActions(summary: summary),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
+        _SessionSectionHeading(title: 'Ekspor sesi'),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             OutlinedButton.icon(
+              onPressed: () => _exportSession(context, summary, asGpx: true),
+              icon: const Icon(Icons.route_outlined),
+              label: const Text('Simpan rute GPX'),
+            ),
+            TextButton.icon(
               onPressed: () => _exportSession(context, summary, asGpx: false),
               icon: const Icon(Icons.data_object),
-              label: const Text('Ekspor JSON'),
-            ),
-            OutlinedButton.icon(
-              onPressed: () => _exportSession(context, summary, asGpx: true),
-              icon: const Icon(Icons.route),
-              label: const Text('Ekspor GPX'),
+              label: const Text('Ekspor data JSON'),
             ),
           ],
         ),
@@ -1701,59 +1822,13 @@ class _SessionScreenState extends State<SessionScreen>
     BuildContext context,
     RideSessionSnapshot session,
   ) async {
-    final titleController = TextEditingController(text: session.title);
-    var activityType = session.activityType;
     final result = await showDialog<(String, RideActivityType)>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => SenapathAlertDialog(
-          title: const Text('Detail aktivitas'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                maxLength: 60,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Nama aktivitas',
-                  hintText: 'Contoh: Gowes pagi',
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<RideActivityType>(
-                initialValue: activityType,
-                decoration: const InputDecoration(labelText: 'Jenis'),
-                items: [
-                  for (final type in RideActivityType.values)
-                    DropdownMenuItem(
-                      value: type,
-                      child: Text(_activityTypeLabel(type)),
-                    ),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => activityType = value);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, (
-                titleController.text,
-                activityType,
-              )),
-              child: const Text('Simpan'),
-            ),
-          ],
-        ),
+      builder: (_) => _ActivityMetadataDialog(
+        initialName: session.title,
+        initialType: session.activityType,
       ),
     );
-    titleController.dispose();
     if (result == null || !context.mounted) return;
     await context.read<RideSessionCubit>().updateActivityMetadata(
       sessionId: session.id,
@@ -1865,12 +1940,8 @@ class _SessionScreenState extends State<SessionScreen>
     _ => 'Tersimpan lokal · Belum disinkronkan',
   };
 
-  String _activityTypeLabel(RideActivityType type) => switch (type) {
-    RideActivityType.ride => 'Bersepeda',
-    RideActivityType.commute => 'Komuter',
-    RideActivityType.training => 'Latihan',
-    RideActivityType.race => 'Balapan',
-  };
+  String _activityTypeLabel(RideActivityType type) =>
+      _activityTypeLabelForDialog(type);
 
   Future<void> _exportSession(
     BuildContext context,
@@ -1981,6 +2052,99 @@ class _SessionScreenState extends State<SessionScreen>
         : '${twoDigits(duration.inMinutes)}:${twoDigits(seconds)}';
   }
 }
+
+class _ActivityMetadataDialog extends StatefulWidget {
+  const _ActivityMetadataDialog({
+    required this.initialName,
+    required this.initialType,
+  });
+
+  final String initialName;
+  final RideActivityType initialType;
+
+  @override
+  State<_ActivityMetadataDialog> createState() =>
+      _ActivityMetadataDialogState();
+}
+
+class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
+  late final TextEditingController _nameController;
+  late RideActivityType _activityType;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _activityType = widget.initialType;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    title: const Text('Detail aktivitas'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: _nameController,
+          maxLength: 60,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Nama aktivitas',
+            hintText: 'Contoh: Gowes pagi',
+          ),
+        ),
+        const SizedBox(height: 12),
+        InputDecorator(
+          decoration: const InputDecoration(labelText: 'Jenis'),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<RideActivityType>(
+              value: _activityType,
+              isExpanded: true,
+              isDense: true,
+              items: [
+                for (final type in RideActivityType.values)
+                  DropdownMenuItem(
+                    value: type,
+                    child: Text(_activityTypeLabelForDialog(type)),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _activityType = value);
+              },
+            ),
+          ),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Batal'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(
+          context,
+          (_nameController.text, _activityType),
+        ),
+        child: const Text('Simpan'),
+      ),
+    ],
+  );
+}
+
+String _activityTypeLabelForDialog(RideActivityType type) => switch (type) {
+  RideActivityType.ride => 'Bersepeda',
+  RideActivityType.commute => 'Komuter',
+  RideActivityType.training => 'Latihan',
+  RideActivityType.race => 'Balapan',
+};
 
 class _LeaderboardSessionActions extends StatefulWidget {
   const _LeaderboardSessionActions({required this.summary});
@@ -2212,6 +2376,70 @@ class _MetricValue extends StatelessWidget {
   Widget build(BuildContext context) {
     return SenapathMetric(label: label, value: value, unit: unit);
   }
+}
+
+class _HeroSessionMetric extends StatelessWidget {
+  const _HeroSessionMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(right: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: SenapathColors.accent,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SessionSectionHeading extends StatelessWidget {
+  const _SessionSectionHeading({required this.title, this.trailing});
+
+  final String title;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      if (trailing != null)
+        Text(
+          trailing!,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+    ],
+  );
 }
 
 class _SummaryMetricCard extends StatelessWidget {

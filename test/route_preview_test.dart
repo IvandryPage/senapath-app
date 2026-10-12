@@ -10,6 +10,9 @@ import 'package:senapath/core/units/unit_settings_cubit.dart';
 import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/units/unit_system.dart';
 import 'package:senapath/app/theme/app_theme.dart';
+import 'package:senapath/features/leaderboard/data/leaderboard_gateway.dart';
+import 'package:senapath/features/leaderboard/domain/leaderboard_models.dart';
+import 'package:senapath/features/leaderboard/presentation/leaderboard_cubit.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
@@ -516,9 +519,11 @@ void main() {
       locationSource: _EmptyLocationSource(),
     );
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final leaderboardCubit = LeaderboardCubit(_TestLeaderboardGateway());
     await unitCubit.load();
     addTearDown(sessionCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(leaderboardCubit.close);
     addTearDown(database.close);
 
     await tester.pumpWidget(
@@ -526,6 +531,7 @@ void main() {
         providers: [
           BlocProvider.value(value: sessionCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: leaderboardCubit),
         ],
         child: MaterialApp(
           theme: AppTheme.light,
@@ -542,10 +548,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sessionCubit.state.summaryLocations, hasLength(5));
-    expect(find.text('Metrik utama'), findsOneWidget);
+    expect(find.text('JARAK TEMPUH'), findsOneWidget);
+    expect(find.text('Jejak rute'), findsOneWidget);
     expect(find.text('Grafik kecepatan (km/j)'), findsOneWidget);
     expect(find.text('Profil elevasi'), findsOneWidget);
-    expect(find.text('5 titik GPS pada jejak sesi'), findsOneWidget);
+    expect(find.text('5 titik GPS'), findsOneWidget);
+
+    await tester.ensureVisible(find.byTooltip('Ubah nama dan jenis aktivitas'));
+    await tester.tap(find.byTooltip('Ubah nama dan jenis aktivitas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Detail aktivitas'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'Gowes pagi');
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+
+    expect(sessionCubit.state.summary?.session.title, 'Gowes pagi');
   });
 }
 
@@ -562,6 +579,32 @@ RideSessionCubit _createSessionCubit(
   ),
   locationSource: _EmptyLocationSource(),
 );
+
+class _TestLeaderboardGateway implements LeaderboardGateway {
+  @override
+  bool get isConfigured => false;
+
+  @override
+  bool get isSignedIn => false;
+
+  @override
+  Future<LeaderboardSettings> loadSettings() async =>
+      const LeaderboardSettings(isOptedIn: false, alias: null);
+
+  @override
+  Future<List<LeaderboardEntry>> loadEntries(
+    LeaderboardCategory category,
+  ) async => const [];
+
+  @override
+  Future<void> saveConsent({
+    required String alias,
+    required bool isOptedIn,
+  }) async {}
+
+  @override
+  Future<void> submitSession(String sessionId) async {}
+}
 
 class _TestReadinessChecker implements ReadinessChecker {
   const _TestReadinessChecker({this.locationPermissionGranted = false});
