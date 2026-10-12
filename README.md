@@ -2,6 +2,8 @@
 
 Aplikasi pendamping latihan dan balapan sepeda.
 
+> **Tujuan besar:** Senapath adalah "Strava untuk cyclist" — rumah digital untuk merekam ride, merencanakan rute, berlatih, dan terhubung dengan komunitas cyclist, dengan tumpukan gratis/OSS dan etika data yang kuat. Lihat [agents/vision.md](agents/vision.md) (visi & pilar), [agents/tech-stack.md](agents/tech-stack.md) (keputusan API/provider gratis-dulu), [agents/architecture.md](agents/architecture.md), [agents/requirements.md](agents/requirements.md), dan [agents/scrum-guide.md](agents/scrum-guide.md).
+
 ## Menjalankan aplikasi
 
 ```sh
@@ -74,7 +76,7 @@ Jika sebelumnya pernah men-deploy Edge Function `cycling-route`, hapus function 
 
 Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. **Beranda → Lihat progres** menampilkan agregat mingguan (Senin–Senin) dan bulanan dengan jarak, jumlah sesi selesai, durasi aktif, serta daftar sesi sumber yang dapat dibuka kembali. Semua sesi selesai lokal digunakan, bukan hanya 50 terbaru. Target jarak, jumlah sesi, atau durasi dapat dibuat untuk periode mingguan/bulanan; target disimpan lokal di database preferensi dan tidak disinkronkan.
 
-Riwayat sesi menyimpan judul, jenis aktivitas (bersepeda, komuter, latihan, atau balapan), dan sumber pencatatan lokal. Judul dan jenis dapat diubah dari detail ringkasan tanpa mengubah titik GPS/telemetri. Aktivitas lama mendapat nilai bawaan saat migrasi database lokal versi 7. Metadata ini saat ini hanya lokal; payload sinkronisasi cloud tetap hanya memuat ringkasan yang dijelaskan pada bagian sinkronisasi. Dari **Profil → Riwayat sesi**, ekspor JSON dapat mencakup seluruh sesi selesai dan jejak GPS lokal. Aplikasi meminta konfirmasi sebelum ekspor karena koordinat merupakan data sensitif. Aktivitas selesai juga dapat dihapus dari perangkat; salinan yang pernah tersinkron ke cloud harus dikelola terpisah. Ekspor dan penghapusan seluruh data profil/rute/preferences maupun penghapusan akun/cloud belum tersedia.
+Riwayat sesi menyimpan judul, jenis aktivitas (bersepeda, komuter, latihan, atau balapan), dan sumber pencatatan lokal. Judul dan jenis dapat diubah dari detail ringkasan tanpa mengubah titik GPS/telemetri. Aktivitas lama mendapat nilai bawaan saat migrasi database lokal versi 8. Metadata ini saat ini hanya lokal; payload sinkronisasi cloud tetap hanya memuat ringkasan yang dijelaskan pada bagian sinkronisasi. Dari **Profil → Riwayat sesi**, ekspor JSON dapat mencakup seluruh sesi selesai dan jejak GPS lokal. Aplikasi meminta konfirmasi sebelum ekspor karena koordinat merupakan data sensitif. Aktivitas selesai juga dapat dihapus dari perangkat; salinan yang pernah tersinkron ke cloud harus dikelola terpisah. Ekspor dan penghapusan seluruh data profil/rute/preferences maupun penghapusan akun/cloud belum tersedia.
 
 Halaman Profil mengelompokkan kontak darurat di bagian keselamatan, riwayat/progres/rute di bagian aktivitas, dan pengaturan akun secara terpisah. **Saran dan kesan** adalah halaman statis untuk mata kuliah Pemrograman Aplikasi Mobile; teksnya masih dummy dan tidak dikirim atau disimpan.
 
@@ -92,9 +94,9 @@ Integrasi menggunakan layanan tile publik OpenStreetMap untuk penggunaan ringan.
 
 Di tab **Logistik → Waktu acara**, pilih tanggal/waktu dan tekan zona waktu sumber untuk mencari kota atau zona IANA, misalnya `America/New_York`. Tambahkan satu atau lebih zona tujuan melalui **Tambah zona**. Aturan DST dan pergantian tanggal ditangani oleh database zona waktu yang dibundel; jam lokal yang tidak ada atau ambigu meminta pengguna memilih waktu/kemunculan yang valid.
 
-## Tantangan strategi rute
+## Tantangan strategi rute (belum tersedia)
 
-Di **Beranda → Strategi rute**, pemain menjawab tiga skenario edukatif seputar tempo, kondisi rute, dan persiapan balapan. Tantangan tidak memakai timer, disimpan lokal di perangkat, dan dinonaktifkan ketika sesi perjalanan sedang merekam atau dijeda. Ini bukan instruksi balap real-time atau evaluasi AI.
+Karakter rider (level/XP/gaya) tersedia di **Beranda → Karakter rider**. Sebaliknya, mini-game tantangan strategi **belum ada di aplikasi saat ini**: tidak ada route/layar game, dan migrasi database lokal versi 8 menghapus tabel hasil game lama. Bila gamifikasi reaksi/strategi tetap diinginkan, ia harus dibangun ulang sebagai item backlog (lihat [agents/scrum-guide.md](agents/scrum-guide.md) SP-37) — jangan dianggap sudah berfungsi.
 
 ## Papan peringkat mingguan
 

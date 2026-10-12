@@ -2,9 +2,11 @@
 
 ## 1. Tujuan dan Status
 
-Dokumen ini menjelaskan arsitektur target yang direkomendasikan untuk Senapath, aplikasi Flutter pendamping latihan dan balapan sepeda. Dokumen ini melengkapi [requirements.md](requirements.md) dan [scrum-guide.md](scrum-guide.md).
+Dokumen ini menjelaskan arsitektur target yang direkomendasikan untuk Senapath, aplikasi Flutter pendamping latihan dan balapan sepeda. Dokumen ini melengkapi [vision.md](vision.md) (tujuan besar: "Strava untuk cyclist"), [tech-stack.md](tech-stack.md) (register keputusan provider/API gratis-dulu), [requirements.md](requirements.md), dan [scrum-guide.md](scrum-guide.md).
 
-Status saat ini: repository memiliki alur lokal Sprint 2-3. **Drift di atas SQLite dipilih sebagai database lokal/offline; Supabase dipilih sebagai platform database cloud.** Project Supabase sudah dibuat menurut pemilik produk, tetapi URL/key, schema, RLS, Auth, dan sync client belum dikonfigurasi. Provider lain dan perangkat sasaran masih perlu diriset. Tidak ada cloud sync yang boleh ditampilkan aktif sebelum konfigurasi dan kebijakan akses diuji.
+> Untuk pertanyaan "API/provider apa yang dipakai?", [tech-stack.md](tech-stack.md) adalah sumber otoritatif. Bagian 8 dan 13 di bawah tetap memuat keputusan arsitektur tingkat tinggi; bila bertentangan, ikuti [tech-stack.md](tech-stack.md).
+
+Status saat ini: repository memiliki alur lokal lengkap (Sprint 2–3 dan seterusnya) plus klien cloud. **Drift di atas SQLite dipilih sebagai database lokal/offline (schemaVersion 8); Supabase dipilih sebagai platform database cloud.** Custom email auth via Edge Function `app-auth`, sinkronisasi ringkasan sesi, tim, leaderboard, dan ledger hash sudah ada di kode; konfigurasi URL/key, migrasi, dan RLS belum diverifikasi pada project nyata. Arah besar produk adalah **"Strava untuk cyclist"** ([vision.md](vision.md)) dengan empat pilar: Ride, Discover & Plan, Train, Connect. Sisa provider (routing, segmen, feed sosial, push remote) dan perangkat sasaran dirinci di [tech-stack.md](tech-stack.md); tidak ada cloud sync yang boleh ditampilkan aktif sebelum konfigurasi dan kebijakan akses diuji.
 
 ## 2. Prinsip Arsitektur
 
@@ -49,33 +51,39 @@ Diagram ini adalah batas tanggung jawab konseptual. Supabase dipilih untuk cloud
 lib/
   app/
     app.dart
-    router/
-    di/
-    theme/
+    router/            # go_router, shell 4 destinasi
+    theme/             # app_theme.dart + senapath_design.dart (token & primitives)
   core/
-    errors/
-    network/
-    storage/
-    permissions/
-    sync/
-    telemetry/
-    units/
+    storage/           # Drift AppDatabase, secure_vault, offline_storage_manager
+    units/             # unit_settings_cubit/repository, unit_system
+    widgets/           # feature_state_view (loading/empty/offline/error)
   features/
-    authentication/
-      data/ domain/ presentation/
-    ride_session/
-      data/ domain/ presentation/
-    routes/
-      data/ domain/ presentation/
-    emergency/
-    wearable/
-    profile/
-    converters/
-    reaction_game/
-    settings/
+    authentication/    # custom auth, biometrik, password reset
+    session/           # ride capture, telemetry, sync, recovery, summary
+    routes/            # GPX, peta, panduan rute
+    emergency/         # SOS manual, kontak darurat
+    profile/           # profil, avatar terenkripsi, settings
+    overview/          # Beranda (feed aktivitas & progres)
+    progress/          # dashboard progres + target
+    logistics/         # kurs & waktu dunia
+    assistant/         # LLM chat (Edge Function)
+    ride_coach/        # rekomendasi kontekstual saat sesi
+    feedback/          # saran & kesan
+    leaderboard/       # papan peringkat mingguan
+    gamification/      # level/XP/gaya rider
+    ledger/            # bukti perjalanan (ledger hash)
+    teams/             # klub/tim
+    notifications/     # notifikasi lokal
+
+# Direncanakan (vision v1, lihat vision.md §2):
+#   feed/         # feed sosial, follow, kudos, komentar
+#   segments/     # buat & cocokkan segmen, leaderboard segmen
+#   route_planner/# perencanaan rute + elevasi (BRouter/Valhalla + Open-Meteo)
+#   health/       # Health Connect / HealthKit / impor FIT-TCX
+#   wearable/     # adapter Garmin (blocked sampai approval)
 ```
 
-Nama dan jumlah feature dapat berubah saat kebutuhan dipecah. Hindari membuat satu folder global besar untuk seluruh model, repository, dan BLoC; tempatkan implementasi dekat dengan feature pemiliknya. `core` hanya untuk kemampuan lintas feature yang benar-benar dipakai bersama.
+Nama dan jumlah feature dapat berubah saat kebutuhan dipecah. Hindari membuat satu folder global besar untuk seluruh model, repository, dan BLoC; tempatkan implementasi dekat dengan feature pemiliknya. `core` hanya untuk kemampuan lintas feature yang benar-benar dipakai bersama. Fitur yang belum diimplementasikan di atas harus tetap berstatus *planned* di backlog, bukan diklaim sudah tersedia.
 
 ### State management dan dependency injection
 
@@ -124,6 +132,7 @@ API/backend minimal perlu mendefinisikan:
 - operasi upsert idempotent untuk sesi, titik/summary, kontak, dan hasil game;
 - sinkronisasi delta dengan cursor atau mekanisme setara, konflik data, retry, dan konfirmasi penerimaan;
 - operasi/status terpisah untuk SOS, wearable connection/callback, feedback, dan publikasi proof; operasi yang memerlukan secret/provider privilege dijalankan melalui Edge Functions;
+- operasi sosial (vision.md Pilar 4): feed/follow/kudos/komentar via Postgres + RLS; pembuatan dan pencocokan segmen serta leaderboard segmen via fungsi `SECURITY DEFINER` (pola sama dengan leaderboard mingguan); operasi ini tidak boleh membocorkan email, lokasi, atau telemetri mentah;
 - validasi payload, rate limit, batas ukuran, retensi, backup, audit akses sensitif, serta kebijakan penghapusan akun/data.
 
 Sebelum client Supabase diaktifkan, buat schema/migrasi SQL, ownership kolom `user_id`, dan **Row Level Security (RLS)** untuk semua tabel yang dapat diakses client. Uji bahwa pengguna hanya dapat membaca/mengubah baris miliknya. Anon/publishable key memang nilai client, tetapi aman hanya dengan RLS yang benar; `service_role` key tidak boleh masuk Flutter, git, build artifact, atau log. Simpan konfigurasi lokal di file yang di-ignore atau `--dart-define-from-file`, dan gunakan secret/config CI untuk build. Jangan commit credential proyek.
@@ -134,7 +143,7 @@ Saat cloud dikonfigurasi, tambahkan `supabase_flutter` dan buat adapter remote/s
 
 ## 8. Peta, Wearable, AI, SOS, dan Blockchain
 
-- **Peta:** tampilan GPX memakai `flutter_map` dengan tile publik OpenStreetMap dan atribusi; tile hanya online, tanpa prefetch/offline cache. Ini bukan layanan produksi berskala besar. Sebelum rilis publik, evaluasi provider tile dan kebijakannya; geocoding, routing, elevasi, dan POI tetap integrasi terpisah. Hindari ketergantungan pada provider tile di domain.
+- **Peta:** MVP memakai `flutter_map` dengan tile publik OpenStreetMap dan atribusi; tile hanya online. Untuk skala produksi, [tech-stack.md](tech-stack.md) memutuskan **OpenFreeMap** (vektor, tanpa key) + **MapLibre GL**. **Geocoding**: Photon (fallback Nominatim). **Routing/rencana rute**: BRouter (offline) atau Valhalla (self-host), fallback OpenRouteService/GraphHopper. **Elevasi**: Open-Meteo/SRTM. **POI**: Overpass. Semua provider dipisah di lapisan Data/Integration; domain tidak boleh bergantung pada satu vendor tile.
 - **Wearable:** mulai dengan satu provider/perangkat yang aksesnya disetujui. OAuth/token provider dikelola dengan aman; data yang diimpor memiliki sumber, timestamp, unit, dan izin. Tetapkan apakah wearable mengimpor aktivitas setelah latihan atau menyediakan data sesi live; keduanya kebutuhan teknis berbeda.
 - **AI:** client memanggil endpoint backend Senapath; backend menghubungi Gemini/OpenAI atau provider terpilih. Terapkan persetujuan, minimisasi data, timeout, batas biaya, retensi, dan fallback. Jangan letakkan API key LLM pada bundle Flutter.
 - **SOS:** countdown/pembatalan dan alarm lokal berjalan di perangkat; pengiriman remote menggunakan API/backend serta kanal yang dipilih. Persist status `queued/sending/sent/failed`; jangan menyatakan berhasil sebelum konfirmasi. Jalur cancel harus menghentikan pengiriman selama pesan belum dikirim.
@@ -188,9 +197,13 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. `sensors_plus` meny
 | Lokasi/sensor   | `geolocator`, `sensors_plus`                                         | Validasi izin, akurasi, background, baterai, serta perangkat sasaran.                                      |
 | Biometrik       | `local_auth`                                                         | Tetapkan fallback aman; jangan perlakukan sebagai server authentication.                                   |
 | Background      | `flutter_background_service` atau mekanisme platform sesuai use case | Uji Android/iOS; tetapkan batas layanan dan perilaku setelah process kill.                                 |
-| Peta            | `flutter_map` + OpenStreetMap tiles                                  | Basemap online GPX dan atribusi sudah digunakan; evaluasi provider skala produksi dan kebijakan tile/offline sebelum rilis publik. |
-| Wearable        | Garmin Health API langsung                                           | Adapter dan consent dibuat setelah approval partner serta credentials resmi tersedia; jangan menganggap feed real-time. |
-| AI              | Backend REST ke provider LLM                                         | Jangan panggil provider ber-secret langsung dari aplikasi.                                                 |
+| Peta            | `flutter_map`/OpenStreetMap MVP → **OpenFreeMap** + MapLibre GL      | Basemap online beratribusi; migrasi ke vektor gratis tanpa key untuk skala produksi. |
+| Geocoding       | **Photon** (fallback Nominatim)                                      | Autocomplete gratis/OSS, self-hostable; jangan tampilkan hasil palsu saat gagal. |
+| Routing rute    | **BRouter** (offline) / **Valhalla** (self-host)                     | Profil khusus sepeda; fallback OpenRouteService/GraphHopper free tier. |
+| Elevasi & cuaca | **Open-Meteo** (elevation + forecast/angin)                          | Gratis tanpa key, non-komersial; sembunyikan bila tak tersedia. |
+| Segment/klub    | Postgres + RLS; matching on-device; RPC `SECURITY DEFINER`           | Leaderboard segmen server-side, opt-in, alias publik (pola sama dengan leaderboard mingguan). |
+| Wearable        | Health Connect/HealthKit + impor FIT/TCX (Garmin menyusul)           | Gratis & on-device; Garmin hanya setelah approval partner, jangan klaim feed real-time. |
+| AI              | Backend REST ke provider LLM (Gemini free → Groq/OpenRouter)         | Jangan panggil provider ber-secret langsung dari aplikasi; fallback dipilih server-side. |
 | Blockchain      | EVM Polygon Amoy untuk staging; relayer server-side                   | Deploy/verifikasi kontrak dan transaksi testnet; produksi/mainnet dan batas biaya belum diputuskan. Key relayer hanya di secret manager. |
 | Cloud database  | Supabase dipilih                                                     | Konfigurasikan URL/key, schema/migrasi SQL, RLS, backup, dan strategi Drift outbox sebelum sync client.    |
 | Custom app auth | Email/password hash, custom JWT, refresh-token rotation | Kredensial/session dikelola Edge Function dan `public.app_users`; custom JWT harus memakai signing key yang dipercaya Supabase agar RLS `auth.uid()` bekerja. Refresh token disimpan di secure storage perangkat. Email verification dan reset memakai provider email yang dikonfigurasi di server. |

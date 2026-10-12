@@ -1,8 +1,10 @@
 # Kebutuhan Aplikasi Senapath
 
+> Tujuan besar produk (**"Strava untuk cyclist"**) dan empat pilarnya ada di [vision.md](vision.md). Keputusan provider/API gratis-dulu ada di [tech-stack.md](tech-stack.md). Dokumen ini mendefinisikan kebutuhan produk, bukan keputusan implementasi.
+
 ## 1. Tujuan dan Ruang Lingkup
 
-Senapath adalah companion untuk cyclist yang berlatih dan balapan. Nilai inti produk adalah satu siklus yang andal: **siapkan rute dan sesi → rekam aktivitas tanpa kehilangan data → tinjau hasil dan progres**. Peta/LBS, lokasi dan sensor mendukung siklus ini; keselamatan, kontrol pengguna, keterbacaan saat bergerak, dan penggunaan offline menjadi syarat lintas fitur.
+Senapath adalah companion untuk cyclist yang berlatih dan balapan; visi jangka panjangnya adalah menjadi **rumah digital cyclist**: rekam, rencanakan, latih, dan terhubung. Nilai inti produk adalah satu siklus yang andal: **siapkan rute dan sesi → rekam aktivitas tanpa kehilangan data → tinjau hasil dan progres**. Di atas siklus itu, produk tumbuh ke empat pilar: **Ride, Discover & Plan, Train, dan Connect** (fitur sosial). Peta/LBS, lokasi dan sensor mendukung siklus ini; keselamatan, kontrol pengguna, keterbacaan saat bergerak, pemakaian offline, dan privasi menjadi syarat lintas fitur.
 
 Konversi mata uang/waktu, AI dan LLM, tantangan strategi, notifikasi, leaderboard, blockchain, serta integrasi wearable tetap menjadi requirement produk, tetapi merupakan fitur pendukung atau tahap lanjutan—bukan pengganti atau blocker bagi pencatatan sesi inti. Manajer tim merupakan persona sekunder untuk persiapan logistik.
 
@@ -188,6 +190,48 @@ Pengguna dapat bertanya kepada asisten generatif tentang rute atau aktivitas men
 
 **Kriteria penerimaan:** permintaan tanpa consent tidak mengirim konteks personal; jawaban memisahkan fakta dari generasi dan menyatakan sumber/keterbatasan; kegagalan tidak menghasilkan jawaban sukses palsu; pengguna dapat menghapus percakapan sesuai kebijakan retensi yang dijelaskan.
 
+### G. Sosialisasi, Segmen, dan Perencanaan (Pilar Discover & Connect)
+
+**FR-33 — Feed aktivitas dan profil publik**  
+Pengguna dapat memilih untuk membagikan aktivitas yang telah selesai ke feed. Feed menampilkan aktivitas pengguna yang diikuti beserta pemiliknya, dengan ringkasan yang memang dibagikan (misalnya judul, jarak, durasi, elevasi, dan tautan peta) dan tanpa data lokasi mentah. Setiap item menandai apakah berasal dari rekaman atau impor. Berbagi bersifat opt-in per aktivitas.
+
+**Kriteria penerimaan:** aktivitas yang tidak dibagikan tidak muncul di feed mana pun; feed membedakan loading, kosong, offline, dan gagal; pengguna dapat menghentikan berbagi dan item hilang dari feed; feed orang lain tidak pernah memuat email, kontak, atau telemetri mentah; hilangnya umpan tidak menghapus salinan lokal.
+
+**FR-34 — Follow, kudos, dan komentar**  
+Pengguna dapat mengikuti atau berhenti mengikuti pengguna lain, memberi kudos pada aktivitas yang dibagikan, dan menulis komentar. Interaksi dibatasi pada aktivitas yang memang dibagikan; komentar dapat dihapus oleh penulisnya. Tidak ada indikator "online" atau pembacaan pesan yang tidak didukung.
+
+**Kriteria penerimaan:** pengguna tidak dapat berinteraksi dengan aktivitas yang tidak dibagikan; jumlah kudos/komentar konsisten; kegagalan jaringan tidak ditampilkan sebagai sukses; penyalahgunaan dapat dilaporkan/diblokir.
+
+**FR-35 — Klub dan komunitas**  
+Di atas kapabilitas tim yang ada, pengguna dapat membuat atau bergabung dengan klub, memilih peran (misalnya ketua/anggota), dan melihat aktivitas yang dibagikan ke klub. Keanggotaan dan peran dikelola server-side.
+
+**Kriteria penerimaan:** hanya pemilik aktivitas yang dapat membagikannya ke klub; peran dan keanggotaan divalidasi server-side; keluar klub menghapus tautan berbagi terkait tanpa menghapus data lokal.
+
+**FR-36 — Segmen dan leaderboard segmen**  
+Pengguna dapat membuat segmen (misalnya tanjakan atau ruas rute) dari aktivitas/rute, dan ride berikutnya dapat dicocokkan ke segmen untuk menghasilkan *segment effort*. Leaderboard menampilkan upaya terbaik per segmen untuk periode yang ditentukan. Peringkat dihitung server-side dari upaya milik pengguna sebenarnya (bukan input klien), menghormati consent serta zona privasi, dan menampilkan alias publik, bukan identitas akun.
+
+**Kriteria penerimaan:** matching segmen memakai toleransi geometri/waktu yang jelas dan tidak menghasilkan upaya palsu saat GPS buruk; pengguna dapat opt-out dan upaya terkait tidak dipublikasikan; penghitungan tidak menggandakan upaya yang sama; label "laporan pengguna, belum diverifikasi independen" tetap ditampilkan; segmen/privacy zone tidak membocorkan lokasi rumah pengguna.
+
+**FR-37 — Tantangan (challenges)**  
+Pengguna dapat melihat dan ikut tantangan (misalnya total jarak/elevasi/konsistensi mingguan) yang progresnya dihitung dari sesi selesai yang unik. Keikutsertaan opt-in; pencapaian tidak diklaim sebagai verifikasi independen.
+
+**Kriteria penerimaan:** progres tantangan memakai definisi periode/zona waktu yang jelas dan konsisten dengan dashboard; tantangan dapat diikuti/ditinggalkan; tidak ada klaim fitness atau medis; agregat dapat ditelusuri ke sesi sumber.
+
+**FR-38 — Perencanaan rute dan profil elevasi**  
+Selain mengimpor GPX, pengguna dapat merencanakan rute pada peta (titik awal/tujuan dan *waypoint*), melihat profil elevasi dan jarak, lalu menyimpannya sebagai rute. Routing memakai provider terpilih ([tech-stack.md](tech-stack.md): BRouter/Valhalla) dan menampilkan atribusi serta status layanan. Bila routing tidak tersedia, rute yang sudah disimpan tetap dapat dibuka offline.
+
+**Kriteria penerimaan:** rute yang direncanakan menampilkan geometri, jarak, dan elevasi; kegagalan provider tidak menghasilkan rute palsu dan menyembunyikan hasil online yang gagal; profil elevasi diberi sumber; rute tersimpan dapat dibuka tanpa jaringan.
+
+**FR-39 — Zona privasi**  
+Pengguna dapat menandai area sensitif (misalnya sekitar rumah) sehingga titik awal/akhir disembunyikan atau dipangkas pada aktivitas yang dibagikan, tanpa mengubah data rekaman lokal.
+
+**Kriteria penerimaan:** zona privasi diterapkan pada semua keluaran yang dibagikan/publik tanpa mengubah sampel asli; pengguna dapat mengelola beberapa zona; penerapan tidak bocor melalui metadata lain.
+
+**FR-40 — Impor aktivitas kesehatan**  
+Dengan izin pengguna, sistem dapat mengimpor aktivitas dari Health Connect/HealthKit atau berkas FIT/TCX/GPX. Metrik yang diimpor menyertakan sumber dan waktu, dibedakan dari rekaman aplikasi, dan tidak digandakan saat impor ulang.
+
+**Kriteria penerimaan:** impor meminta izin sebelum membaca data; aktivitas impor dibedakan dari rekaman; ID stabil mencegah duplikasi; izin dapat dicabut; ketidaktersediaan layanan ditampilkan jujur, bukan sebagai fitur aktif.
+
 ## 4. Kebutuhan Nonfungsional
 
 **NFR-01 — Keamanan:** data lokal sensitif dan kredensial sesi harus dilindungi dengan mekanisme aman platform dan enkripsi saat tersimpan. Rahasia/API key layanan eksternal tidak boleh ditanam di aplikasi klien.
@@ -225,13 +269,21 @@ Panduan berkendara harus dapat dibaca sekilas, tidak memerlukan mengetik saat be
 - Pencatatan ke blockchain bersifat tambahan setelah sesi selesai; kegagalannya tidak boleh menghapus atau menghalangi akses ke ringkasan lokal.
 - Tidak ada status online/sinkron yang boleh disimpulkan dari UI atau dependency saja; perlu konfigurasi, autentikasi yang sesuai, dan acknowledgment server.
 
-## 6. Ketergantungan yang Perlu Diputuskan
+## 6. Keputusan Provider dan Ketergantungan Terbuka
 
-- Penyedia peta, data elevasi, geocoding, dan format unduh rute.
-- Penyedia kurs dan frekuensi pembaruan kurs.
-- Sumber cuaca, layanan AI/LLM, kebijakan retensi data, dan batas biaya.
-- Mekanisme autentikasi awal, backend akun, dan penyimpanan/sinkronisasi data.
-- Implementasi SOS otomatis tidak dipilih; kebijakan saat ini adalah handoff manual tanpa klaim delivery. Jika kebijakan berubah, pilih channel, persetujuan data lokasi, biaya, dan delivery tracking terlebih dahulu.
-- Approval Garmin Health API, credentials, metrik yang diizinkan, metode autentikasi, pencabutan akses, serta batas sinkronisasi masih diperlukan sebelum FR-24 dapat diimplementasikan.
-- Polygon Amoy dipilih untuk staging proof. Deploy kontrak/RPC/relayer dan biaya produksi/mainnet masih perlu diuji/diputuskan; leaderboard dipilih menggunakan Supabase dengan opt-in, alias, dan skor permainan saja.
-- Perangkat sasaran minimum dan metode validasi algoritme sensor, khususnya cadence, lean angle, dan deteksi insiden.
+Keputusan provider yang sudah diambil (ringkas; detail, free tier, dan fallback di [tech-stack.md](tech-stack.md)):
+
+- **Peta:** OpenFreeMap vektor (fallback tile raster OSM); geocoding Photon (fallback Nominatim); routing BRouter/Valhalla (fallback OpenRouteService/GraphHopper); elevasi & cuaca Open-Meteo; POI Overpass.
+- **Kurs:** Frankfurter (ECB, gratis tanpa key); input manual tetap tersedia.
+- **AI/LLM:** Gemini free tier via Edge Function (fallback Groq/OpenRouter; Ollama lokal untuk dev).
+- **Backend/auth:** Supabase (Postgres/Edge/Storage) + custom email auth; Drift/SQLite lokal. SOS tetap handoff manual tanpa klaim delivery.
+- **Leaderboard & segmen:** Supabase/Postgres dengan opt-in, alias publik, dan RPC `SECURITY DEFINER`.
+- **Kesehatan:** Health Connect/HealthKit + impor FIT/GPX/TCX; Garmin Health API diblokir sampai approval partner.
+- **Proof:** ledger hash tersinkron (bukan chain publik) untuk v1; Polygon Amoy hanya bila PO memutuskan wajib.
+
+Yang masih terbuka:
+
+- Perangkat/OS sasaran minimum dan metode validasi algoritme sensor (cadence, lean angle, deteksi insiden).
+- Kebijakan retensi data, batas biaya/kuota, dan RPO/RTO operasional.
+- Apakah live tracking real-time dan blockchain publik masuk ruang lingkup setelah v1.
+- Konfirmasi kuota free tier terkini pada dashboard provider sebelum dinyatakan siap produksi.

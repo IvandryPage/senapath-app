@@ -3,6 +3,8 @@
 **Tanggal pemeriksaan:** 9 Oktober 2026  
 **Cakupan:** membandingkan 12 kriteria sponsor dengan implementasi aplikasi Senapath saat ini. Status menilai fitur yang ada di repository; fitur yang memerlukan konfigurasi Supabase, Gemini, izin perangkat, atau akun pengguna juga diberi catatan.
 
+> **Konteks visi:** tujuan besar Senapath adalah **"Strava untuk cyclist"** — lihat [vision.md](vision.md) dan register provider gratis-dulu di [tech-stack.md](tech-stack.md). Dokumen sponsor ini menilai 12 kriteria terhadap implementasi saat ini; kriteria tersebut tetap berlaku, sementara visi menambahkan pilar **Connect** (feed, follow, kudos, klub, segmen) yang belum tercakup kriteria sponsor dan direncanakan pada backlog [scrum-guide.md](scrum-guide.md) (SP-31…SP-35).
+
 ## Ringkasan
 
 Kriteria 1–7 dan 10 telah memiliki implementasi inti. Kriteria 3 hanya tersinkron untuk bagian data tertentu, bukan seluruh database lokal. Kriteria 8 dan 9 terpenuhi sebagian. Kriteria 11 belum memakai remote push FCM/APNs. Kriteria 12 belum menjadi blockchain: implementasi yang dipilih adalah ledger hash berantai yang disinkronkan ke database cloud Supabase.

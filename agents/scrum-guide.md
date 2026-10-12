@@ -2,11 +2,15 @@
 
 ## 1. Visi Produk
 
-**Senapath adalah cycling companion untuk cyclist latihan dan balap: siapkan rute dan sesi, rekam perjalanan dengan andal, lalu pahami progres dari data aktivitas yang transparan.**
+> **Tujuan besar:** Senapath adalah **"Strava untuk cyclist"** — rumah digital cyclist untuk merekam, menemukan/merencanakan rute, berlatih, dan terhubung dengan komunitas, dengan tumpukan gratis/OSS dan etika data yang kuat. Lihat [vision.md](vision.md) dan [tech-stack.md](tech-stack.md).
 
-Siklus inti produk adalah **persiapan rute → ride capture → ride review/progress**. Rekaman lokal, pemulihan sesi, peta/LBS, ringkasan yang benar, riwayat, dan statistik progres adalah nilai utama. Sinkronisasi cloud memperluas akses, tetapi tidak menjadi syarat untuk merekam atau melihat data lokal. Seluruh fitur harus menjelaskan asal, status, kualitas, consent, dan keterbatasan data.
+**Senapath adalah cycling companion untuk cyclist latihan dan balap: siapkan rute dan sesi, rekam perjalanan dengan andal, pahami progres dari data yang transparan, dan terhubung dengan cyclist lain.**
 
-**Product Goal:** cyclist dapat merekam sesi latihan/balap dari awal hingga selesai tanpa kehilangan data pada perangkat yang didukung, membuka kembali sesi secara offline, serta meninjau ringkasan dan progres yang dapat ditelusuri ke aktivitas sumber. Email auth, biometrik lokal, Supabase, sensor, peta, dan fitur ekstensi melengkapi alur ini tanpa menghalangi ride capture.
+Siklus inti produk adalah **persiapan rute → ride capture → ride review/progress**, yang diperluas ke empat pilar visi: **Ride, Discover & Plan, Train, Connect**. Rekaman lokal, pemulihan sesi, peta/LBS, ringkasan yang benar, riwayat, statistik progres, segmen, dan interaksi sosial adalah nilai utama. Sinkronisasi cloud memperluas akses, tetapi tidak menjadi syarat untuk merekam atau melihat data lokal. Seluruh fitur harus menjelaskan asal, status, kualitas, consent, dan keterbatasan data.
+
+**Product Goal:** cyclist dapat merekam sesi latihan/balap dari awal hingga selesai tanpa kehilangan data pada perangkat yang didukung, membuka kembali sesi secara offline, meninjau ringkasan dan progres yang dapat ditelusuri ke aktivitas sumber, **merencanakan rute dengan profil elevasi**, dan **berinteraksi sosial (feed, klub, segmen) secara opt-in**. Email auth, biometrik lokal, Supabase, sensor, peta, dan fitur ekstensi melengkapi alur ini tanpa menghalangi ride capture.
+
+**North-star metric:** jumlah ride tersinkron per pengguna aktif mingguan yang juga membuka minimal satu fitur sosial (feed/segmen/klub).
 
 Target platform, perangkat sepeda yang didukung, provider kurs/cuaca, biaya, serta lingkungan deployment harus diputuskan sebelum integrasi. Rencana sprint di bawah adalah urutan usulan, bukan komitmen tanggal. Tile OpenStreetMap digunakan online dengan atribusi; penggunaan produksi, geocoding, dan routing tetap memerlukan evaluasi kebijakan/provider.
 
@@ -49,7 +53,7 @@ Gunakan empat destinasi utama yang sesuai dengan keputusan UX saat ini; sesi buk
 
 ## 3. Baseline dan Asumsi Implementasi
 
-Repository saat ini mencakup Flutter app, perekaman sesi lokal, impor/ekspor GPX/JSON, ringkasan, sinkronisasi ringkasan dengan consent, custom login email, pemulihan sesi melalui login biometrik, fitur logistik, feedback, AI chat, dan mini-game strategi lokal. Keberadaan kode/UI bukan bukti integrasi provider, akurasi data, atau perilaku background sudah lulus pada semua environment.
+Repository saat ini mencakup Flutter app, perekaman sesi lokal, impor/ekspor GPX/JSON, ringkasan, sinkronisasi ringkasan dengan consent, custom login email, pemulihan sesi melalui login biometrik, fitur logistik, feedback, AI chat, gamifikasi rider (level/XP/gaya), tim, leaderboard, dan ledger hash. Mini-game tantangan strategi **tidak** termasuk (lihat SP-16). Keberadaan kode/UI bukan bukti integrasi provider, akurasi data, atau perilaku background sudah lulus pada semua environment.
 
 Status yang perlu diverifikasi lagi sebelum planning:
 
@@ -60,8 +64,9 @@ Status yang perlu diverifikasi lagi sebelum planning:
 - Konversi waktu kini memakai database zona waktu IANA lokal yang dapat dicari, termasuk penanganan waktu DST hilang/berulang; konversi kurs tetap hanya referensi harian/manual, bukan kurs live.
 - Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.
 - Progres aktivitas lokal sekarang menghitung frekuensi, jarak, dan durasi aktif untuk minggu/bulan berjalan, membandingkan periode kalender sebelumnya, dan menautkan agregat ke sesi selesai sumber. Target sesi/jarak/durasi mingguan/bulanan disimpan lokal. Elevasi agregat, metrik progres tambahan, serta validasi lengkap zona waktu/perangkat belum selesai.
-- Sesi lokal kini memiliki judul, jenis, sumber pencatatan, migrasi Drift versi 7, edit metadata, ekspor arsip JSON seluruh sesi selesai beserta GPS, dan penghapusan sesi lokal. Ini bukan ekspor/penghapusan seluruh akun: profil, rute, preferensi, dan salinan cloud belum dicakup oleh lifecycle penuh.
-- Feed aktivitas, peta Beranda/Jelajah, dan mini-game strategi lokal telah memiliki UI; hal itu tidak membuktikan kualitas produksi, akurasi ride capture background, workout interval, integrasi push, AI analitik, atau proof blockchain.
+- Sesi lokal kini memiliki judul, jenis, sumber pencatatan, migrasi Drift versi 8, edit metadata, ekspor arsip JSON seluruh sesi selesai beserta GPS, dan penghapusan sesi lokal. Ini bukan ekspor/penghapusan seluruh akun: profil, rute, preferensi, dan salinan cloud belum dicakup oleh lifecycle penuh.
+- Feed aktivitas lokal, peta Beranda/Jelajah, dan layar gamifikasi rider (level/XP/gaya) telah memiliki UI. Workout interval lokal kini mendukung target waktu/jarak, cue yang dapat dimatikan, jeda, dan pemulihan sesi; pengujian layar mati/perangkat masih belum dilakukan. Hal tersebut tidak membuktikan kualitas produksi, akurasi ride capture background, integrasi push, AI analitik, atau proof blockchain.
+- **Mini-game strategi reaksi (FR-11 lama) tidak ada lagi di aplikasi.** Migrasi Drift versi 8 menghapus tabel hasil game, dan tidak ada route/layar game di `app_router.dart`. Bila gamifikasi reaksi tetap diinginkan, ia harus direncanakan ulang sebagai PBI baru (lihat catatan di backlog), bukan diklaim sudah tersedia.
 - Recovery yang ada mengubah sesi `recording` tersimpan menjadi `paused` saat startup; itu tidak membuktikan rekaman saat layar mati, force-stop, atau proses OS dihentikan. Background service dan validasi perangkat belum tersedia.
 - Build distribusi, perangkat sasaran, pemantauan, pemulihan, serta dukungan rilis perlu memiliki bukti yang dapat diulang.
 
@@ -132,7 +137,7 @@ Urutan berikut menempatkan pencatatan dan peninjauan latihan cyclist sebelum eks
 | SP-13 | **Konversi waktu dunia** | Cari dan pilih lokasi/zona waktu dari daftar zona waktu dunia berbasis IANA; konversi waktu/tanggal antar zona menampilkan nama lokasi, offset, dan tanggal lokal dengan dukungan daylight-saving serta perubahan tanggal. Tes mencakup zona berbeda dan transisi DST; jangan hanya menggeser jam dengan offset statis. |
 | SP-14 | **Bottom navigation dan profil** | Empat tab Beranda/Jelajah/Logistik/Profil membuka alur utama dan mempertahankan state yang wajar; sesi dimulai dan dikendalikan dari Jelajah, bukan tab terpisah. Profil menyediakan preferensi, izin, privasi, **Saran dan Kesan — Mata Kuliah Pemrograman Aplikasi Mobile**, dan **Logout**. Form saran/feedback memvalidasi input, menampilkan acknowledgment nyata, dan menyatakan jika pengiriman offline/pending/gagal. |
 | SP-15 | **Push notification berbasis mobile** | Pengguna memilih opt-in dan kategori; izin OS dapat ditolak/dicabut; token perangkat diikat ke akun secara aman dan dapat dihapus saat logout. Delivery/deep link/token kedaluwarsa/offline/duplikasi diuji. Push bukan kanal jaminan SOS dan payload lock-screen tidak menyertakan koordinat atau data sensitif. |
-| SP-16 | **Tantangan strategi rute/balap** | Ganti tes reaksi visual dengan skenario strategi rute/balap yang dimainkan saat berhenti; pilihan memberi trade-off/penjelasan dan skor disimpan lokal. Blokir game saat sesi merekam atau dijeda; tidak memberi instruksi real-time, klaim medis, atau saran keselamatan tervalidasi. |
+| SP-16 | **Tantangan strategi rute/balap** (belum diimplementasikan) | Skenario strategi rute/balap yang dimainkan saat berhenti; pilihan memberi trade-off/penjelasan dan skor disimpan lokal. Blokir game saat sesi merekam atau dijeda; tidak memberi instruksi real-time, klaim medis, atau saran keselamatan tervalidasi. **Status: tidak ada di aplikasi; migrasi Drift v8 menghapus tabel hasil game lama.** Harus dibangun ulang bila diinginkan. |
 | SP-28 | **Ride-mode safety dan minimisasi distraksi** | Saat sesi aktif, tampilkan status/aksi capture yang besar dan jelas; hindari form atau alur kompleks; blokir game saat recording/paused; jangan mendorong chat/LLM ketika bergerak; state penting tidak hanya dibedakan oleh warna; tidak mengklaim SOS terkirim. Interaksi, semantics, touch target, interupsi, dan perilaku layar mati diuji pada device matrix; layar mati hanya dijanjikan jika background capture platform telah lulus validasi SP-21. |
 | SP-26 | **Sensor sepeda eksternal** | Setelah protokol/perangkat sasaran diputuskan, pasangkan sensor BLE yang didukung (misalnya HR/cadence/speed/power) melalui profil standar relevan. Sampel menyimpan sumber, unit, waktu, dan kualitas; izin, disconnect/reconnect, stale data, range, duplikasi, dan consent sinkronisasi diuji. Sensor hilang tidak menghentikan rekaman lokal dan nilai tidak dibuat-buat. |
 | SP-27 | **Integrasi wearable Garmin Health** | Alur pairing/consent, import metrik yang benar-benar disediakan API, deduplikasi dan pencabutan akses. PBI tetap blocked sampai approval partner dan credentials resmi tersedia; sebelum itu UI menyatakan belum tersedia dan tidak meminta kredensial palsu. Data diberi label sumber/waktu dan tidak disebut real-time tanpa dukungan provider. |
@@ -146,6 +151,20 @@ Urutan berikut menempatkan pencatatan dan peninjauan latihan cyclist sebelum eks
 | SP-19 | **Peningkatan peta dan layanan perjalanan** | Tambahkan POI/rute/fitur provider (misalnya geocoding, elevasi, atau reroute) hanya jika lisensi, biaya, kuota, atribusi, kualitas, dan cache/offline policy disetujui dan diuji. Evaluasi provider tile khusus sebelum trafik produksi; layanan tile publik tidak dianggap komitmen produksi. GPX offline tetap tersedia bila provider gagal. |
 | SP-20 | **Leaderboard sesi mingguan opt-in** | Supabase/Postgres menyajikan dua peringkat Senin–Minggu UTC: durasi aktif terlama dan jarak terjauh dari sesi yang selesai. Fungsi PostgreSQL `SECURITY DEFINER` memvalidasi auth, consent, dan mengambil nilai hanya dari ringkasan milik pengguna yang telah tersinkron. Pengguna memilih opt-in dan alias publik. Hanya alias dan nilai kategori minggu berjalan yang dipublikasikan—tanpa email, lokasi, kontak, atau telemetri mentah. Tandai data sebagai laporan pengguna yang belum diverifikasi; uji RLS, opt-out/penghapusan, dan submission duplikat. |
 
+### P1/P2 — Pilar Discover & Connect (visi "Strava untuk cyclist")
+
+PBI ini mewujudkan [vision.md](vision.md) Pilar 2 dan 4. Provider dan free tier dirinci di [tech-stack.md](tech-stack.md). Seperti biasa, kegagalan fitur sosial tidak boleh mengganggu ride capture atau ringkasan lokal.
+
+| ID | PBI | Hasil dan kriteria penerimaan |
+| --- | --- | --- |
+| SP-29 | **Perencanaan rute & profil elevasi** | Pengguna merencanakan rute di peta (mulai/tujuan/waypoint), melihat jarak + profil elevasi, dan menyimpannya; routing via BRouter/Valhalla (fallback ORS). Kegagalan provider tidak menghasilkan rute palsu; rute tersimpan dibuka offline; profil elevasi diberi sumber. |
+| SP-30 | **Geocoding & pencarian tempat** | Autocomplete tempat/alamat via Photon (fallback Nominatim) dengan debounce, cache, atribusi, dan rate-limit; tidak ada hasil palsu saat gagal; izin lokasi hanya saat relevan. |
+| SP-31 | **Feed aktivitas & profil publik** | Berbagi aktivitas opt-in ke feed; feed menampilkan item yang dibagikan saja; membedakan loading/kosong/offline/gagal; tidak memuat email/lokasi/telemetri mentah; berhenti berbagi menghapus item dari feed. |
+| SP-32 | **Follow, kudos, komentar** | Ikuti/berhenti ikuti, kudos, komentar pada aktivitas yang dibagikan; komentar dapat dihapus penulis; kegagalan jaringan tidak dilaporkan sukses; ada blokir/lapor. |
+| SP-33 | **Segmen & leaderboard segmen** | Buat segmen dari aktivitas/rute; matching effort dengan toleransi jelas (tidak palsu saat GPS buruk); leaderboard dihitung server-side dari upaya milik pengguna, opt-in, alias publik, hormati zona privasi; tandai belum diverifikasi. |
+| SP-34 | **Tantangan (challenges)** | Ikut tantangan jarak/elevasi/konsistensi; progres dari sesi selesai unik dengan definisi periode/zona waktu jelas; opt-in, dapat ditinggalkan; tanpa klaim fitness/medis; agregat dapat ditelusuri. |
+| SP-35 | **Zona privasi** | Kelola area sensitif yang memangkas titik awal/akhir pada keluaran yang dibagikan tanpa mengubah sampel lokal; tidak bocor via metadata. |
+| SP-36 | **Impor kesehatan** | Impor dari Health Connect/HealthKit atau berkas FIT/TCX/GPX setelah izin; metrik menyertakan sumber/waktu; aktivitas impor dibedakan; ID stabil mencegah duplikasi; izin dapat dicabut. |
 ### Keputusan provider yang disepakati
 
 - **SOS:** pertahankan telepon/WhatsApp manual; aplikasi tidak mengklaim pesan terkirim. Deteksi insiden otomatis tetap nonaktif sampai model sensor divalidasi.
