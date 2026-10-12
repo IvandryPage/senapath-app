@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/senapath_design.dart';
 import '../domain/rider_progress.dart';
-import 'rider_avatar.dart';
 import 'rider_gamification_cubit.dart';
 
 class RiderScreen extends StatelessWidget {
@@ -25,6 +23,10 @@ class RiderScreen extends StatelessWidget {
       if (progress == null) {
         return const Center(child: CircularProgressIndicator());
       }
+      final achievements = progress.achievements;
+      final unlockedAchievements = achievements
+          .where((achievement) => achievement.isUnlocked)
+          .length;
       return ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -36,10 +38,16 @@ class RiderScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    RiderAvatar(
-                      style: progress.style,
-                      appearance: state.appearance,
-                      size: 60,
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: SenapathColors.white.withValues(
+                        alpha: 0.14,
+                      ),
+                      child: const Icon(
+                        Icons.emoji_events_outlined,
+                        color: SenapathColors.white,
+                        size: 30,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -47,7 +55,7 @@ class RiderScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            progress.style.label.toUpperCase(),
+                            progress.rank.title.toUpperCase(),
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   color: SenapathColors.white.withValues(
@@ -62,6 +70,15 @@ class RiderScreen extends StatelessWidget {
                                 ?.copyWith(
                                   color: SenapathColors.white,
                                   fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          Text(
+                            progress.rank.levelRange,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: SenapathColors.white.withValues(
+                                    alpha: 0.75,
+                                  ),
                                 ),
                           ),
                         ],
@@ -90,144 +107,109 @@ class RiderScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          SenapathCard(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Kustomisasi karakter',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Warna jersey',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      for (final color in RiderKitColor.values)
-                        ChoiceChip(
-                          label: Text(color.label),
-                          avatar: CircleAvatar(
-                            backgroundColor: Color(color.value),
-                            radius: 9,
-                          ),
-                          selected: state.appearance.kitColor == color,
-                          onSelected: state.isSaving
-                              ? null
-                              : (_) => context
-                                    .read<RiderGamificationCubit>()
-                                    .setAppearance(
-                                      state.appearance.copyWith(
-                                        kitColor: color,
-                                      ),
-                                    ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Aksesori',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      for (final accessory in RiderAccessory.values)
-                        ChoiceChip(
-                          label: Text(accessory.label),
-                          selected: state.appearance.accessory == accessory,
-                          onSelected: state.isSaving
-                              ? null
-                              : (_) => context
-                                    .read<RiderGamificationCubit>()
-                                    .setAppearance(
-                                      state.appearance.copyWith(
-                                        accessory: accessory,
-                                      ),
-                                    ),
-                        ),
-                    ],
-                  ),
-                  if (state.isSaving) ...[
-                    const SizedBox(height: 12),
-                    const LinearProgressIndicator(),
-                  ],
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tampilan karakter disimpan di perangkat ini.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
+          Text(
+            'Pencapaian · $unlockedAchievements/${achievements.length}',
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Selesaikan tantangan gowes untuk membuka badge baru.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          for (final achievement in achievements)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _AchievementCard(achievement: achievement),
             ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  label: 'Total jarak',
-                  value:
-                      '${(progress.distanceMeters / 1000).toStringAsFixed(1)} km',
-                  icon: Icons.route_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  label: 'Sesi selesai',
-                  value: '${progress.completedRides}',
-                  icon: Icons.directions_bike_outlined,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/rider/ledger'),
-            icon: const Icon(Icons.link),
-            label: const Text('Bukti perjalanan'),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'XP dihitung dari jarak dan durasi sesi yang selesai. Progres disimpan di perangkat.',
-          ),
         ],
       );
     },
   );
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+class _AchievementCard extends StatelessWidget {
+  const _AchievementCard({required this.achievement});
 
-  final String label;
-  final String value;
-  final IconData icon;
+  final RiderAchievement achievement;
 
   @override
-  Widget build(BuildContext context) => SenapathCard(
-    padding: const EdgeInsets.all(16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 12),
-        Text(value, style: Theme.of(context).textTheme.titleLarge),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final icon = switch (achievement.icon) {
+      RiderAchievementIcon.consistency => Icons.repeat,
+      RiderAchievementIcon.distance => Icons.route_outlined,
+      RiderAchievementIcon.rank => Icons.emoji_events_outlined,
+      RiderAchievementIcon.duration => Icons.timer_outlined,
+      RiderAchievementIcon.longRide => Icons.flag_outlined,
+      RiderAchievementIcon.weekend => Icons.weekend_outlined,
+    };
+    final progressText = achievement.unit.isEmpty
+        ? '${achievement.progress.clamp(0, achievement.target)} / ${achievement.target}'
+        : '${achievement.progress.clamp(0, achievement.target)} / ${achievement.target} ${achievement.unit}';
+
+    return SenapathCard(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: achievement.isUnlocked
+                  ? colors.primaryContainer
+                  : colors.surfaceContainerHighest,
+              foregroundColor: achievement.isUnlocked
+                  ? colors.onPrimaryContainer
+                  : colors.onSurfaceVariant,
+              child: Icon(icon),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          achievement.title,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      if (achievement.isUnlocked)
+                        Icon(
+                          Icons.check_circle,
+                          color: colors.primary,
+                          size: 20,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    achievement.description,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: achievement.progressFraction,
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    achievement.isUnlocked ? 'Diraih' : progressText,
+                    style: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(color: colors.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

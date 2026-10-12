@@ -143,6 +143,41 @@ void main() {
     expect(progress.level, 1);
     expect(progress.style, RiderStyle.climber);
     expect(progress.completedRides, 1);
+    expect(progress.rideDurationSeconds, 3600);
+    expect(progress.longestRideMeters, 10000);
+  });
+
+  test('rider titles progress through expanding level ranges', () {
+    expect(RiderRank.forLevel(1), RiderRank.rookie);
+    expect(RiderRank.forLevel(10), RiderRank.rookie);
+    expect(RiderRank.forLevel(11), RiderRank.clubRider);
+    expect(RiderRank.forLevel(30), RiderRank.clubRider);
+    expect(RiderRank.forLevel(31), RiderRank.granFondo);
+    expect(RiderRank.forLevel(61), RiderRank.eliteRider);
+    expect(RiderRank.forLevel(101), RiderRank.proRider);
+  });
+
+  test('rider achievements unlock from level, distance, and ride counts', () {
+    const progress = RiderProgress(
+      experience: 0,
+      level: 31,
+      distanceMeters: 100000,
+      completedRides: 10,
+      style: RiderStyle.explorer,
+    );
+
+    final achievements = progress.achievements;
+    RiderAchievement achievement(String title) =>
+        achievements.singleWhere((item) => item.title == title);
+
+    expect(achievements.length, 31);
+    expect(achievement('Gowes Pertama').isUnlocked, isTrue);
+    expect(achievement('Rutin Gowes').isUnlocked, isTrue);
+    expect(achievement('Centurion').isUnlocked, isTrue);
+    expect(achievement('Penjelajah Jarak Jauh').isUnlocked, isFalse);
+    expect(achievement('Level 11 · Club Rider').isUnlocked, isTrue);
+    expect(achievement('Level 31 · Gran Fondo').isUnlocked, isTrue);
+    expect(achievement('Metric Century').isUnlocked, isFalse);
   });
 
   test('ride proof chain detects edited block data', () async {

@@ -62,31 +62,46 @@ class _OverviewScreenState extends State<OverviewScreen> {
               state.session != null &&
               state.session!.status != RideSessionStatus.completed;
           final now = DateTime.now();
-          final weekSessions = sessions.where(
-            (session) => session.startedAt.isAfter(
-              now.subtract(const Duration(days: 7)),
-            ),
+          final localNow = now.toLocal();
+          final weekStart = DateTime(
+            localNow.year,
+            localNow.month,
+            localNow.day - (localNow.weekday - DateTime.monday),
           );
+          final weekSessions = sessions.where((session) {
+            final startedAt = session.startedAt.toLocal();
+            return !startedAt.isBefore(weekStart) &&
+                !startedAt.isAfter(localNow);
+          }).toList(growable: false);
           final weekDistance = weekSessions.fold<double>(
             0,
             (total, session) => total + session.distanceMeters,
           );
+          final weekDuration = weekSessions.fold<Duration>(
+            Duration.zero,
+            (total, session) =>
+                total + session.durationAt(session.endedAt ?? now),
+          );
+          final averageSpeedMetersPerSecond = weekDuration.inSeconds == 0
+              ? 0.0
+              : weekDistance / weekDuration.inSeconds;
+          final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
             children: [
               _WelcomeCard(
                 title: activeSession ? 'RIDE IN PROGRESS' : 'READY TO RIDE',
-                startLabel: activeSession ? 'Lanjutkan sesi' : 'Mulai sesi',
                 onExplore: () => context.go('/routes'),
-                onStart: () => context.go('/routes'),
               ),
+              const SizedBox(height: 18),
+              _RiderProgressPreview(onOpen: () => context.push('/rider')),
               const SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      'Ringkasan 7 hari',
+                      'Ringkasan minggu ini',
                       style: Theme.of(context).textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.w800),
                     ),
@@ -97,28 +112,14 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  Expanded(
-                    child: _SummaryTile(
-                      icon: Icons.route_outlined,
-                      value: _formatDistance(weekDistance),
-                      label: 'Jarak total',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _SummaryTile(
-                      icon: Icons.directions_bike_outlined,
-                      value: '${weekSessions.length}',
-                      label: 'Sesi selesai',
-                    ),
-                  ),
-                ],
+              _WeeklySummary(
+                distanceMeters: weekDistance,
+                rideDuration: weekDuration,
+                averageSpeedMetersPerSecond: averageSpeedMetersPerSecond,
+                sessionCount: weekSessions.length,
+                unitSystem: unit,
               ),
               const SizedBox(height: 18),
-              _RiderProgressPreview(onOpen: () => context.push('/rider')),
-              const SizedBox(height: 14),
               _RideCoachPreview(
                 sessionState: state,
                 onSendNotification: (recommendation) => context
@@ -164,10 +165,79 @@ class _OverviewScreenState extends State<OverviewScreen> {
       ),
     );
   }
+}
 
-  String _formatDistance(double meters) => meters >= 1000
-      ? '${(meters / 1000).toStringAsFixed(1)} km'
-      : '${meters.toStringAsFixed(0)} m';
+class _WeeklySummary extends StatelessWidget {
+  const _WeeklySummary({
+    required this.distanceMeters,
+    required this.rideDuration,
+    required this.averageSpeedMetersPerSecond,
+    required this.sessionCount,
+    required this.unitSystem,
+  });
+
+  final double distanceMeters;
+  final Duration rideDuration;
+  final double averageSpeedMetersPerSecond;
+  final int sessionCount;
+  final UnitSystem unitSystem;
+
+  @override
+  Widget build(BuildContext context) {
+    final distance = unitSystem == UnitSystem.metric
+        ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'
+        : '${(distanceMeters / 1609.344).toStringAsFixed(1)} mi';
+    final speed = unitSystem == UnitSystem.metric
+        ? '${(averageSpeedMetersPerSecond * 3.6).toStringAsFixed(1)} km/j'
+        : '${(averageSpeedMetersPerSecond * 2.236936).toStringAsFixed(1)} mph';
+    final hours = rideDuration.inHours;
+    final minutes = rideDuration.inMinutes.remainder(60);
+    final duration = hours > 0 ? '${hours}j ${minutes}m' : '${minutes}m';
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryTile(
+                icon: Icons.route_outlined,
+                value: distance,
+                label: 'Jarak ditempuh',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SummaryTile(
+                icon: Icons.speed_outlined,
+                value: speed,
+                label: 'Rata-rata kecepatan',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryTile(
+                icon: Icons.timer_outlined,
+                value: duration,
+                label: 'Waktu gowes',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _SummaryTile(
+                icon: Icons.directions_bike_outlined,
+                value: '$sessionCount',
+                label: 'Sesi selesai',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _RideCoachPreview extends StatelessWidget {
@@ -438,17 +508,10 @@ class _RiderProgressPreview extends StatelessWidget {
 }
 
 class _WelcomeCard extends StatelessWidget {
-  const _WelcomeCard({
-    required this.title,
-    required this.startLabel,
-    required this.onExplore,
-    required this.onStart,
-  });
+  const _WelcomeCard({required this.title, required this.onExplore});
 
   final String title;
-  final String startLabel;
   final VoidCallback onExplore;
-  final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -472,24 +535,25 @@ class _WelcomeCard extends StatelessWidget {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
+                    Color(0x00071122),
+                    Color(0x99071122),
                     Color(0xE6071122),
-                    Color(0xC9071122),
-                    Color(0x4D071122),
                   ],
-                  stops: [0, 0.58, 1],
+                  stops: [0.12, 0.55, 1],
                 ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerEnd,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       'RIDE YOUR WAY',
+                      textAlign: TextAlign.end,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: SenapathColors.white.withValues(alpha: 0.82),
                         letterSpacing: 1.4,
@@ -499,6 +563,7 @@ class _WelcomeCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       title,
+                      textAlign: TextAlign.end,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: SenapathColors.white,
                         height: 1.15,
@@ -506,31 +571,13 @@ class _WelcomeCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        SenapathButton(
-                          fullWidth: false,
-                          onPressed: onStart,
-                          icon: Icons.play_arrow,
-                          label: startLabel,
-                          backgroundColor: SenapathColors.pale,
-                          foregroundColor: SenapathColors.navy,
-                        ),
-                        OutlinedButton(
-                          onPressed: onExplore,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: SenapathColors.white,
-                            side: BorderSide(
-                              color: SenapathColors.white.withValues(
-                                alpha: 0.65,
-                              ),
-                            ),
-                          ),
-                          child: const Text('Jelajahi'),
-                        ),
-                      ],
+                    SenapathButton(
+                      key: const Key('home-ready-to-ride-explore'),
+                      fullWidth: false,
+                      onPressed: onExplore,
+                      label: 'Jelajahi',
+                      backgroundColor: SenapathColors.pale,
+                      foregroundColor: SenapathColors.navy,
                     ),
                   ],
                 ),
