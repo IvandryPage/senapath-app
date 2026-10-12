@@ -49,4 +49,9 @@ flutter:
   assets:
     - assets/config/
     - assets/images/app_home_cta.jpg
-    - assets/icons/app_icon.jpg
+    - assets/icon/app_icon.jpg
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.jpg"

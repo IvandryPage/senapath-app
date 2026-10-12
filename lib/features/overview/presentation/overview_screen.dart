@@ -516,72 +516,91 @@ class _WelcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SenapathCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 14, 18),
-      color: SenapathColors.navy,
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'RIDE YOUR WAY',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: SenapathColors.white.withValues(alpha: 0.82),
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w800,
-                  ),
+      padding: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: 216,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/app_home_cta.jpg',
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, 0.6),
+              semanticLabel: 'Pesepeda menyusuri jalan di antara perbukitan',
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xE6071122),
+                    Color(0xC9071122),
+                    Color(0x4D071122),
+                  ],
+                  stops: [0, 0.58, 1],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: SenapathColors.white,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SenapathButton(
-                      fullWidth: false,
-                      onPressed: onStart,
-                      icon: Icons.play_arrow,
-                      label: startLabel,
-                      backgroundColor: SenapathColors.pale,
-                      foregroundColor: SenapathColors.navy,
-                    ),
-                    OutlinedButton(
-                      onPressed: onExplore,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: SenapathColors.white,
-                        side: BorderSide(
-                          color: SenapathColors.white.withValues(alpha: 0.65),
-                        ),
+                    Text(
+                      'RIDE YOUR WAY',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: SenapathColors.white.withValues(alpha: 0.82),
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w800,
                       ),
-                      child: const Text('Jelajahi'),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: SenapathColors.white,
+                        height: 1.15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        SenapathButton(
+                          fullWidth: false,
+                          onPressed: onStart,
+                          icon: Icons.play_arrow,
+                          label: startLabel,
+                          backgroundColor: SenapathColors.pale,
+                          foregroundColor: SenapathColors.navy,
+                        ),
+                        OutlinedButton(
+                          onPressed: onExplore,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: SenapathColors.white,
+                            side: BorderSide(
+                              color: SenapathColors.white.withValues(
+                                alpha: 0.65,
+                              ),
+                            ),
+                          ),
+                          child: const Text('Jelajahi'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/images/app_home_cta.jpg',
-              width: 84,
-              height: 148,
-              fit: BoxFit.cover,
-              alignment: const Alignment(0, 0.35),
-              semanticLabel: 'Pesepeda menyusuri jalan di antara perbukitan',
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

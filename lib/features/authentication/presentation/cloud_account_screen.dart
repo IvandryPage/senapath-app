@@ -36,7 +36,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     builder: (context, state) {
       if (state.isSignedIn) return _buildSignedIn(context, state);
 
-      return ListView(
+      final loginPage = ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         children: [
           if (widget.isEntryFlow) ...[
@@ -49,13 +49,18 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
             const SizedBox(height: 18),
             Text(
               'Perjalananmu.\nRuangmu.',
-              style: Theme.of(context).textTheme.displaySmall
-                  ?.copyWith(fontWeight: FontWeight.w900, height: 1.02),
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                color: SenapathColors.white,
+                fontWeight: FontWeight.w900,
+                height: 1.02,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
               'Masuk untuk menyimpan sesi dan mengakses fitur akun Senapath.',
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: SenapathColors.white.withValues(alpha: 0.92),
+              ),
             ),
             const SizedBox(height: 24),
           ] else
@@ -63,151 +68,200 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
               'Masuk dengan email dan password, atau gunakan biometrik untuk masuk kembali ke akun yang tersimpan di perangkat ini.',
             ),
           const SizedBox(height: 16),
-          if (!state.isConfigured)
-            const _AccountNotice(
-              text: 'Supabase belum dikonfigurasi. Fitur lokal tetap bisa digunakan.',
-              isError: true,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: SenapathColors.white.withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(20),
             ),
-          SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(value: false, label: Text('Masuk')),
-              ButtonSegment(value: true, label: Text('Daftar')),
-            ],
-            selected: {_isRegistering},
-            onSelectionChanged: state.isLoading || !state.isConfigured
-                ? null
-                : (selection) => setState(() {
-                    _isRegistering = selection.first;
-                    _confirmationController.clear();
-                  }),
-          ),
-          if (!_isRegistering &&
-              state.biometricSignInEnabled &&
-              state.canUseBiometrics)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: state.isLoading
-                    ? null
-                    : context.read<CloudAccountCubit>().signInWithBiometrics,
-                icon: const Icon(Icons.fingerprint),
-                label: const Text('Masuk ke akun tersimpan dengan biometrik'),
-              ),
-            ),
-          const SizedBox(height: 20),
-          Form(
-            key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(
-                  controller: _emailController,
-                  enabled: state.isConfigured && !state.isLoading,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email_outlined),
+                if (!state.isConfigured)
+                  const _AccountNotice(
+                    text: 'Supabase belum dikonfigurasi. Fitur lokal tetap bisa digunakan.',
+                    isError: true,
                   ),
-                  validator: (value) =>
-                      value == null ||
-                          !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                              .hasMatch(value.trim())
-                      ? 'Masukkan email yang valid.'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _passwordController,
-                  enabled: state.isConfigured && !state.isLoading,
-                  maxLength: 128,
-                  obscureText: !_showPassword,
-                  autofillHints: [
-                    _isRegistering
-                        ? AutofillHints.newPassword
-                        : AutofillHints.password,
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Masuk')),
+                    ButtonSegment(value: true, label: Text('Daftar')),
                   ],
-                  textInputAction: _isRegistering
-                      ? TextInputAction.next
-                      : TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      tooltip: _showPassword
-                          ? 'Sembunyikan password'
-                          : 'Tampilkan password',
-                      onPressed: () =>
-                          setState(() => _showPassword = !_showPassword),
-                      icon: Icon(
-                        _showPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+                  selected: {_isRegistering},
+                  onSelectionChanged: state.isLoading || !state.isConfigured
+                      ? null
+                      : (selection) => setState(() {
+                          _isRegistering = selection.first;
+                          _confirmationController.clear();
+                        }),
+                ),
+                if (!_isRegistering &&
+                    state.biometricSignInEnabled &&
+                    state.canUseBiometrics)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: state.isLoading
+                          ? null
+                          : context
+                                .read<CloudAccountCubit>()
+                                .signInWithBiometrics,
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text(
+                        'Masuk ke akun tersimpan dengan biometrik',
                       ),
                     ),
                   ),
-                  validator: (value) => value == null || value.length < 8
-                      ? 'Password minimal 8 karakter.'
-                      : null,
-                  onFieldSubmitted: _isRegistering ? null : (_) => _submit(),
+                const SizedBox(height: 20),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _emailController,
+                        enabled: state.isConfigured && !state.isLoading,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: (value) =>
+                            value == null ||
+                                !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                    .hasMatch(value.trim())
+                            ? 'Masukkan email yang valid.'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _passwordController,
+                        enabled: state.isConfigured && !state.isLoading,
+                        maxLength: 128,
+                        obscureText: !_showPassword,
+                        autofillHints: [
+                          _isRegistering
+                              ? AutofillHints.newPassword
+                              : AutofillHints.password,
+                        ],
+                        textInputAction: _isRegistering
+                            ? TextInputAction.next
+                            : TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            tooltip: _showPassword
+                                ? 'Sembunyikan password'
+                                : 'Tampilkan password',
+                            onPressed: () =>
+                                setState(() => _showPassword = !_showPassword),
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
+                        ),
+                        validator: (value) => value == null || value.length < 8
+                            ? 'Password minimal 8 karakter.'
+                            : null,
+                        onFieldSubmitted: _isRegistering
+                            ? null
+                            : (_) => _submit(),
+                      ),
+                      if (_isRegistering) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _confirmationController,
+                          enabled: state.isConfigured && !state.isLoading,
+                          maxLength: 128,
+                          obscureText: true,
+                          autofillHints: const [AutofillHints.newPassword],
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            labelText: 'Ulangi password',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                          validator: (value) =>
+                              value != _passwordController.text
+                              ? 'Password belum sama.'
+                              : null,
+                          onFieldSubmitted: (_) => _submit(),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                if (_isRegistering) ...[
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _confirmationController,
-                    enabled: state.isConfigured && !state.isLoading,
-                    maxLength: 128,
-                    obscureText: true,
-                    autofillHints: const [AutofillHints.newPassword],
-                    textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      labelText: 'Ulangi password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock_outline),
+                if (!_isRegistering)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: state.isConfigured && !state.isLoading
+                          ? _sendPasswordReset
+                          : null,
+                      child: const Text('Lupa password?'),
                     ),
-                    validator: (value) => value != _passwordController.text
-                        ? 'Password belum sama.'
-                        : null,
-                    onFieldSubmitted: (_) => _submit(),
+                  ),
+                const SizedBox(height: 8),
+                SenapathButton(
+                  onPressed: state.isConfigured && !state.isLoading
+                      ? _submit
+                      : null,
+                  icon: _isRegistering ? Icons.person_add_alt_1 : Icons.login,
+                  isLoading: state.isLoading,
+                  label: _isRegistering ? 'Buat akun Senapath' : 'Masuk',
+                ),
+                if (state.status != null) ...[
+                  const SizedBox(height: 16),
+                  _AccountNotice(text: state.status!),
+                ],
+                if (state.error != null) ...[
+                  const SizedBox(height: 16),
+                  _AccountNotice(text: state.error!, isError: true),
+                ],
+                if (_isRegistering) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Kamu langsung masuk setelah daftar tanpa verifikasi email. Pastikan email benar karena kepemilikannya tidak diperiksa. Password disimpan server sebagai hash PBKDF2.',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
               ],
             ),
           ),
-          if (!_isRegistering)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: state.isConfigured && !state.isLoading
-                    ? _sendPasswordReset
-                    : null,
-                child: const Text('Lupa password?'),
+        ],
+      );
+      if (!widget.isEntryFlow) return loginPage;
+
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/app_home_cta.jpg',
+            fit: BoxFit.cover,
+            alignment: Alignment.bottomCenter,
+            semanticLabel: 'Pesepeda menyusuri jalan di antara perbukitan',
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x66071122),
+                  Color(0x99071122),
+                  Color(0xD9071122),
+                ],
               ),
             ),
-          const SizedBox(height: 8),
-          SenapathButton(
-            onPressed: state.isConfigured && !state.isLoading ? _submit : null,
-            icon: _isRegistering ? Icons.person_add_alt_1 : Icons.login,
-            isLoading: state.isLoading,
-            label: _isRegistering ? 'Buat akun Senapath' : 'Masuk',
           ),
-          if (state.status != null) ...[
-            const SizedBox(height: 16),
-            _AccountNotice(text: state.status!),
-          ],
-          if (state.error != null) ...[
-            const SizedBox(height: 16),
-            _AccountNotice(text: state.error!, isError: true),
-          ],
-          if (_isRegistering) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Kamu langsung masuk setelah daftar tanpa verifikasi email. Pastikan email benar karena kepemilikannya tidak diperiksa. Password disimpan server sebagai hash PBKDF2.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+          SafeArea(child: loginPage),
         ],
       );
     },

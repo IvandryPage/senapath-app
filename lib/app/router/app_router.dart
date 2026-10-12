@@ -191,9 +191,7 @@ class _AppShellState extends State<_AppShell> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (account.isConfigured && !account.isSignedIn) {
-      return const Scaffold(
-        body: SafeArea(child: CloudAccountScreen(isEntryFlow: true)),
-      );
+      return const Scaffold(body: CloudAccountScreen(isEntryFlow: true));
     }
 
     final title = switch (widget.location) {
