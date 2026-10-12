@@ -171,7 +171,7 @@ class _GuidanceStatus extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.navigation_outlined, color: SenapathColors.sky),
+                Icon(Icons.navigation_outlined, color: SenapathColors.accent),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

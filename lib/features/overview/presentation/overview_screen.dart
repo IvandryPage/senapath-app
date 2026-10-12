@@ -99,6 +99,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
                       ],
                     ),
                   ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      'assets/icons/app_icon.jpg',
+                      width: 42,
+                      height: 42,
+                      semanticLabel: 'Ikon Senapath',
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -316,11 +325,13 @@ class _RideCoachPreview extends StatelessWidget {
             ],
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: coachState.isLoading ||
+              onPressed:
+                  coachState.isLoading ||
                       !context.read<RideCoachCubit>().isConfigured ||
                       !context.read<RideCoachCubit>().isSignedIn
                   ? null
-                  : () => context.read<RideCoachCubit>().diagnoseConfiguration(),
+                  : () =>
+                        context.read<RideCoachCubit>().diagnoseConfiguration(),
               icon: const Icon(Icons.manage_search_outlined),
               label: const Text('Cek konfigurasi Gemini'),
             ),
@@ -328,9 +339,8 @@ class _RideCoachPreview extends StatelessWidget {
               onPressed: coachState.isLoading
                   ? null
                   : () {
-                      final blocker = !context
-                              .read<RideCoachCubit>()
-                              .isConfigured
+                      final blocker =
+                          !context.read<RideCoachCubit>().isConfigured
                           ? 'Layanan AI belum terhubung. Periksa konfigurasi Supabase.'
                           : !context.read<RideCoachCubit>().isSignedIn
                           ? 'Masuk ke akun online untuk meminta rekomendasi.'
@@ -507,7 +517,7 @@ class _WelcomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SenapathCard(
       padding: const EdgeInsets.fromLTRB(20, 18, 14, 18),
-      color: SenapathColors.indigo,
+      color: SenapathColors.navy,
       child: Row(
         children: [
           Expanded(
@@ -541,14 +551,15 @@ class _WelcomeCard extends StatelessWidget {
                       onPressed: onStart,
                       icon: Icons.play_arrow,
                       label: startLabel,
+                      backgroundColor: SenapathColors.pale,
+                      foregroundColor: SenapathColors.navy,
                     ),
                     OutlinedButton(
                       onPressed: onExplore,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: SenapathColors.white,
-                        side: const BorderSide(
-                          color: SenapathColors.white,
-                          width: 2,
+                        side: BorderSide(
+                          color: SenapathColors.white.withValues(alpha: 0.65),
                         ),
                       ),
                       child: const Text('Jelajahi'),
@@ -559,10 +570,16 @@ class _WelcomeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Icon(
-            Icons.directions_bike_rounded,
-            color: SenapathColors.sky,
-            size: 76,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/images/app_home_cta.jpg',
+              width: 84,
+              height: 148,
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, 0.35),
+              semanticLabel: 'Pesepeda menyusuri jalan di antara perbukitan',
+            ),
           ),
         ],
       ),

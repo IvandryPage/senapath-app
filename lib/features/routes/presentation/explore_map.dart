@@ -152,7 +152,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           Polyline(
                             points: line,
                             strokeWidth: 5,
-                            color: SenapathColors.sky,
+                            color: SenapathColors.accent,
                           ),
                       ],
                     ),
@@ -162,7 +162,7 @@ class _ExploreMapState extends State<ExploreMap> {
                         Polyline(
                           points: widget.trackPoints,
                           strokeWidth: 7,
-                          color: SenapathColors.coral,
+                          color: SenapathColors.blue,
                         ),
                       ],
                     ),
@@ -175,7 +175,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           height: 38,
                           child: Icon(
                             Icons.trip_origin,
-                            color: SenapathColors.spring,
+                            color: SenapathColors.blue,
                             size: 30,
                           ),
                         ),
@@ -186,7 +186,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           height: 38,
                           child: Icon(
                             Icons.flag_rounded,
-                            color: SenapathColors.gold,
+                            color: SenapathColors.accent,
                             size: 30,
                           ),
                         ),
@@ -203,7 +203,7 @@ class _ExploreMapState extends State<ExploreMap> {
                               message: checkpoint.name,
                               child: const Icon(
                                 Icons.flag_circle,
-                                color: SenapathColors.violet,
+                                color: SenapathColors.navy,
                                 size: 34,
                               ),
                             ),

@@ -9,32 +9,32 @@ abstract final class AppTheme {
     const surface = SenapathColors.white;
     final colorScheme = ColorScheme(
       brightness: Brightness.light,
-      primary: SenapathColors.coral,
+      primary: SenapathColors.blue,
       onPrimary: SenapathColors.ink,
-      secondary: SenapathColors.indigo,
+      secondary: SenapathColors.navy,
       onSecondary: SenapathColors.white,
       error: const Color(0xFFB42318),
       onError: SenapathColors.white,
       surface: surface,
       onSurface: ink,
-      tertiary: SenapathColors.sky,
+      tertiary: SenapathColors.accent,
       onTertiary: SenapathColors.ink,
-      surfaceContainerHighest: const Color(0xFFF0EEE8),
-      onSurfaceVariant: const Color(0xFF514D48),
-      outline: ink,
-      outlineVariant: const Color(0xFF89847D),
+      surfaceContainerHighest: SenapathColors.pale,
+      onSurfaceVariant: SenapathColors.navy,
+      outline: SenapathColors.accent,
+      outlineVariant: const Color(0xFFB7D9EA),
       shadow: SenapathColors.ink,
       scrim: Colors.black,
       inverseSurface: ink,
       onInverseSurface: surface,
-      inversePrimary: SenapathColors.coral,
-      surfaceTint: SenapathColors.sky,
-      primaryContainer: const Color(0xFFFFDAD5),
+      inversePrimary: SenapathColors.accent,
+      surfaceTint: SenapathColors.accent,
+      primaryContainer: SenapathColors.pale,
       onPrimaryContainer: SenapathColors.ink,
-      secondaryContainer: const Color(0xFFEADDFF),
-      onSecondaryContainer: SenapathColors.indigo,
-      tertiaryContainer: const Color(0xFFCCF2FF),
-      onTertiaryContainer: const Color(0xFF003849),
+      secondaryContainer: SenapathColors.pale,
+      onSecondaryContainer: SenapathColors.navy,
+      tertiaryContainer: SenapathColors.pale,
+      onTertiaryContainer: SenapathColors.navy,
       errorContainer: const Color(0xFFFFDAD6),
       onErrorContainer: const Color(0xFF410002),
     );
@@ -77,7 +77,10 @@ abstract final class AppTheme {
           ),
         );
     final borderRadius = BorderRadius.circular(SenapathShape.medium);
-    final outline = BorderSide(color: ink, width: SenapathShape.borderWidth);
+    final outline = BorderSide(
+      color: colorScheme.outlineVariant,
+      width: SenapathShape.borderWidth,
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -96,7 +99,7 @@ abstract final class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: SenapathColors.sky,
+        indicatorColor: SenapathColors.pale,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         elevation: 0,
         height: 74,
@@ -116,7 +119,7 @@ abstract final class AppTheme {
         margin: const EdgeInsets.symmetric(vertical: 6),
         shape: RoundedRectangleBorder(
           borderRadius: borderRadius,
-          side: outline,
+          side: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -138,42 +141,39 @@ abstract final class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(SenapathShape.small),
-          borderSide: BorderSide(color: ink.withValues(alpha: 0.7), width: 2),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(SenapathShape.small),
-          borderSide: const BorderSide(color: SenapathColors.sky, width: 3),
+          borderSide: const BorderSide(color: SenapathColors.blue, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(SenapathShape.small),
-          borderSide: BorderSide(color: colorScheme.error, width: 3),
+          borderSide: BorderSide(color: colorScheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(SenapathShape.small),
-          borderSide: BorderSide(color: colorScheme.error, width: 3),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          foregroundColor: SenapathColors.ink,
-          backgroundColor: SenapathColors.coral,
+          foregroundColor: SenapathColors.white,
+          backgroundColor: SenapathColors.blue,
           disabledForegroundColor: ink.withValues(alpha: 0.45),
-          disabledBackgroundColor: SenapathColors.coral.withValues(alpha: 0.35),
-          minimumSize: const Size(48, 50),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          disabledBackgroundColor: SenapathColors.blue.withValues(alpha: 0.35),
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           elevation: 0,
-          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: borderRadius,
-            side: outline,
-          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: ink,
           minimumSize: const Size(48, 48),
-          side: BorderSide(color: ink, width: 2),
+          side: BorderSide(color: colorScheme.outlineVariant),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -181,7 +181,7 @@ abstract final class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: SenapathColors.indigo,
+          foregroundColor: SenapathColors.navy,
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
         ),
@@ -193,19 +193,16 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: SenapathColors.coral,
-        foregroundColor: SenapathColors.ink,
-        shape: RoundedRectangleBorder(
-          borderRadius: borderRadius,
-          side: outline,
-        ),
+        backgroundColor: SenapathColors.blue,
+        foregroundColor: SenapathColors.white,
+        shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         shape: RoundedRectangleBorder(
           borderRadius: borderRadius,
-          side: outline,
+          side: BorderSide(color: colorScheme.outlineVariant),
         ),
         titleTextStyle: textTheme.titleLarge?.copyWith(color: ink),
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: ink),
@@ -216,7 +213,7 @@ abstract final class AppTheme {
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(SenapathShape.large),
           ),
-          side: outline,
+          side: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -234,7 +231,7 @@ abstract final class AppTheme {
         space: 24,
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: SenapathColors.coral,
+        color: SenapathColors.blue,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
@@ -243,7 +240,7 @@ abstract final class AppTheme {
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? SenapathColors.spring
+              ? SenapathColors.blue
               : null,
         ),
         trackOutlineColor: WidgetStatePropertyAll(ink),

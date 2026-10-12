@@ -29,7 +29,7 @@ class RiderScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           SenapathCard(
-            color: SenapathColors.indigo,
+            color: SenapathColors.navy,
             padding: const EdgeInsets.all(22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +75,7 @@ class RiderScreen extends StatelessWidget {
                   minHeight: 10,
                   borderRadius: BorderRadius.circular(8),
                   backgroundColor: SenapathColors.white.withValues(alpha: 0.25),
-                  color: SenapathColors.gold,
+                  color: SenapathColors.accent,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -204,7 +204,6 @@ class RiderScreen extends StatelessWidget {
       );
     },
   );
-
 }
 
 class _StatCard extends StatelessWidget {

@@ -43,7 +43,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
             const SizedBox(height: 20),
             const SenapathBadge(
               label: 'RIDE YOUR WAY',
-              color: SenapathColors.sky,
+              color: SenapathColors.accent,
               icon: Icons.directions_bike,
             ),
             const SizedBox(height: 18),

@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
 abstract final class SenapathColors {
-  static const coral = Color(0xFFFF6F61);
-  static const indigo = Color(0xFF4B0082);
-  static const sky = Color(0xFF00BFFF);
-  static const gold = Color(0xFFFFD700);
+  static const navy = Color(0xFF0C3156);
+  static const blue = Color(0xFF0A7DD2);
+  static const accent = Color(0xFF99D0EC);
+  static const pale = Color(0xFFDDF3FE);
   static const white = Color(0xFFFFFFFF);
-  static const ink = Color(0xFF333333);
-  static const pink = Color(0xFFFF4081);
-  static const spring = Color(0xFF00FF7F);
-  static const violet = Color(0xFF8A2BE2);
-  static const canvas = Color(0xFFF5F4EF);
+  static const ink = Color(0xFF071122);
+  static const canvas = pale;
 }
 
 abstract final class SenapathSpacing {
@@ -56,11 +53,10 @@ abstract final class SenapathShape {
   static const small = 8.0;
   static const medium = 12.0;
   static const large = 16.0;
-  static const borderWidth = 3.0;
-  static const shadowOffset = 5.0;
+  static const borderWidth = 1.0;
 }
 
-class SenapathCard extends StatefulWidget {
+class SenapathCard extends StatelessWidget {
   const SenapathCard({
     required this.child,
     this.onTap,
@@ -69,7 +65,6 @@ class SenapathCard extends StatefulWidget {
     this.color,
     this.clipBehavior = Clip.none,
     this.borderRadius = SenapathShape.medium,
-    this.shadowColor,
     super.key,
   });
 
@@ -80,89 +75,28 @@ class SenapathCard extends StatefulWidget {
   final Color? color;
   final Clip clipBehavior;
   final double borderRadius;
-  final Color? shadowColor;
-
-  @override
-  State<SenapathCard> createState() => _SenapathCardState();
-}
-
-class _SenapathCardState extends State<SenapathCard> {
-  bool _isPressed = false;
-
-  void _setPressed(bool value) {
-    if (_isPressed != value && mounted) setState(() => _isPressed = value);
-  }
 
   @override
   Widget build(BuildContext context) {
     final surface = Theme.of(context).colorScheme.surface;
-    final radius = BorderRadius.circular(widget.borderRadius);
-    final shadow = SenapathShape.shadowOffset;
-    return Padding(
-      padding: widget.margin,
-      child: Padding(
-        padding: const EdgeInsets.only(
-          right: SenapathShape.shadowOffset,
-          bottom: SenapathShape.shadowOffset,
+    final colors = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(borderRadius);
+    return Card(
+      color: color ?? surface,
+      margin: margin,
+      elevation: 0,
+      clipBehavior: clipBehavior,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: colors.outlineVariant,
+          width: SenapathShape.borderWidth,
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: shadow,
-              top: shadow,
-              right: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: widget.shadowColor ?? SenapathColors.ink,
-                  borderRadius: radius,
-                ),
-              ),
-            ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 90),
-              curve: Curves.easeOut,
-              transform: Matrix4.translationValues(
-                _isPressed ? shadow : 0,
-                _isPressed ? shadow : 0,
-                0,
-              ),
-              decoration: BoxDecoration(
-                color: widget.color ?? surface,
-                border: Border.all(
-                  color: SenapathColors.ink,
-                  width: SenapathShape.borderWidth,
-                ),
-                borderRadius: radius,
-              ),
-              child: ClipRRect(
-                clipBehavior: widget.clipBehavior,
-                borderRadius: radius,
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: InkWell(
-                    onTap: widget.onTap,
-                    onTapDown: widget.onTap == null
-                        ? null
-                        : (_) => _setPressed(true),
-                    onTapUp: widget.onTap == null
-                        ? null
-                        : (_) => _setPressed(false),
-                    onTapCancel: widget.onTap == null
-                        ? null
-                        : () => _setPressed(false),
-                    borderRadius: radius,
-                    child: Padding(
-                      padding: widget.padding,
-                      child: widget.child,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Padding(padding: padding, child: child),
       ),
     );
   }
@@ -214,8 +148,8 @@ class SenapathButton extends StatelessWidget {
     this.icon,
     this.isLoading = false,
     this.fullWidth = true,
-    this.backgroundColor = SenapathColors.coral,
-    this.foregroundColor = SenapathColors.ink,
+    this.backgroundColor = SenapathColors.blue,
+    this.foregroundColor = SenapathColors.white,
     super.key,
   });
 
@@ -235,10 +169,7 @@ class SenapathButton extends StatelessWidget {
         horizontal: SenapathSpacing.md,
         vertical: SenapathSpacing.sm,
       ),
-      margin: const EdgeInsets.only(
-        right: SenapathShape.shadowOffset,
-        bottom: SenapathShape.shadowOffset,
-      ),
+      margin: EdgeInsets.zero,
       color: backgroundColor,
       child: Semantics(
         button: true,
@@ -278,7 +209,7 @@ class SenapathButton extends StatelessWidget {
 class SenapathBadge extends StatelessWidget {
   const SenapathBadge({
     required this.label,
-    this.color = SenapathColors.sky,
+    this.color = SenapathColors.accent,
     this.icon,
     super.key,
   });
@@ -295,7 +226,10 @@ class SenapathBadge extends StatelessWidget {
     ),
     decoration: BoxDecoration(
       color: color,
-      border: Border.all(color: SenapathColors.ink, width: 2),
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant,
+        width: SenapathShape.borderWidth,
+      ),
       borderRadius: BorderRadius.circular(SenapathShape.small),
     ),
     child: Row(

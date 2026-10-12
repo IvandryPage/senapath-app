@@ -48,3 +48,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/config/
+    - assets/images/app_home_cta.jpg
+    - assets/icons/app_icon.jpg

@@ -859,7 +859,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                         Polyline(
                           points: routePoints,
                           strokeWidth: 5,
-                          color: SenapathColors.sky,
+                          color: SenapathColors.accent,
                         ),
                       ],
                     ),
@@ -872,7 +872,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                           height: 36,
                           child: Icon(
                             Icons.trip_origin,
-                            color: SenapathColors.spring,
+                            color: SenapathColors.blue,
                             size: 28,
                           ),
                         ),
@@ -883,7 +883,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                           height: 36,
                           child: Icon(
                             Icons.flag,
-                            color: SenapathColors.gold,
+                            color: SenapathColors.accent,
                             size: 28,
                           ),
                         ),
