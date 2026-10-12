@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/senapath_design.dart';
 import '../domain/rider_progress.dart';
+import 'rider_avatar.dart';
 import 'rider_gamification_cubit.dart';
 
 class RiderScreen extends StatelessWidget {
@@ -35,14 +36,10 @@ class RiderScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: SenapathColors.gold,
-                      child: Icon(
-                        _styleIcon(progress.style),
-                        color: SenapathColors.ink,
-                        size: 30,
-                      ),
+                    RiderAvatar(
+                      style: progress.style,
+                      appearance: state.appearance,
+                      size: 60,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -93,6 +90,86 @@ class RiderScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
+          SenapathCard(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Kustomisasi karakter',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Warna jersey',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final color in RiderKitColor.values)
+                        ChoiceChip(
+                          label: Text(color.label),
+                          avatar: CircleAvatar(
+                            backgroundColor: Color(color.value),
+                            radius: 9,
+                          ),
+                          selected: state.appearance.kitColor == color,
+                          onSelected: state.isSaving
+                              ? null
+                              : (_) => context
+                                    .read<RiderGamificationCubit>()
+                                    .setAppearance(
+                                      state.appearance.copyWith(
+                                        kitColor: color,
+                                      ),
+                                    ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Aksesori',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final accessory in RiderAccessory.values)
+                        ChoiceChip(
+                          label: Text(accessory.label),
+                          selected: state.appearance.accessory == accessory,
+                          onSelected: state.isSaving
+                              ? null
+                              : (_) => context
+                                    .read<RiderGamificationCubit>()
+                                    .setAppearance(
+                                      state.appearance.copyWith(
+                                        accessory: accessory,
+                                      ),
+                                    ),
+                        ),
+                    ],
+                  ),
+                  if (state.isSaving) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tampilan karakter disimpan di perangkat ini.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -128,12 +205,6 @@ class RiderScreen extends StatelessWidget {
     },
   );
 
-  IconData _styleIcon(RiderStyle style) => switch (style) {
-    RiderStyle.sprinter => Icons.bolt,
-    RiderStyle.climber => Icons.terrain,
-    RiderStyle.explorer => Icons.explore,
-    RiderStyle.ace => Icons.stars,
-  };
 }
 
 class _StatCard extends StatelessWidget {

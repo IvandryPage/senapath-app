@@ -9,6 +9,7 @@ void main() {
     bool checked = false,
   }) => ReadinessReport(
     locationPermissionGranted: permission,
+    backgroundLocationGranted: false,
     locationPermanentlyDenied: false,
     locationServicesEnabled: services,
     gpsFixAvailable: fix,
@@ -32,5 +33,24 @@ void main() {
     expect(report().gpsFixChecked, isFalse);
     expect(report(checked: true).gpsFixChecked, isTrue);
     expect(report(fix: true, checked: true).gpsFixAvailable, isTrue);
+  });
+
+  test('background permission does not block foreground recording', () {
+    expect(report().canStartRecording, isTrue);
+    expect(report().backgroundLocationGranted, isFalse);
+    expect(
+      ReadinessReport(
+        locationPermissionGranted: true,
+        backgroundLocationGranted: true,
+        locationPermanentlyDenied: false,
+        locationServicesEnabled: true,
+        gpsFixAvailable: false,
+        accelerometerAvailable: true,
+        gyroscopeAvailable: true,
+        notificationsGranted: true,
+        notificationsPermanentlyDenied: false,
+      ).backgroundLocationGranted,
+      isTrue,
+    );
   });
 }

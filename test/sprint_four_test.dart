@@ -419,6 +419,7 @@ class _RecordingReadinessChecker implements ReadinessChecker {
     bool checkGpsFix = false,
   }) async => const ReadinessReport(
     locationPermissionGranted: true,
+    backgroundLocationGranted: false,
     locationPermanentlyDenied: false,
     locationServicesEnabled: true,
     gpsFixAvailable: true,

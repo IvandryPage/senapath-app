@@ -12,7 +12,8 @@ import '../../leaderboard/presentation/leaderboard_cubit.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
 import '../../gamification/presentation/rider_gamification_cubit.dart';
-import '../../gamification/domain/rider_progress.dart';
+import '../../gamification/presentation/rider_avatar.dart';
+
 import '../../routes/domain/route_progress.dart';
 import '../../routes/domain/saved_route.dart';
 import '../../ride_coach/presentation/ride_coach_cubit.dart';
@@ -456,14 +457,10 @@ class _RiderProgressPreview extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: SenapathColors.gold,
-                  child: Icon(switch (progress.style) {
-                    RiderStyle.sprinter => Icons.bolt,
-                    RiderStyle.climber => Icons.terrain,
-                    RiderStyle.explorer => Icons.explore,
-                    RiderStyle.ace => Icons.stars,
-                  }, color: SenapathColors.ink),
+                RiderAvatar(
+                  style: progress.style,
+                  appearance: state.appearance,
+                  size: 44,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

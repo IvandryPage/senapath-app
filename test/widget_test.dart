@@ -452,6 +452,7 @@ class _FakeReadinessChecker implements ReadinessChecker {
     bool checkGpsFix = false,
   }) async => ReadinessReport(
     locationPermissionGranted: true,
+    backgroundLocationGranted: false,
     locationPermanentlyDenied: false,
     locationServicesEnabled: true,
     gpsFixAvailable: true,

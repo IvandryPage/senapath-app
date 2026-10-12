@@ -306,11 +306,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       _setMessage('Selesaikan atau lanjutkan sesi yang sedang tersimpan.');
       return;
     }
+    late ReadinessReport startReadiness;
+    String? workoutStartMessage;
     try {
       final readiness = await readinessChecker.check(
         requestLocationPermission: true,
         checkGpsFix: false,
       );
+      startReadiness = readiness;
       emit(state.copyWith(readiness: readiness));
       if (!readiness.canStartRecording) {
         _setMessage(
@@ -339,9 +342,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           await intervalWorkoutRepository!.saveCheckpoint(checkpoint);
           _workoutCheckpoint = checkpoint;
         } catch (_) {
-          _setMessage(
-            'Workout tidak tersimpan; sesi tetap berjalan tanpa workout.',
-          );
+          workoutStartMessage =
+              'Workout tidak tersimpan; sesi tetap berjalan tanpa workout.';
         }
       }
       _activeRoute = route;
@@ -362,6 +364,13 @@ class RideSessionCubit extends Cubit<RideSessionState> {
               ? null
               : _calculateWorkoutProgress(workout, _workoutCheckpoint!, 0, 0),
           clearWorkout: workout == null || _workoutCheckpoint == null,
+          message: workoutStartMessage ??
+              (!startReadiness.backgroundLocationGranted
+                  ? 'Perjalanan ini hanya bisa terus direkam di latar belakang '
+                      'jika izin lokasi “Sepanjang waktu” aktif.'
+                  : null),
+          clearMessage: workoutStartMessage == null &&
+              startReadiness.backgroundLocationGranted,
         ),
       );
       await _prepareRouteNotifications();

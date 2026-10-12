@@ -53,7 +53,7 @@ Gunakan empat destinasi utama yang sesuai dengan keputusan UX saat ini; sesi buk
 
 ## 3. Baseline dan Asumsi Implementasi
 
-Repository saat ini mencakup Flutter app, perekaman sesi lokal, impor/ekspor GPX/JSON, ringkasan, sinkronisasi ringkasan dengan consent, custom login email, pemulihan sesi melalui login biometrik, fitur logistik, feedback, AI chat, gamifikasi rider (level/XP/gaya), tim, leaderboard, dan ledger hash. Mini-game tantangan strategi **tidak** termasuk (lihat SP-16). Keberadaan kode/UI bukan bukti integrasi provider, akurasi data, atau perilaku background sudah lulus pada semua environment.
+Repository saat ini mencakup Flutter app, perekaman sesi lokal, impor/ekspor GPX/JSON, ringkasan, sinkronisasi ringkasan dengan consent, custom login email, pemulihan sesi melalui login biometrik, fitur logistik, feedback, AI chat, gamifikasi rider (level/XP/gaya dan kustomisasi tampilan lokal), tim, leaderboard, dan ledger hash. Mini-game tantangan strategi **tidak** termasuk (lihat SP-16). Keberadaan kode/UI bukan bukti integrasi provider, akurasi data, atau perilaku background sudah lulus pada semua environment.
 
 Status yang perlu diverifikasi lagi sebelum planning:
 
@@ -66,8 +66,9 @@ Status yang perlu diverifikasi lagi sebelum planning:
 - Progres aktivitas lokal sekarang menghitung frekuensi, jarak, dan durasi aktif untuk minggu/bulan berjalan, membandingkan periode kalender sebelumnya, dan menautkan agregat ke sesi selesai sumber. Target sesi/jarak/durasi mingguan/bulanan disimpan lokal. Elevasi agregat, metrik progres tambahan, serta validasi lengkap zona waktu/perangkat belum selesai.
 - Sesi lokal kini memiliki judul, jenis, sumber pencatatan, migrasi Drift versi 8, edit metadata, ekspor arsip JSON seluruh sesi selesai beserta GPS, dan penghapusan sesi lokal. Ini bukan ekspor/penghapusan seluruh akun: profil, rute, preferensi, dan salinan cloud belum dicakup oleh lifecycle penuh.
 - Feed aktivitas lokal, peta Beranda/Jelajah, dan layar gamifikasi rider (level/XP/gaya) telah memiliki UI. Workout interval lokal kini mendukung target waktu/jarak, cue yang dapat dimatikan, jeda, dan pemulihan sesi; pengujian layar mati/perangkat masih belum dilakukan. Hal tersebut tidak membuktikan kualitas produksi, akurasi ride capture background, integrasi push, AI analitik, atau proof blockchain.
+- Karakter rider kini dapat memilih warna jersey dan aksesori; pilihannya tersimpan lokal dan dipakai di layar rider, Beranda, serta Profil. Appearance belum disinkronkan ke cloud atau ditampilkan pada karakter anggota tim lain.
 - **Mini-game strategi reaksi (FR-11 lama) tidak ada lagi di aplikasi.** Migrasi Drift versi 8 menghapus tabel hasil game, dan tidak ada route/layar game di `app_router.dart`. Bila gamifikasi reaksi tetap diinginkan, ia harus direncanakan ulang sebagai PBI baru (lihat catatan di backlog), bukan diklaim sudah tersedia.
-- Recovery yang ada mengubah sesi `recording` tersimpan menjadi `paused` saat startup; itu tidak membuktikan rekaman saat layar mati, force-stop, atau proses OS dihentikan. Background service dan validasi perangkat belum tersedia.
+- Ride capture memakai konfigurasi lokasi background Geolocator (notifikasi foreground service di Android, background location mode di iOS) dan UI membedakan izin foreground dari “Sepanjang waktu”. Recovery mengubah sesi `recording` tersimpan menjadi `paused` saat startup. Ini bukan bukti keandalan saat layar mati, force-stop, atau proses OS dihentikan; uji device, baterai, interupsi, dan revokasi izin masih terbuka.
 - Build distribusi, perangkat sasaran, pemantauan, pemulihan, serta dukungan rilis perlu memiliki bukti yang dapat diulang.
 
 Perbarui baseline ini hanya berdasarkan demonstrasi, konfigurasi yang aman, hasil tes, dan bukti deployment. Jangan menandai item selesai hanya karena UI, dependency, mock, atau fungsi lokal tersedia.

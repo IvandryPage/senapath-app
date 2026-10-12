@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
+import 'package:senapath/features/gamification/data/rider_profile_repository.dart';
 import 'package:senapath/features/gamification/domain/rider_progress.dart';
 import 'package:senapath/features/ledger/data/ride_ledger_repository.dart';
 import 'package:senapath/features/notifications/data/notification_settings_repository.dart';
@@ -44,6 +45,18 @@ void main() {
     expect(imported.checkpoints, hasLength(1));
     expect(imported.checkpoints.single.name, 'Pos Air');
     expect(imported.locations.first.recordedAt.year, 2000);
+  });
+
+  test('rider appearance is persisted locally', () async {
+    final repository = RiderProfileRepository(database);
+    const appearance = RiderAppearance(
+      kitColor: RiderKitColor.violet,
+      accessory: RiderAccessory.glasses,
+    );
+
+    await repository.saveAppearance(appearance);
+
+    expect(await repository.loadAppearance(), appearance);
   });
 
   test(

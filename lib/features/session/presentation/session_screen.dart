@@ -784,6 +784,28 @@ class _SessionScreenState extends State<SessionScreen>
           label: locationLabel,
           isReady: readiness.locationPermissionGranted,
         ),
+        if (readiness.locationPermissionGranted) ...[
+          _ReadinessLine(
+            label: readiness.backgroundLocationGranted
+                ? 'Lokasi latar belakang diizinkan'
+                : 'Layar terkunci: perekaman latar belakang belum diizinkan',
+            isReady: readiness.backgroundLocationGranted,
+            isWarning: !readiness.backgroundLocationGranted,
+          ),
+          if (!readiness.backgroundLocationGranted)
+            Padding(
+              padding: const EdgeInsets.only(left: 34, bottom: 8),
+              child: TextButton.icon(
+                onPressed: state.isCheckingReadiness
+                    ? null
+                    : () => context
+                          .read<RideSessionCubit>()
+                          .openLocationSettings(),
+                icon: const Icon(Icons.settings_outlined),
+                label: const Text('Periksa izin di pengaturan aplikasi'),
+              ),
+            ),
+        ],
         if (readiness.gpsMessage case final message?)
           Padding(
             padding: const EdgeInsets.only(left: 34, bottom: 8),
@@ -884,6 +906,15 @@ class _SessionScreenState extends State<SessionScreen>
             'akurasi bergantung pada GPS dan sensor yang tersedia.',
             style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: Theme.of(context).colorScheme.tertiary),
+          ),
+        ],
+        if (readiness.locationPermissionGranted) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Rekaman layar terkunci bergantung pada izin latar belakang, '
+            'pengaturan baterai, versi OS, dan kebijakan perangkat. '
+            'Uji perangkat diperlukan untuk memastikan keandalannya.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
         const SizedBox(height: 8),

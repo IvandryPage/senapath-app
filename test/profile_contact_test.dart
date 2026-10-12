@@ -283,6 +283,7 @@ class _TestReadinessChecker implements ReadinessChecker {
     bool checkGpsFix = false,
   }) async => const ReadinessReport(
     locationPermissionGranted: false,
+    backgroundLocationGranted: false,
     locationPermanentlyDenied: false,
     locationServicesEnabled: false,
     gpsFixAvailable: false,

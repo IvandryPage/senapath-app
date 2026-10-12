@@ -9,12 +9,14 @@ import '../domain/rider_progress.dart';
 class RiderGamificationState {
   const RiderGamificationState({
     this.progress,
+    this.appearance = const RiderAppearance(),
     this.isLoading = false,
     this.isSaving = false,
     this.error,
   });
 
   final RiderProgress? progress;
+  final RiderAppearance appearance;
   final bool isLoading;
   final bool isSaving;
   final String? error;
@@ -34,8 +36,15 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
       updateSessions(sessions);
       return;
     }
-    emit(RiderGamificationState(progress: state.progress, isLoading: true));
+    emit(
+      RiderGamificationState(
+        progress: state.progress,
+        appearance: state.appearance,
+        isLoading: true,
+      ),
+    );
     var style = RiderStyle.explorer;
+    var appearance = state.appearance;
     String? syncError;
     try {
       style = await _repository.loadStyle();
@@ -55,9 +64,20 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
         return;
       }
     }
+    try {
+      appearance = await _repository.loadAppearance();
+    } catch (_) {
+      syncError = 'Tampilan rider tersimpan tidak dapat dimuat.';
+    }
     final progress = RiderProgress.fromSessions(_sessions, style: style);
     if (!isClosed) {
-      emit(RiderGamificationState(progress: progress, error: syncError));
+      emit(
+        RiderGamificationState(
+          progress: progress,
+          appearance: appearance,
+          error: syncError,
+        ),
+      );
     }
     try {
       await _repository.saveCloudProfile(
@@ -70,6 +90,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
         emit(
           RiderGamificationState(
             progress: progress,
+            appearance: appearance,
             error: 'Progres rider tersimpan lokal; sinkronisasi cloud gagal.',
           ),
         );
@@ -84,6 +105,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     emit(
       RiderGamificationState(
         progress: RiderProgress.fromSessions(sessions, style: progress.style),
+        appearance: state.appearance,
       ),
     );
     final updated = state.progress!;
@@ -97,12 +119,23 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
   Future<void> setStyle(RiderStyle style) async {
     final current = state.progress;
     if (current == null || state.isSaving) return;
-    emit(RiderGamificationState(progress: current, isSaving: true));
+    emit(
+      RiderGamificationState(
+        progress: current,
+        appearance: state.appearance,
+        isSaving: true,
+      ),
+    );
     try {
       await _repository.saveStyle(style);
       final updated = RiderProgress.fromSessions(_sessions, style: style);
       if (!isClosed) {
-        emit(RiderGamificationState(progress: updated));
+        emit(
+          RiderGamificationState(
+            progress: updated,
+            appearance: state.appearance,
+          ),
+        );
       }
       await _repository.saveCloudProfile(
         style: updated.style,
@@ -115,7 +148,36 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
         emit(
           RiderGamificationState(
             progress: updated,
+            appearance: state.appearance,
             error: 'Gaya tersimpan lokal; sinkronisasi ke cloud gagal.',
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> setAppearance(RiderAppearance appearance) async {
+    if (state.progress == null || state.isSaving) return;
+    final progress = state.progress!;
+    emit(
+      RiderGamificationState(
+        progress: progress,
+        appearance: state.appearance,
+        isSaving: true,
+      ),
+    );
+    try {
+      await _repository.saveAppearance(appearance);
+      if (!isClosed) {
+        emit(RiderGamificationState(progress: progress, appearance: appearance));
+      }
+    } catch (_) {
+      if (!isClosed) {
+        emit(
+          RiderGamificationState(
+            progress: progress,
+            appearance: state.appearance,
+            error: 'Tampilan rider tidak dapat disimpan.',
           ),
         );
       }
@@ -134,6 +196,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
         emit(
           RiderGamificationState(
             progress: progress,
+            appearance: state.appearance,
             error: 'Progres rider belum tersinkron ke cloud.',
           ),
         );

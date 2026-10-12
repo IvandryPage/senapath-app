@@ -26,6 +26,80 @@ enum RiderStyle {
   };
 }
 
+enum RiderKitColor {
+  coral(0xFFE66A52, 'Koral'),
+  blue(0xFF3976B8, 'Biru'),
+  green(0xFF3B8C6E, 'Hijau'),
+  violet(0xFF7955A6, 'Ungu');
+
+  const RiderKitColor(this.value, this.label);
+
+  final int value;
+  final String label;
+}
+
+enum RiderAccessory {
+  helmet('Helm', 'sports_motorsports'),
+  glasses('Kacamata', 'visibility'),
+  none('Tanpa aksesori', 'none');
+
+  const RiderAccessory(this.label, this.serializedName);
+
+  final String label;
+  final String serializedName;
+}
+
+class RiderAppearance {
+  const RiderAppearance({
+    this.kitColor = RiderKitColor.coral,
+    this.accessory = RiderAccessory.helmet,
+  });
+
+  final RiderKitColor kitColor;
+  final RiderAccessory accessory;
+
+  RiderAppearance copyWith({
+    RiderKitColor? kitColor,
+    RiderAccessory? accessory,
+  }) => RiderAppearance(
+    kitColor: kitColor ?? this.kitColor,
+    accessory: accessory ?? this.accessory,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is RiderAppearance &&
+      other.kitColor == kitColor &&
+      other.accessory == accessory;
+
+  @override
+  int get hashCode => Object.hash(kitColor, accessory);
+
+  Map<String, Object?> toJson() => {
+    'kitColor': kitColor.name,
+    'accessory': accessory.name,
+  };
+
+  factory RiderAppearance.fromJson(Map<String, dynamic> json) {
+    final kitColorName = json['kitColor'];
+    final accessoryName = json['accessory'];
+    return RiderAppearance(
+      kitColor: RiderKitColor.values.firstWhere(
+        (value) => value.name == kitColorName,
+        orElse: () => throw const FormatException(
+          'Warna karakter rider tersimpan tidak valid.',
+        ),
+      ),
+      accessory: RiderAccessory.values.firstWhere(
+        (value) => value.name == accessoryName,
+        orElse: () => throw const FormatException(
+          'Aksesori karakter rider tersimpan tidak valid.',
+        ),
+      ),
+    );
+  }
+}
+
 class RiderProgress {
   const RiderProgress({
     required this.experience,

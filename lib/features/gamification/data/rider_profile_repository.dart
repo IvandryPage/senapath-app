@@ -14,6 +14,7 @@ class RiderProfileRepository {
   });
 
   static const _styleKey = 'rider_style_v1';
+  static const _appearanceKey = 'rider_appearance_v1';
   final AppDatabase _database;
   final SupabaseClient? _cloudClient;
   final CustomAuthSessionManager? _sessionManager;
@@ -43,6 +44,29 @@ class RiderProfileRepository {
   }
 
   Future<void> saveStyle(RiderStyle style) => _saveLocalStyle(style);
+
+  Future<RiderAppearance> loadAppearance() async {
+    final row = await (_database.select(
+      _database.appPreferences,
+    )..where((item) => item.key.equals(_appearanceKey))).getSingleOrNull();
+    if (row == null) return const RiderAppearance();
+    final decoded = jsonDecode(row.value);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Tampilan karakter rider tersimpan tidak valid.');
+    }
+    return RiderAppearance.fromJson(decoded);
+  }
+
+  Future<void> saveAppearance(RiderAppearance appearance) async {
+    await _database
+        .into(_database.appPreferences)
+        .insertOnConflictUpdate(
+          AppPreferencesCompanion.insert(
+            key: _appearanceKey,
+            value: jsonEncode(appearance.toJson()),
+          ),
+        );
+  }
 
   Future<void> saveCloudProfile({
     required RiderStyle style,

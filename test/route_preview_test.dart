@@ -575,6 +575,7 @@ class _TestReadinessChecker implements ReadinessChecker {
     bool checkGpsFix = false,
   }) async => ReadinessReport(
     locationPermissionGranted: locationPermissionGranted,
+    backgroundLocationGranted: false,
     locationPermanentlyDenied: false,
     locationServicesEnabled: true,
     gpsFixAvailable: false,

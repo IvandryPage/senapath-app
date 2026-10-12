@@ -8,6 +8,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 class ReadinessReport {
   const ReadinessReport({
     required this.locationPermissionGranted,
+    required this.backgroundLocationGranted,
     required this.locationPermanentlyDenied,
     required this.locationServicesEnabled,
     required this.gpsFixAvailable,
@@ -21,6 +22,7 @@ class ReadinessReport {
   });
 
   final bool locationPermissionGranted;
+  final bool backgroundLocationGranted;
   final bool locationPermanentlyDenied;
   final bool locationServicesEnabled;
   final bool gpsFixAvailable;
@@ -124,6 +126,7 @@ class DeviceReadinessChecker implements ReadinessChecker {
 
     return ReadinessReport(
       locationPermissionGranted: locationPermissionGranted,
+      backgroundLocationGranted: permission == LocationPermission.always,
       locationPermanentlyDenied: locationPermanentlyDenied,
       locationServicesEnabled: locationServicesEnabled,
       gpsFixAvailable: position != null,

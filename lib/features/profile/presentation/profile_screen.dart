@@ -15,6 +15,7 @@ import '../../../core/units/unit_system.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../gamification/presentation/rider_gamification_cubit.dart';
+import '../../gamification/presentation/rider_avatar.dart';
 import '../../progress/domain/activity_progress.dart';
 import '../../progress/presentation/activity_goals_cubit.dart';
 import '../domain/user_profile.dart';
@@ -162,11 +163,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (context, riderState) {
                       final rider = riderState.progress;
                       if (rider == null) return const SizedBox.shrink();
-                      return Text(
-                        'Level ${rider.level} · ${rider.style.label}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            RiderAvatar(
+                              style: rider.style,
+                              appearance: riderState.appearance,
+                              size: 32,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Level ${rider.level} · ${rider.style.label}',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
