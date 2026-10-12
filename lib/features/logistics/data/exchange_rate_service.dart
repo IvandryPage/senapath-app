@@ -60,7 +60,10 @@ class FrankfurterExchangeRateService implements ExchangeRateProvider {
 
   static final _uri = Uri.https('api.frankfurter.dev', '/v2/rates', {
     'base': 'EUR',
-    'quotes': 'IDR,USD,CHF',
+    'quotes': BudgetCurrency.values
+        .where((currency) => currency != BudgetCurrency.eur)
+        .map((currency) => currency.code)
+        .join(','),
   });
 
   final http.Client? _client;

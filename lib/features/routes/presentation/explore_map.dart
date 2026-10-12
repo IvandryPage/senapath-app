@@ -20,6 +20,7 @@ class ExploreMap extends StatefulWidget {
     this.movementBearingDegrees,
     this.northUpLocked = false,
     this.onToggleNorthUp,
+    this.onCheckpointTap,
     this.height = 280,
     this.borderRadius = 0,
     this.showLocationButton = true,
@@ -34,6 +35,8 @@ class ExploreMap extends StatefulWidget {
   final double? movementBearingDegrees;
   final bool northUpLocked;
   final VoidCallback? onToggleNorthUp;
+  final void Function(RouteRecord route, RouteCheckpoint checkpoint)?
+  onCheckpointTap;
   final double height;
   final double borderRadius;
   final bool showLocationButton;
@@ -201,10 +204,19 @@ class _ExploreMapState extends State<ExploreMap> {
                             height: 46,
                             child: Tooltip(
                               message: checkpoint.name,
-                              child: const Icon(
-                                Icons.flag_circle,
-                                color: SenapathColors.navy,
-                                size: 34,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: widget.onCheckpointTap == null
+                                    ? null
+                                    : () => widget.onCheckpointTap!(
+                                        route,
+                                        checkpoint,
+                                      ),
+                                child: const Icon(
+                                  Icons.flag_circle,
+                                  color: SenapathColors.navy,
+                                  size: 34,
+                                ),
                               ),
                             ),
                           ),

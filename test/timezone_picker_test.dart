@@ -31,11 +31,11 @@ void main() {
 
     final scrollable = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
-      find.text('Zona waktu sumber'),
+      find.text('Zona waktu dasar / acara'),
       250,
       scrollable: scrollable,
     );
-    await tester.tap(find.text('Zona waktu sumber'));
+    await tester.tap(find.text('Zona waktu dasar / acara'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'New York');
     await tester.pumpAndSettle();

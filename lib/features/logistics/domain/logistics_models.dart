@@ -2,11 +2,42 @@ enum BudgetCurrency {
   eur('EUR'),
   idr('IDR'),
   usd('USD'),
-  chf('CHF');
+  chf('CHF'),
+  myr('MYR'),
+  aud('AUD'),
+  brl('BRL'),
+  cad('CAD'),
+  cny('CNY'),
+  czk('CZK'),
+  dkk('DKK'),
+  gbp('GBP'),
+  hkd('HKD'),
+  huf('HUF'),
+  ils('ILS'),
+  inr('INR'),
+  isk('ISK'),
+  jpy('JPY'),
+  krw('KRW'),
+  mxn('MXN'),
+  nok('NOK'),
+  nzd('NZD'),
+  php('PHP'),
+  pln('PLN'),
+  ron('RON'),
+  sek('SEK'),
+  sgd('SGD'),
+  thb('THB'),
+  tryCurrency('TRY'),
+  zar('ZAR');
 
   const BudgetCurrency(this.code);
 
   final String code;
+
+  int get decimalDigits => switch (this) {
+    idr || huf || isk || jpy || krw => 0,
+    _ => 2,
+  };
 
   static BudgetCurrency? fromCode(String? code) {
     for (final currency in values) {
@@ -51,44 +82,161 @@ class BudgetItem {
   }
 }
 
+class BudgetExpense {
+  const BudgetExpense({
+    required this.id,
+    required this.budgetItemId,
+    required this.amount,
+    required this.currency,
+    required this.spentAt,
+    this.note = '',
+  });
+
+  final String id;
+  final String budgetItemId;
+  final double amount;
+  final BudgetCurrency currency;
+  final DateTime spentAt;
+  final String note;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'budgetItemId': budgetItemId,
+    'amount': amount,
+    'currency': currency.code,
+    'spentAt': spentAt.toIso8601String(),
+    'note': note,
+  };
+
+  factory BudgetExpense.fromJson(Map<String, Object?> json) {
+    final currency = BudgetCurrency.fromCode(json['currency'] as String?);
+    final amount = (json['amount'] as num?)?.toDouble();
+    final spentAt = DateTime.tryParse(json['spentAt'] as String? ?? '');
+    final id = json['id'];
+    final budgetItemId = json['budgetItemId'];
+    final note = json['note'];
+    if (currency == null ||
+        amount == null ||
+        !amount.isFinite ||
+        amount <= 0 ||
+        spentAt == null ||
+        id is! String ||
+        id.trim().isEmpty ||
+        budgetItemId is! String ||
+        budgetItemId.trim().isEmpty ||
+        (note != null && note is! String)) {
+      throw const FormatException('Invalid budget expense.');
+    }
+    return BudgetExpense(
+      id: id,
+      budgetItemId: budgetItemId,
+      amount: amount,
+      currency: currency,
+      spentAt: spentAt,
+      note: note as String? ?? '',
+    );
+  }
+}
+
+class ResupplyPriceEstimate {
+  const ResupplyPriceEstimate({
+    required this.itemId,
+    required this.low,
+    required this.high,
+    required this.currency,
+  });
+
+  final String itemId;
+  final double low;
+  final double high;
+  final BudgetCurrency currency;
+}
+
+class CustomResupplyItem {
+  const CustomResupplyItem({required this.id, required this.name});
+
+  final String id;
+  final String name;
+
+  Map<String, Object?> toJson() => {'id': id, 'name': name};
+
+  factory CustomResupplyItem.fromJson(Map<String, Object?> json) {
+    final id = json['id'];
+    final name = json['name'];
+    if (id is! String ||
+        id.trim().isEmpty ||
+        name is! String ||
+        name.trim().isEmpty ||
+        name.trim().length > 60) {
+      throw const FormatException('Invalid custom resupply item.');
+    }
+    return CustomResupplyItem(id: id, name: name.trim());
+  }
+}
+
 class LogisticsData {
   const LogisticsData({
     this.items = const [],
+    this.expenses = const [],
+    this.customResupplyItems = const [],
     this.eurRates = const {BudgetCurrency.eur: 1},
     this.rateUpdatedAt,
     this.rateSource = 'Manual',
     this.targetCurrency = BudgetCurrency.eur,
+    this.baseCurrency = BudgetCurrency.idr,
+    this.baseTimeZoneIanaName = 'Asia/Jakarta',
   });
 
   final List<BudgetItem> items;
+  final List<BudgetExpense> expenses;
+  final List<CustomResupplyItem> customResupplyItems;
 
   /// Rates express how many units of a currency equal one EUR.
   final Map<BudgetCurrency, double> eurRates;
   final DateTime? rateUpdatedAt;
   final String rateSource;
   final BudgetCurrency targetCurrency;
+  final BudgetCurrency baseCurrency;
+  final String baseTimeZoneIanaName;
 
   Map<String, Object?> toJson() => {
     'items': items.map((item) => item.toJson()).toList(),
+    'expenses': expenses.map((expense) => expense.toJson()).toList(),
+    'customResupplyItems': customResupplyItems
+        .map((item) => item.toJson())
+        .toList(),
     'eurRates': {
       for (final entry in eurRates.entries) entry.key.code: entry.value,
     },
     'rateUpdatedAt': rateUpdatedAt?.toUtc().toIso8601String(),
     'rateSource': rateSource,
     'targetCurrency': targetCurrency.code,
+    'baseCurrency': baseCurrency.code,
+    'baseTimeZoneIanaName': baseTimeZoneIanaName,
   };
 
   factory LogisticsData.fromJson(Map<String, Object?> json) {
     final rawItems = json['items'];
+    final rawExpenses = json['expenses'] ?? const <Object?>[];
+    final rawCustomResupplyItems =
+        json['customResupplyItems'] ?? const <Object?>[];
     final rawRates = json['eurRates'];
     final rawTarget = json['targetCurrency'] as String?;
+    final rawBaseCurrency = json['baseCurrency'] as String?;
+    final rawBaseTimeZone = json['baseTimeZoneIanaName'] as String?;
     final rawRateSource = json['rateSource'];
     final target = BudgetCurrency.fromCode(rawTarget);
+    final baseCurrency =
+        rawBaseCurrency == null ? BudgetCurrency.idr : BudgetCurrency.fromCode(rawBaseCurrency);
     final rates = <BudgetCurrency, double>{BudgetCurrency.eur: 1};
 
     if (rawItems is! List ||
+    rawExpenses is! List ||
+    rawCustomResupplyItems is! List ||
         rawRates is! Map ||
         target == null ||
+        baseCurrency == null ||
+        (rawBaseTimeZone != null && rawBaseTimeZone.trim().isEmpty) ||
         (rawRateSource != null && rawRateSource is! String)) {
       throw const FormatException('Invalid logistics data.');
     }
@@ -117,10 +265,26 @@ class LogisticsData {
         for (final rawItem in rawItems)
           BudgetItem.fromJson(Map<String, Object?>.from(rawItem as Map)),
       ],
+      expenses: [
+        for (final rawExpense in rawExpenses)
+          if (rawExpense is Map)
+            BudgetExpense.fromJson(Map<String, Object?>.from(rawExpense))
+          else
+            throw const FormatException('Invalid budget expense.'),
+      ],
+      customResupplyItems: [
+        for (final rawItem in rawCustomResupplyItems)
+          if (rawItem is Map)
+            CustomResupplyItem.fromJson(Map<String, Object?>.from(rawItem))
+          else
+            throw const FormatException('Invalid custom resupply item.'),
+      ],
       eurRates: rates,
       rateUpdatedAt: updatedAt,
       rateSource: rawRateSource as String? ?? 'Manual',
       targetCurrency: target,
+      baseCurrency: baseCurrency,
+      baseTimeZoneIanaName: rawBaseTimeZone ?? 'Asia/Jakarta',
     );
   }
 }
@@ -136,10 +300,16 @@ abstract final class BudgetCalculator {
     if (from == to) return amount;
     final fromRate = from == BudgetCurrency.eur ? 1 : eurRates[from];
     final toRate = to == BudgetCurrency.eur ? 1 : eurRates[to];
-    if (fromRate == null || toRate == null || fromRate <= 0 || toRate <= 0) {
+    if (fromRate == null ||
+        toRate == null ||
+        !fromRate.isFinite ||
+        !toRate.isFinite ||
+        fromRate <= 0 ||
+        toRate <= 0) {
       return null;
     }
-    return amount / fromRate * toRate;
+    final converted = amount / fromRate * toRate;
+    return converted.isFinite ? converted : null;
   }
 
   static double? total({
@@ -158,6 +328,25 @@ abstract final class BudgetCalculator {
       if (converted == null) return null;
       sum += converted;
     }
-    return sum;
+    return sum.isFinite ? sum : null;
+  }
+
+  static double? expenseTotal({
+    required Iterable<BudgetExpense> expenses,
+    required BudgetCurrency target,
+    required Map<BudgetCurrency, double> eurRates,
+  }) {
+    var sum = 0.0;
+    for (final expense in expenses) {
+      final converted = convert(
+        amount: expense.amount,
+        from: expense.currency,
+        to: target,
+        eurRates: eurRates,
+      );
+      if (converted == null) return null;
+      sum += converted;
+    }
+    return sum.isFinite ? sum : null;
   }
 }

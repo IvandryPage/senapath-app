@@ -86,6 +86,10 @@ Future<void> main() async {
   final intervalWorkoutRepository = IntervalWorkoutRepository(database);
   final intervalWorkoutCubit = IntervalWorkoutCubit(intervalWorkoutRepository);
   unawaited(intervalWorkoutCubit.load());
+  final aiChatGateway = SupabaseAiChatGateway(
+    supabaseClient,
+    authSessionManager,
+  );
   final rideLedgerRepository = RideLedgerRepository(database);
   final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
@@ -115,10 +119,11 @@ Future<void> main() async {
         const RouteFileExchange(SessionFileService()),
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
-      logisticsCubit: LogisticsCubit(LogisticsRepository(database)),
-      aiChatCubit: AiChatCubit(
-        SupabaseAiChatGateway(supabaseClient, authSessionManager),
+      logisticsCubit: LogisticsCubit(
+        LogisticsRepository(database),
+        aiChatGateway: aiChatGateway,
       ),
+      aiChatCubit: AiChatCubit(aiChatGateway),
       leaderboardCubit: LeaderboardCubit(
         SupabaseLeaderboardGateway(supabaseClient, authSessionManager),
       ),

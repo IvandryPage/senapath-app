@@ -12,6 +12,8 @@ import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/feature_state_view.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
+import '../../logistics/presentation/logistics_cubit.dart';
+import '../../logistics/presentation/resupply_cache_sheet.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../domain/gps_movement_bearing.dart';
 import '../domain/saved_route.dart';
@@ -121,6 +123,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           northUpLocked: _northUpLocked,
                           onToggleNorthUp: () =>
                               setState(() => _northUpLocked = !_northUpLocked),
+                          onCheckpointTap: _showResupplyCache,
                           showEmptyMessage: false,
                         ),
                         if (hasActiveSession && session != null)
@@ -232,6 +235,17 @@ class _RoutesScreenState extends State<RoutesScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => const _GpxRoutePicker(),
+    );
+  }
+
+  void _showResupplyCache(RouteRecord route, RouteCheckpoint checkpoint) {
+    unawaited(context.read<LogisticsCubit>().load());
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) =>
+          ResupplyCacheSheet(routeName: route.name, checkpoint: checkpoint),
     );
   }
 

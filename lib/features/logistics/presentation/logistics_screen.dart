@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/senapath_design.dart';
@@ -20,7 +21,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   final _timeConverter = EventTimeConverter();
   final _eurAmountController = TextEditingController(text: '1');
   DateTime _eventTime = DateTime.now();
-  EventTimeZone _sourceZone = EventTimeZone.centralEurope;
+  EventTimeZone _sourceZone = EventTimeZone.wib;
   List<EventTimeZone> _destinationZones = [...EventTimeZone.destinations];
   int? _selectedOccurrence;
   bool _requestedLoad = false;
@@ -36,7 +37,17 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     super.didChangeDependencies();
     if (_requestedLoad) return;
     _requestedLoad = true;
-    unawaited(context.read<LogisticsCubit>().load());
+    unawaited(_loadLogistics());
+  }
+
+  Future<void> _loadLogistics() async {
+    final cubit = context.read<LogisticsCubit>();
+    await cubit.load();
+    if (!mounted) return;
+    final savedZone = EventTimeZone.fromIanaName(
+      cubit.state.data.baseTimeZoneIanaName,
+    );
+    if (savedZone != null) setState(() => _sourceZone = savedZone);
   }
 
   @override
@@ -75,12 +86,28 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             child: Column(
               children: [
-                // Budget section first — keeps 'Tambah item anggaran' near the top
+                _buildResupplyIntro(context),
+                const SizedBox(height: 14),
                 _buildBudgetSection(context, state),
                 const SizedBox(height: 18),
-                _buildCurrencySection(context, state),
-                const SizedBox(height: 20),
-                _buildTimeSection(context),
+                ExpansionTile(
+                  leading: const Icon(Icons.currency_exchange),
+                  title: const Text('Kurs & konversi mata uang'),
+                  subtitle: const Text('Alat bantu tambahan'),
+                  children: [_buildCurrencySection(context, state)],
+                ),
+                const SizedBox(height: 8),
+                ExpansionTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Waktu acara'),
+                  subtitle: const Text('Konversi manual antar zona waktu'),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildTimeSection(context),
+                    ),
+                  ],
+                ),
               ],
             ),
           );
@@ -88,6 +115,39 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       ),
     );
   }
+
+  Widget _buildResupplyIntro(BuildContext context) => SenapathCard(
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.local_gas_station_outlined,
+            color: Theme.of(context).colorScheme.primary,
+            size: 28,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Pit stop & resupply',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pilih rute GPX di Jelajah, lalu ketuk checkpoint pada peta untuk '
+            'melihat estimasi air, snack, kopi, dan ban dalam.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 14),
+          FilledButton.tonalIcon(
+            onPressed: () => context.go('/routes'),
+            icon: const Icon(Icons.map_outlined),
+            label: const Text('Buka Jelajah'),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _buildCurrencySection(BuildContext context, LogisticsState state) {
     final data = state.data;
@@ -110,7 +170,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Masukkan EUR untuk melihat nilai dalam IDR, USD, dan CHF.',
+                        'Pilih mata uang dasar untuk konversi dan estimasi.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -148,7 +208,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
               const LinearProgressIndicator(),
             ],
             const SizedBox(height: 12),
-            _buildEurConverter(context, data),
+            _buildBaseCurrencyConverter(context, data, state),
             if (state.isSaving)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
@@ -162,99 +222,163 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
 
   Widget _buildBudgetSection(BuildContext context, LogisticsState state) {
     final data = state.data;
-    final total = BudgetCalculator.total(
+    final allocated = BudgetCalculator.total(
       items: data.items,
-      target: data.targetCurrency,
+      target: data.baseCurrency,
       eurRates: data.eurRates,
     );
+    final spent = BudgetCalculator.expenseTotal(
+      expenses: data.expenses,
+      target: data.baseCurrency,
+      eurRates: data.eurRates,
+    );
+    final remaining = allocated == null || spent == null
+        ? null
+        : allocated - spent;
 
     return SenapathCard(
       child: ExpansionTile(
         leading: const Icon(Icons.receipt_long_outlined),
         title: const Text('Anggaran'),
-        initiallyExpanded: true,
+        initiallyExpanded: false,
         subtitle: Text(
-          total == null
-              ? 'Tambahkan biaya perjalanan dan pilih mata uang total.'
-              : 'Total saat ini ${_formatMoney(total, data.targetCurrency)}',
-        ),
-        trailing: Tooltip(
-          message: 'Tambah item anggaran',
-          child: IconButton(
-            onPressed: state.isSaving ? null : () => _editItem(context),
-            icon: const Icon(Icons.add),
-          ),
+          allocated == 0
+              ? 'Buat rencana dan catat pengeluaran perjalanan.'
+              : remaining == null
+              ? 'Atur kurs untuk melihat sisa dalam ${data.baseCurrency.code}.'
+              : 'Sisa ${_formatMoney(remaining, data.baseCurrency)} · '
+                    'Terpakai ${_formatMoney(spent!, data.baseCurrency)}',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
-          DropdownButtonFormField<BudgetCurrency>(
-            initialValue: data.targetCurrency,
-            decoration: const InputDecoration(labelText: 'Total dalam'),
-            items: [
-              for (final currency in BudgetCurrency.values)
-                DropdownMenuItem(value: currency, child: Text(currency.code)),
-            ],
-            onChanged: state.isSaving
-                ? null
-                : (currency) {
-                    if (currency != null) {
-                      context.read<LogisticsCubit>().setTargetCurrency(
-                        currency,
-                      );
-                    }
-                  },
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: state.isSaving ? null : () => _editItem(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Tambah item anggaran'),
+            ),
           ),
-          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Ringkasan menggunakan mata uang dasar ${data.baseCurrency.code}. '
+              'Atur mata uang dasar di bagian Kurs & konversi mata uang. '
+              'Nilai setara mengikuti kurs tersimpan.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (data.items.isNotEmpty) ...[
+            _buildBudgetSummaryRow(
+              context,
+              'Total direncanakan',
+              allocated,
+              data.baseCurrency,
+            ),
+            _buildBudgetSummaryRow(
+              context,
+              'Total terpakai',
+              spent,
+              data.baseCurrency,
+            ),
+            _buildBudgetSummaryRow(
+              context,
+              remaining != null && remaining < 0
+                  ? 'Melebihi anggaran'
+                  : 'Sisa anggaran',
+              remaining != null && remaining < 0 ? -remaining : remaining,
+              data.baseCurrency,
+              isEmphasized: true,
+            ),
+            const Divider(height: 20),
+          ],
           if (data.items.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('Belum ada item anggaran.'),
+              child: Text(
+                'Belum ada kategori. Buat kategori seperti makan, transportasi, '
+                'akomodasi, atau perlengkapan.',
+              ),
             )
           else
             for (final item in data.items)
               _buildBudgetItem(context, item, state),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Total',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              Text(
-                total == null
-                    ? 'Kurs belum lengkap'
-                    : _formatMoney(total, data.targetCurrency),
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
           if (state.isSaving) const LinearProgressIndicator(),
         ],
       ),
     );
   }
 
-  Widget _buildEurConverter(BuildContext context, LogisticsData data) {
+  Widget _buildBudgetSummaryRow(
+    BuildContext context,
+    String label,
+    double? amount,
+    BudgetCurrency currency, {
+    bool isEmphasized = false,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: isEmphasized ? Theme.of(context).textTheme.titleSmall : null,
+          ),
+        ),
+        Text(
+          amount == null
+              ? 'Kurs belum lengkap'
+              : _formatMoney(amount, currency),
+          style: isEmphasized
+              ? Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700)
+              : null,
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildBaseCurrencyConverter(
+    BuildContext context,
+    LogisticsData data,
+    LogisticsState state,
+  ) {
     final amount = _parseAmount(_eurAmountController.text);
+    final destinationCurrencies = BudgetCurrency.values
+        .where((currency) => currency != data.baseCurrency)
+        .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Dari', style: Theme.of(context).textTheme.labelLarge),
+        DropdownButtonFormField<BudgetCurrency>(
+          key: const Key('logistics-base-currency'),
+          initialValue: data.baseCurrency,
+          decoration: const InputDecoration(labelText: 'Mata uang dasar'),
+          items: [
+            for (final currency in BudgetCurrency.values)
+              DropdownMenuItem(value: currency, child: Text(currency.code)),
+          ],
+          onChanged: state.isSaving
+              ? null
+              : (currency) {
+                  if (currency != null) {
+                    context.read<LogisticsCubit>().setBaseCurrency(currency);
+                  }
+                },
+        ),
         const SizedBox(height: 6),
         TextField(
           key: const Key('eur-converter-amount'),
           controller: _eurAmountController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Nominal dalam EUR',
+          decoration: InputDecoration(
+            labelText: 'Nominal',
             prefixIcon: Padding(
-              padding: EdgeInsets.all(14),
-              child: Text('EUR'),
+              padding: const EdgeInsets.all(14),
+              child: Text(data.baseCurrency.code),
             ),
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
           ),
           onChanged: (_) => setState(() {}),
         ),
@@ -262,38 +386,45 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         Text('Hasil konversi', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
         if (amount == null || amount < 0)
-          const Text('Masukkan nominal EUR yang valid untuk melihat hasil.')
+          const Text('Masukkan nominal yang valid untuk melihat hasil.')
         else
-          Row(
-            children: [
-              for (final currency in [
-                BudgetCurrency.idr,
-                BudgetCurrency.usd,
-                BudgetCurrency.chf,
-              ])
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: _ConversionResult(
-                      currency: currency,
-                      result: _formatEurConversion(amount, currency, data),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final currency in destinationCurrencies)
+                    SizedBox(
+                      width: width,
+                      child: _ConversionResult(
+                        currency: currency,
+                        result: _formatBaseConversion(
+                          amount,
+                          data.baseCurrency,
+                          currency,
+                          data,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              );
+            },
           ),
       ],
     );
   }
 
-  String _formatEurConversion(
+  String _formatBaseConversion(
     double amount,
+    BudgetCurrency baseCurrency,
     BudgetCurrency currency,
     LogisticsData data,
   ) {
     final converted = BudgetCalculator.convert(
       amount: amount,
-      from: BudgetCurrency.eur,
+      from: baseCurrency,
       to: currency,
       eurRates: data.eurRates,
     );
@@ -305,25 +436,154 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     BuildContext context,
     BudgetItem item,
     LogisticsState state,
-  ) => SenapathCard(
-    child: ListTile(
-      title: Text(item.name),
-      subtitle: Text(_formatMoney(item.amount, item.currency)),
-      trailing: Wrap(
-        spacing: 0,
+  ) {
+    final data = state.data;
+    final expenses =
+        data.expenses
+            .where((expense) => expense.budgetItemId == item.id)
+            .toList()
+          ..sort((left, right) => right.spentAt.compareTo(left.spentAt));
+    final planned = BudgetCalculator.convert(
+      amount: item.amount,
+      from: item.currency,
+      to: data.baseCurrency,
+      eurRates: data.eurRates,
+    );
+    final spent = BudgetCalculator.expenseTotal(
+      expenses: expenses,
+      target: data.baseCurrency,
+      eurRates: data.eurRates,
+    );
+    final remaining = planned == null || spent == null ? null : planned - spent;
+    final progress = planned == null || spent == null || planned <= 0
+        ? null
+        : (spent / planned).clamp(0.0, 1.0);
+
+    return SenapathCard(
+      child: ExpansionTile(
+        leading: const Icon(Icons.account_balance_wallet_outlined),
+        title: Text(item.name),
+        subtitle: Text(
+          '${_formatMoney(item.amount, item.currency)} direncanakan'
+          '${remaining == null || spent == null
+              ? ''
+              : remaining < 0
+              ? '\nMelebihi ${_formatMoney(-remaining, data.baseCurrency)} · '
+                    'terpakai ${_formatMoney(spent, data.baseCurrency)}'
+              : '\nSisa ${_formatMoney(remaining, data.baseCurrency)} · '
+                    'terpakai ${_formatMoney(spent, data.baseCurrency)}'}',
+        ),
+        trailing: Wrap(
+          spacing: 0,
+          children: [
+            IconButton(
+              tooltip: 'Edit ${item.name}',
+              onPressed: state.isSaving ? null : () => _editItem(context, item),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Hapus ${item.name}',
+              onPressed: state.isSaving
+                  ? null
+                  : () => _removeItem(context, item),
+              icon: const Icon(Icons.delete_outline),
+            ),
+            const Icon(Icons.expand_more),
+          ],
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         children: [
-          IconButton(
-            tooltip: 'Edit ${item.name}',
-            onPressed: state.isSaving ? null : () => _editItem(context, item),
-            icon: const Icon(Icons.edit_outlined),
+          if (planned == null || spent == null || remaining == null)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Kurs kategori atau pengeluaran belum tersedia. '
+                'Perbarui kurs untuk menghitung sisa.',
+              ),
+            )
+          else ...[
+            LinearProgressIndicator(
+              value: progress,
+              color: remaining < 0 ? Theme.of(context).colorScheme.error : null,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                remaining < 0
+                    ? 'Melebihi batas sebesar '
+                          '${_formatMoney(-remaining, data.baseCurrency)}'
+                    : 'Sisa ${_formatMoney(remaining, data.baseCurrency)}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: remaining < 0
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: state.isSaving
+                  ? null
+                  : () => _editExpense(context, item),
+              icon: const Icon(Icons.add),
+              label: const Text('Catat pengeluaran'),
+            ),
           ),
-          IconButton(
-            tooltip: 'Hapus ${item.name}',
-            onPressed: state.isSaving ? null : () => _removeItem(context, item),
-            icon: const Icon(Icons.delete_outline),
-          ),
+          if (expenses.isEmpty)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text('Belum ada pengeluaran yang dicatat.'),
+              ),
+            )
+          else
+            for (final expense in expenses)
+              _buildExpenseRow(context, item, expense, state),
         ],
       ),
+    );
+  }
+
+  Widget _buildExpenseRow(
+    BuildContext context,
+    BudgetItem item,
+    BudgetExpense expense,
+    LogisticsState state,
+  ) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: const Icon(Icons.receipt_outlined),
+    title: Text(
+      expense.note.trim().isEmpty ? 'Pengeluaran' : expense.note,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    subtitle: Text(
+      '${DateFormat('dd/MM/yyyy').format(expense.spentAt.toLocal())} · '
+      '${_formatMoney(expense.amount, expense.currency)}',
+    ),
+    trailing: Wrap(
+      spacing: 0,
+      children: [
+        IconButton(
+          tooltip: 'Edit pengeluaran',
+          onPressed: state.isSaving
+              ? null
+              : () => _editExpense(context, item, expense),
+          icon: const Icon(Icons.edit_outlined),
+        ),
+        IconButton(
+          tooltip: 'Hapus pengeluaran',
+          onPressed: state.isSaving
+              ? null
+              : () => _removeExpense(context, expense),
+          icon: const Icon(Icons.delete_outline),
+        ),
+      ],
     ),
   );
 
@@ -345,16 +605,18 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         const SizedBox(height: 12),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Zona waktu sumber'),
+          title: const Text('Zona waktu dasar / acara'),
           subtitle: Text('${_sourceZone.label} · ${_sourceZone.ianaName}'),
           trailing: const Icon(Icons.search),
           onTap: () async {
+            final logisticsCubit = context.read<LogisticsCubit>();
             final zone = await _pickTimeZone();
             if (zone == null || !mounted) return;
             setState(() {
               _sourceZone = zone;
               _selectedOccurrence = null;
             });
+            await logisticsCubit.setBaseTimeZone(zone.ianaName);
           },
         ),
         const SizedBox(height: 8),
@@ -501,10 +763,54 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   Future<void> _editItem(BuildContext context, [BudgetItem? existing]) async {
     final item = await showDialog<BudgetItem>(
       context: context,
-      builder: (_) => _BudgetItemDialog(existing: existing),
+      builder: (_) => _BudgetItemDialog(
+        existing: existing,
+        defaultCurrency: context.read<LogisticsCubit>().state.data.baseCurrency,
+      ),
     );
     if (item != null && context.mounted) {
       await context.read<LogisticsCubit>().upsertItem(item);
+    }
+  }
+
+  Future<void> _editExpense(
+    BuildContext context,
+    BudgetItem item, [
+    BudgetExpense? existing,
+  ]) async {
+    final expense = await showDialog<BudgetExpense>(
+      context: context,
+      builder: (_) =>
+          _BudgetExpenseDialog(budgetItem: item, existing: existing),
+    );
+    if (expense != null && context.mounted) {
+      await context.read<LogisticsCubit>().upsertExpense(expense);
+    }
+  }
+
+  Future<void> _removeExpense(
+    BuildContext context,
+    BudgetExpense expense,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SenapathAlertDialog(
+        title: const Text('Hapus pengeluaran?'),
+        content: const Text('Catatan pengeluaran ini akan dihapus.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<LogisticsCubit>().removeExpense(expense.id);
     }
   }
 
@@ -523,7 +829,9 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Hapus item?'),
-        content: Text('${item.name} akan dihapus dari anggaran.'),
+        content: Text(
+          '${item.name} dan seluruh catatan pengeluarannya akan dihapus.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -544,7 +852,8 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   String _formatMoney(double amount, BudgetCurrency currency) =>
       NumberFormat.currency(
         name: currency.code,
-        decimalDigits: currency == BudgetCurrency.idr ? 0 : 2,
+        symbol: '${currency.code} ',
+        decimalDigits: currency.decimalDigits,
       ).format(amount);
 
   String _formatDate(DateTime date) {
@@ -696,9 +1005,10 @@ class _TimeZonePickerDialogState extends State<_TimeZonePickerDialog> {
 }
 
 class _BudgetItemDialog extends StatefulWidget {
-  const _BudgetItemDialog({this.existing});
+  const _BudgetItemDialog({required this.defaultCurrency, this.existing});
 
   final BudgetItem? existing;
+  final BudgetCurrency defaultCurrency;
 
   @override
   State<_BudgetItemDialog> createState() => _BudgetItemDialogState();
@@ -719,7 +1029,7 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
           ? ''
           : _decimalText(widget.existing!.amount),
     );
-    _currency = widget.existing?.currency ?? BudgetCurrency.eur;
+    _currency = widget.existing?.currency ?? widget.defaultCurrency;
   }
 
   @override
@@ -796,6 +1106,151 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
   );
 }
 
+class _BudgetExpenseDialog extends StatefulWidget {
+  const _BudgetExpenseDialog({required this.budgetItem, this.existing});
+
+  final BudgetItem budgetItem;
+  final BudgetExpense? existing;
+
+  @override
+  State<_BudgetExpenseDialog> createState() => _BudgetExpenseDialogState();
+}
+
+class _BudgetExpenseDialogState extends State<_BudgetExpenseDialog> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _noteController;
+  final _formKey = GlobalKey<FormState>();
+  late BudgetCurrency _currency;
+  late DateTime _spentAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: widget.existing == null
+          ? ''
+          : _decimalText(widget.existing!.amount),
+    );
+    _noteController = TextEditingController(text: widget.existing?.note ?? '');
+    _currency = widget.existing?.currency ?? widget.budgetItem.currency;
+    _spentAt = widget.existing?.spentAt.toLocal() ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _spentAt,
+      firstDate: DateTime(1970),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (selected != null) {
+      setState(() {
+        _spentAt = DateTime(
+          selected.year,
+          selected.month,
+          selected.day,
+          _spentAt.hour,
+          _spentAt.minute,
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SenapathAlertDialog(
+    title: Text(
+      widget.existing == null ? 'Catat pengeluaran' : 'Edit pengeluaran',
+    ),
+    content: Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Nominal yang dibayar',
+              ),
+              validator: (value) {
+                final amount = _parseAmount(value);
+                return amount == null || amount <= 0
+                    ? 'Masukkan nominal lebih dari nol.'
+                    : null;
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<BudgetCurrency>(
+              initialValue: _currency,
+              decoration: const InputDecoration(labelText: 'Mata uang bayar'),
+              items: [
+                for (final currency in BudgetCurrency.values)
+                  DropdownMenuItem(value: currency, child: Text(currency.code)),
+              ],
+              onChanged: (currency) {
+                if (currency != null) setState(() => _currency = currency);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _noteController,
+              decoration: const InputDecoration(
+                labelText: 'Catatan (opsional)',
+                hintText: 'Contoh: makan siang',
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today_outlined),
+                label: Text(DateFormat('dd/MM/yyyy').format(_spentAt)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Batal'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (!_formKey.currentState!.validate()) return;
+          Navigator.pop(
+            context,
+            BudgetExpense(
+              id:
+                  widget.existing?.id ??
+                  DateTime.now().microsecondsSinceEpoch.toString(),
+              budgetItemId: widget.budgetItem.id,
+              amount: _parseAmount(_amountController.text)!,
+              currency: _currency,
+              spentAt: _spentAt,
+              note: _noteController.text.trim(),
+            ),
+          );
+        },
+        child: const Text('Simpan'),
+      ),
+    ],
+  );
+}
+
 class _ExchangeRatesDialog extends StatefulWidget {
   const _ExchangeRatesDialog({required this.data});
 
@@ -840,7 +1295,10 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Masukkan nilai setiap mata uang untuk 1 EUR.'),
+            const Text(
+              'Masukkan nilai mata uang yang ingin diatur untuk 1 EUR. '
+              'Kurs yang dikosongkan tidak akan diubah.',
+            ),
             for (final currency in _controllers.keys) ...[
               const SizedBox(height: 12),
               TextFormField(
@@ -852,6 +1310,7 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
                   labelText: '1 EUR = ... ${currency.code}',
                 ),
                 validator: (value) {
+                  if (value == null || value.trim().isEmpty) return null;
                   final rate = _parseAmount(value);
                   return rate == null || rate <= 0
                       ? 'Masukkan kurs lebih dari nol.'
@@ -875,10 +1334,12 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
       FilledButton(
         onPressed: () {
           if (!_formKey.currentState!.validate()) return;
-          Navigator.pop(context, {
-            for (final currency in _controllers.keys)
-              currency: _parseAmount(_controllers[currency]!.text)!,
-          });
+          final rates = <BudgetCurrency, double>{
+            for (final entry in _controllers.entries)
+              if (entry.value.text.trim().isNotEmpty)
+                entry.key: _parseAmount(entry.value.text)!,
+          };
+          if (rates.isNotEmpty) Navigator.pop(context, rates);
         },
         child: const Text('Simpan kurs'),
       ),

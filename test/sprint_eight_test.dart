@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:senapath/core/storage/app_database.dart';
+import 'package:senapath/features/assistant/data/ai_chat_gateway.dart';
+import 'package:senapath/features/assistant/domain/ai_chat_message.dart';
 import 'package:senapath/features/logistics/data/logistics_repository.dart';
 import 'package:senapath/features/logistics/data/exchange_rate_service.dart';
 import 'package:senapath/features/logistics/domain/event_time_converter.dart';
@@ -20,6 +22,7 @@ void main() {
             BudgetCurrency.idr: 20325,
             BudgetCurrency.usd: 1.1345,
             BudgetCurrency.chf: 0.94635,
+            BudgetCurrency.myr: 4.95,
           },
           asOf: DateTime.utc(2026, 10, 1),
         ),
@@ -37,21 +40,28 @@ void main() {
     await database.close();
   });
 
-  test(
-    'parses the latest Frankfurter rates and uses the oldest quote date',
-    () {
-      final snapshot = ExchangeRateSnapshot.fromJson(
-        '[{"date":"2026-10-01","base":"EUR","quote":"CHF","rate":0.94635},'
-        '{"date":"2026-10-01","base":"EUR","quote":"IDR","rate":20325},'
-        '{"date":"2026-10-02","base":"EUR","quote":"USD","rate":1.1345}]',
-      );
+  test('parses the latest Frankfurter rates and uses the oldest quote date', () {
+    final rows = [
+      for (final currency in BudgetCurrency.values)
+        if (currency != BudgetCurrency.eur)
+          '{"date":"${currency == BudgetCurrency.usd ? '2026-10-02' : '2026-10-01'}",'
+              '"base":"EUR","quote":"${currency.code}",'
+              '"rate":${switch (currency) {
+                BudgetCurrency.idr => 20325,
+                BudgetCurrency.usd => 1.1345,
+                BudgetCurrency.chf => 0.94635,
+                BudgetCurrency.myr => 4.95,
+                _ => 1.5,
+              }}}',
+    ].join(',');
+    final snapshot = ExchangeRateSnapshot.fromJson('[$rows]');
 
-      expect(snapshot.rates[BudgetCurrency.idr], 20325);
-      expect(snapshot.rates[BudgetCurrency.usd], 1.1345);
-      expect(snapshot.rates[BudgetCurrency.chf], 0.94635);
-      expect(snapshot.asOf, DateTime.utc(2026, 10, 1));
-    },
-  );
+    expect(snapshot.rates[BudgetCurrency.idr], 20325);
+    expect(snapshot.rates[BudgetCurrency.usd], 1.1345);
+    expect(snapshot.rates[BudgetCurrency.chf], 0.94635);
+    expect(snapshot.rates[BudgetCurrency.myr], 4.95);
+    expect(snapshot.asOf, DateTime.utc(2026, 10, 1));
+  });
 
   test('rejects an incomplete Frankfurter response', () {
     expect(
@@ -60,6 +70,60 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('retries a non-JSON AI estimate and accepts fenced JSON', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final gateway = _FakeAiChatGateway([
+      'Air minum biasanya sekitar 2 sampai 4 MYR.',
+      '```json\n{"items":[{"id":"water","low":2,"high":4,'
+          '"currency":"MYR"}]}\n```',
+    ]);
+    final cubit = LogisticsCubit(
+      LogisticsRepository(database),
+      aiChatGateway: gateway,
+    );
+    await cubit.load();
+
+    final estimates = await cubit.estimateResupplyPrices(
+      items: const {'water': 'Air minum 1,5 L'},
+      localCurrency: BudgetCurrency.myr,
+      baseCurrency: BudgetCurrency.idr,
+      areaHint: 'Kuala Lumpur',
+    );
+
+    expect(estimates, hasLength(1));
+    expect(estimates.single.low, 2);
+    expect(estimates.single.high, 4);
+    expect(gateway.callCount, 2);
+    expect(gateway.lastMessages.last.content, contains('JSON valid'));
+
+    await cubit.close();
+    await database.close();
+  });
+
+  test('fails clearly after AI returns invalid structure twice', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final gateway = _FakeAiChatGateway(['Harga 2-4 MYR', 'tetap tidak valid']);
+    final cubit = LogisticsCubit(
+      LogisticsRepository(database),
+      aiChatGateway: gateway,
+    );
+    await cubit.load();
+
+    await expectLater(
+      cubit.estimateResupplyPrices(
+        items: const {'water': 'Air minum 1,5 L'},
+        localCurrency: BudgetCurrency.myr,
+        baseCurrency: BudgetCurrency.idr,
+        areaHint: '',
+      ),
+      throwsFormatException,
+    );
+    expect(gateway.callCount, 2);
+
+    await cubit.close();
+    await database.close();
   });
 
   group('budget conversion', () {
@@ -95,6 +159,15 @@ void main() {
         9.5,
       );
       expect(
+        BudgetCalculator.convert(
+          amount: 2,
+          from: BudgetCurrency.myr,
+          to: BudgetCurrency.idr,
+          eurRates: {...rates, BudgetCurrency.myr: 4.5},
+        ),
+        closeTo(7555.5555, 0.001),
+      );
+      expect(
         BudgetCalculator.total(
           items: items,
           target: BudgetCurrency.eur,
@@ -114,6 +187,49 @@ void main() {
         ),
         isNull,
       );
+    });
+
+    test('totals actual expenses separately from planned allocations', () {
+      const rates = {
+        BudgetCurrency.eur: 1.0,
+        BudgetCurrency.usd: 1.1,
+        BudgetCurrency.idr: 17000.0,
+      };
+      final expenses = [
+        BudgetExpense(
+          id: 'meal-1',
+          budgetItemId: 'food',
+          amount: 22,
+          currency: BudgetCurrency.usd,
+          spentAt: DateTime.utc(2026, 10, 12),
+          note: 'Makan siang',
+        ),
+        BudgetExpense(
+          id: 'meal-2',
+          budgetItemId: 'food',
+          amount: 100000,
+          currency: BudgetCurrency.idr,
+          spentAt: DateTime.utc(2026, 10, 12),
+        ),
+      ];
+
+      expect(
+        BudgetCalculator.expenseTotal(
+          expenses: expenses,
+          target: BudgetCurrency.usd,
+          eurRates: rates,
+        ),
+        closeTo(28.470588, 0.00001),
+      );
+      expect(
+        BudgetCalculator.expenseTotal(
+          expenses: expenses,
+          target: BudgetCurrency.jpy,
+          eurRates: rates,
+        ),
+        isNull,
+      );
+      expect(BudgetCurrency.values.length, greaterThan(20));
     });
   });
 
@@ -193,20 +309,49 @@ void main() {
         currency: BudgetCurrency.usd,
       ),
     );
+    await cubit.upsertExpense(
+      BudgetExpense(
+        id: 'transport-ride',
+        budgetItemId: 'transport',
+        amount: 12.5,
+        currency: BudgetCurrency.usd,
+        spentAt: DateTime.utc(2026, 10, 12, 8),
+        note: 'Tiket ferry',
+      ),
+    );
+    await cubit.upsertCustomResupplyItem(
+      const CustomResupplyItem(id: 'custom-energy-gel', name: 'Energy gel'),
+    );
     await cubit.updateRates(const {
       BudgetCurrency.idr: 17000,
       BudgetCurrency.usd: 1.1,
       BudgetCurrency.chf: 0.95,
+      BudgetCurrency.myr: 4.5,
     });
     await cubit.setTargetCurrency(BudgetCurrency.chf);
+    await cubit.setBaseCurrency(BudgetCurrency.usd);
+    await cubit.setBaseTimeZone('Europe/London');
 
     final restoredCubit = LogisticsCubit(repository);
     await restoredCubit.load();
 
     expect(restoredCubit.state.data.items.single.name, 'Transport');
+    expect(restoredCubit.state.data.expenses.single.note, 'Tiket ferry');
+    expect(restoredCubit.state.data.expenses.single.amount, 12.5);
+    expect(
+      restoredCubit.state.data.customResupplyItems.single.name,
+      'Energy gel',
+    );
     expect(restoredCubit.state.data.eurRates[BudgetCurrency.usd], 1.1);
     expect(restoredCubit.state.data.rateUpdatedAt, isNotNull);
     expect(restoredCubit.state.data.targetCurrency, BudgetCurrency.chf);
+    expect(restoredCubit.state.data.baseCurrency, BudgetCurrency.usd);
+    expect(restoredCubit.state.data.baseTimeZoneIanaName, 'Europe/London');
+
+    await restoredCubit.removeItem('transport');
+    expect(restoredCubit.state.data.expenses, isEmpty);
+    await restoredCubit.removeCustomResupplyItem('custom-energy-gel');
+    expect(restoredCubit.state.data.customResupplyItems, isEmpty);
 
     await restoredCubit.close();
     await cubit.close();
@@ -221,4 +366,27 @@ class _FakeExchangeRateProvider implements ExchangeRateProvider {
 
   @override
   Future<ExchangeRateSnapshot> fetchLatest() async => snapshot;
+}
+
+class _FakeAiChatGateway implements AiChatGateway {
+  _FakeAiChatGateway(this.responses);
+
+  final List<String> responses;
+  int callCount = 0;
+  List<AiChatMessage> lastMessages = const [];
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Future<String> send({
+    required List<AiChatMessage> messages,
+    required Map<String, Object?> context,
+  }) async {
+    lastMessages = messages;
+    if (callCount >= responses.length) {
+      throw StateError('No fake AI response configured for this call.');
+    }
+    return responses[callCount++];
+  }
 }

@@ -24,6 +24,7 @@ import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/logistics/data/logistics_repository.dart';
+import 'package:senapath/features/logistics/domain/logistics_models.dart';
 import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/data/route_file_exchange.dart';
@@ -59,6 +60,8 @@ void main() {
     final profileCubit = ProfileCubit(_FakeProfileRepository());
     await profileCubit.load();
     final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
+    await logisticsCubit.load();
+    await logisticsCubit.setBaseCurrency(BudgetCurrency.eur);
     final workoutRepository = IntervalWorkoutRepository(database);
     final intervalWorkoutCubit = IntervalWorkoutCubit(workoutRepository);
     await intervalWorkoutCubit.load();
@@ -268,15 +271,20 @@ void main() {
 
     await tester.tap(find.text('Logistik').last);
     await tester.pumpAndSettle();
+    expect(find.text('Pit stop & resupply'), findsOneWidget);
     expect(find.text('Anggaran'), findsOneWidget);
     expect(find.text('Waktu acara'), findsOneWidget);
 
+    await tester.tap(find.text('Kurs & konversi mata uang'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Atur kurs'));
     await tester.tap(find.byTooltip('Atur kurs'));
     await tester.pumpAndSettle();
     final rateFields = find.byType(TextFormField);
     await tester.enterText(rateFields.at(0), '17000');
     await tester.enterText(rateFields.at(1), '1.1');
     await tester.enterText(rateFields.at(2), '0.95');
+    await tester.enterText(rateFields.at(3), '4.5');
     await tester.tap(find.text('Simpan kurs'));
     await tester.pumpAndSettle();
     expect(find.textContaining('bukan real-time'), findsOneWidget);
@@ -284,8 +292,11 @@ void main() {
     await tester.pump();
     expect(find.textContaining('170,000'), findsOneWidget);
 
-    await tester.ensureVisible(find.byTooltip('Tambah item anggaran'));
-    await tester.tap(find.byTooltip('Tambah item anggaran'));
+    await tester.ensureVisible(find.text('Anggaran'));
+    await tester.tap(find.text('Anggaran'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Tambah item anggaran'));
+    await tester.tap(find.text('Tambah item anggaran'));
     await tester.pumpAndSettle();
     final itemFields = find.byType(TextFormField);
     await tester.enterText(itemFields.at(0), 'Hotel');
@@ -294,6 +305,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Hotel'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Hotel'));
+    await tester.tap(find.text('Hotel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Catat pengeluaran'));
+    await tester.pumpAndSettle();
+    final expenseFields = find.byType(TextFormField);
+    await tester.enterText(expenseFields.at(0), '30');
+    await tester.enterText(expenseFields.at(1), 'Makan siang');
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Makan siang'), findsOneWidget);
+    expect(find.textContaining('Sisa EUR'), findsAtLeastNWidgets(1));
+
+    await tester.ensureVisible(find.byTooltip('Edit Hotel'));
     await tester.tap(find.byTooltip('Edit Hotel'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(1), '125');
@@ -301,11 +326,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Hotel'), findsOneWidget);
 
+    await tester.ensureVisible(find.byTooltip('Hapus Hotel'));
     await tester.tap(find.byTooltip('Hapus Hotel'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Hapus').last);
     await tester.pumpAndSettle();
     expect(find.text('Hotel'), findsNothing);
+    expect(find.text('Makan siang'), findsNothing);
 
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();

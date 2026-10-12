@@ -24,6 +24,10 @@ import 'package:senapath/features/session/data/session_file_service.dart';
 import 'package:senapath/features/session/domain/ride_session.dart';
 import 'package:senapath/features/session/presentation/session_cubit.dart';
 import 'package:senapath/features/session/presentation/session_screen.dart';
+import 'package:senapath/features/logistics/data/logistics_repository.dart';
+import 'package:senapath/features/logistics/presentation/logistics_cubit.dart';
+import 'package:senapath/features/workouts/data/interval_workout_repository.dart';
+import 'package:senapath/features/workouts/presentation/interval_workout_cubit.dart';
 
 void main() {
   testWidgets('starts with the selected GPX without another route page', (
@@ -48,6 +52,9 @@ void main() {
     await routesCubit.load();
     routesCubit.selectSessionRoute(routesCubit.state.routes.single);
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final workoutCubit = IntervalWorkoutCubit(
+      IntervalWorkoutRepository(database),
+    );
     final sessionCubit = RideSessionCubit(
       repository: DriftRideSessionRepository(
         database: database,
@@ -61,8 +68,10 @@ void main() {
       locationSource: _EmptyLocationSource(),
     );
     await unitCubit.load();
+    await sessionCubit.initialize();
     addTearDown(routesCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(workoutCubit.close);
     addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
@@ -71,6 +80,7 @@ void main() {
         providers: [
           BlocProvider.value(value: routesCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: workoutCubit),
           BlocProvider.value(value: sessionCubit),
         ],
         child: MaterialApp(
@@ -169,6 +179,10 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final workoutCubit = IntervalWorkoutCubit(
+      IntervalWorkoutRepository(database),
+    );
+    final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
     final sessionCubit = RideSessionCubit(
       repository: DriftRideSessionRepository(
         database: database,
@@ -185,6 +199,8 @@ void main() {
     expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
     addTearDown(routesCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(workoutCubit.close);
+    addTearDown(logisticsCubit.close);
     addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
@@ -193,6 +209,8 @@ void main() {
         providers: [
           BlocProvider.value(value: routesCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: workoutCubit),
+          BlocProvider.value(value: logisticsCubit),
           BlocProvider.value(value: sessionCubit),
         ],
         child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
@@ -220,6 +238,10 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final workoutCubit = IntervalWorkoutCubit(
+      IntervalWorkoutRepository(database),
+    );
+    final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
     final sessionCubit = _createSessionCubit(
       database,
       locationPermissionGranted: true,
@@ -227,6 +249,8 @@ void main() {
     await unitCubit.load();
     addTearDown(routesCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(workoutCubit.close);
+    addTearDown(logisticsCubit.close);
     addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
@@ -235,6 +259,8 @@ void main() {
         providers: [
           BlocProvider.value(value: routesCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: workoutCubit),
+          BlocProvider.value(value: logisticsCubit),
           BlocProvider.value(value: sessionCubit),
         ],
         child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
@@ -339,10 +365,16 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    final workoutCubit = IntervalWorkoutCubit(
+      IntervalWorkoutRepository(database),
+    );
+    final logisticsCubit = LogisticsCubit(LogisticsRepository(database));
     final sessionCubit = _createSessionCubit(database);
     await unitCubit.load();
     addTearDown(routesCubit.close);
     addTearDown(unitCubit.close);
+    addTearDown(workoutCubit.close);
+    addTearDown(logisticsCubit.close);
     addTearDown(sessionCubit.close);
     addTearDown(database.close);
 
@@ -351,6 +383,8 @@ void main() {
         providers: [
           BlocProvider.value(value: routesCubit),
           BlocProvider.value(value: unitCubit),
+          BlocProvider.value(value: workoutCubit),
+          BlocProvider.value(value: logisticsCubit),
           BlocProvider.value(value: sessionCubit),
         ],
         child: const MaterialApp(home: Scaffold(body: RoutesScreen())),
