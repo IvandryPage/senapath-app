@@ -25,6 +25,8 @@ import '../domain/route_wind.dart';
 import '../domain/nearby_route_place.dart';
 import '../domain/saved_route.dart';
 import '../../ride_coach/presentation/ride_coach_cubit.dart';
+import '../../ride_prediction/data/ride_history_repository.dart';
+import '../../ride_prediction/domain/ride_time_predictor.dart';
 import 'routes_cubit.dart';
 import 'explore_map.dart';
 import '../../session/domain/ride_session.dart';
@@ -877,11 +879,13 @@ class SavedRoutesScreen extends StatefulWidget {
   const SavedRoutesScreen({
     this.preRideWeatherService,
     this.rideCoachCubit,
+    this.rideHistoryRepository,
     super.key,
   });
 
   final PreRideWeatherService? preRideWeatherService;
   final RideCoachCubit? rideCoachCubit;
+  final RideHistoryRepository? rideHistoryRepository;
 
   @override
   State<SavedRoutesScreen> createState() => _SavedRoutesScreenState();
@@ -967,6 +971,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                   unitSystem: unitSystem,
                   weatherService: widget.preRideWeatherService,
                   rideCoachCubit: widget.rideCoachCubit,
+                  rideHistoryRepository: widget.rideHistoryRepository,
                 ),
           ],
         );
@@ -1175,6 +1180,181 @@ class _PreRideBriefingState extends State<_PreRideBriefing> {
   }
 }
 
+class _RouteTimePredictionPreview extends StatefulWidget {
+  const _RouteTimePredictionPreview({
+    required this.route,
+    required this.repository,
+  });
+
+  final RouteRecord route;
+  final RideHistoryRepository repository;
+
+  @override
+  State<_RouteTimePredictionPreview> createState() =>
+      _RouteTimePredictionPreviewState();
+}
+
+class _RouteTimePredictionPreviewState
+    extends State<_RouteTimePredictionPreview> {
+  Future<RideTimePrediction?>? _prediction;
+  double? _distanceKm;
+  double? _routeAscentMeters;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrediction();
+  }
+
+  void _loadPrediction() {
+    final route = widget.route;
+    final routeDistanceMeters = route.distanceMeters;
+    final distanceMeters =
+        routeDistanceMeters != null &&
+            routeDistanceMeters.isFinite &&
+            routeDistanceMeters > 0
+        ? routeDistanceMeters
+        : _distanceMeters(route.points);
+    final routeAscent = route.elevationGainMeters;
+    final routeAscentMeters =
+        routeAscent != null &&
+            routeAscent.isFinite &&
+            routeAscent >= 0
+        ? routeAscent
+        : _ascentMeters(route.points);
+
+    _distanceKm = distanceMeters.isFinite && distanceMeters > 0
+        ? distanceMeters / 1000
+        : null;
+    _routeAscentMeters =
+        routeAscentMeters.isFinite && routeAscentMeters >= 0
+        ? routeAscentMeters
+        : null;
+    if (_distanceKm == null || _routeAscentMeters == null) {
+      _prediction = null;
+      return;
+    }
+    _prediction = widget.repository.predict(
+      distanceKm: _distanceKm!,
+      elevationGainMeters: _routeAscentMeters!,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.secondaryContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.insights_outlined, color: colors.onSecondaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Estimasi durasi',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colors.onSecondaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                'PERSONAL',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: colors.onSecondaryContainer,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_prediction == null)
+            Text(
+              'Data jarak atau elevasi rute belum cukup untuk menghitung estimasi.',
+              style: TextStyle(color: colors.onSecondaryContainer),
+            )
+          else
+            FutureBuilder<RideTimePrediction?>(
+              future: _prediction,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Estimasi belum bisa dihitung dari riwayat lokal.',
+                          style: TextStyle(color: colors.onSecondaryContainer),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Coba hitung ulang',
+                        onPressed: () => setState(_loadPrediction),
+                        icon: Icon(
+                          Icons.refresh,
+                          color: colors.onSecondaryContainer,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const LinearProgressIndicator();
+                }
+                final prediction = snapshot.data;
+                if (prediction == null) {
+                  return Text(
+                    'Selesaikan minimal 3 gowes dengan elevasi terukur untuk estimasi personal.',
+                    style: TextStyle(color: colors.onSecondaryContainer),
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _formatPredictedDuration(prediction.durationMinutes),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: colors.onSecondaryContainer,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Rata-rata dari ${prediction.neighborCount} gowes serupa · offline',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSecondaryContainer,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatPredictedDuration(double durationMinutes) {
+  if (!durationMinutes.isFinite || durationMinutes <= 0) {
+    return 'Estimasi tidak tersedia';
+  }
+  final roundedMinutes = durationMinutes.round();
+  final hours = roundedMinutes ~/ 60;
+  final minutes = roundedMinutes.remainder(60);
+  if (hours == 0) return '≈ $minutes menit';
+  if (minutes == 0) return '≈ $hours jam';
+  return '≈ $hours jam $minutes menit';
+}
+
 List<Map<String, double>> _elevationProfile(List<RoutePoint> points) {
   if (points.length < 2 ||
       points.any((point) => !point.elevationMeters.isFinite)) {
@@ -1240,12 +1420,14 @@ class _RouteTile extends StatelessWidget {
     required this.unitSystem,
     this.weatherService,
     this.rideCoachCubit,
+    this.rideHistoryRepository,
   });
 
   final RouteRecord route;
   final UnitSystem unitSystem;
   final PreRideWeatherService? weatherService;
   final RideCoachCubit? rideCoachCubit;
+  final RideHistoryRepository? rideHistoryRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -1338,6 +1520,7 @@ class _RouteTile extends StatelessWidget {
         ? 'Belum ada titik penting'
         : route.poiSummary;
     final router = GoRouter.maybeOf(context);
+    final historyRepository = rideHistoryRepository;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1381,6 +1564,13 @@ class _RouteTile extends StatelessWidget {
                     weatherService:
                         weatherService ?? OpenMeteoPreRideWeatherService(),
                     rideCoachCubit: rideCoachCubit!,
+                  ),
+                ],
+                if (route.points.length >= 2 && historyRepository != null) ...[
+                  const SizedBox(height: 16),
+                  _RouteTimePredictionPreview(
+                    route: route,
+                    repository: historyRepository,
                   ),
                 ],
                 if (route.points.length >= 2) ...[

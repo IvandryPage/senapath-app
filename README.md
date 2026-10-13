@@ -24,9 +24,9 @@ flutter analyze
 flutter test
 ```
 
-### Prediksi durasi rute (backend lokal)
+### Estimasi durasi rute (KNN lokal)
 
-Setelah sesi gowes selesai, aplikasi menyimpan jarak, total tanjakan, rasio tanjakan per kilometer, dan durasi aktif di tabel lokal Drift `ride_history`. Prediktor KNN membandingkan ketiga fitur rute dan merata-ratakan durasi dari tiga sesi terdekat. Koordinat GPS tidak disimpan di tabel fitur ini, prediksi tetap bekerja offline, dan belum ada data yang dikirim ke Supabase. Belum tersedia prediksi jika belum ada sedikitnya tiga sesi selesai dengan elevasi yang dapat dihitung. UI prediksi akan ditambahkan pada iterasi terpisah.
+Setelah sesi gowes selesai, aplikasi menyimpan jarak, total tanjakan, rasio tanjakan per kilometer, dan durasi aktif di tabel lokal Drift `ride_history`. Prediktor KNN membandingkan ketiga fitur rute dan merata-ratakan durasi dari tiga sesi terdekat. Pratinjau GPX menampilkan estimasi dan jumlah gowes pembanding; dibutuhkan minimal tiga sesi selesai dengan elevasi terukur. Koordinat GPS tidak disimpan di tabel fitur ini, prediksi berjalan offline, dan fitur ini tidak mengirim data ke Supabase.
 
 GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests pada push ke `main` serta pull request.
 

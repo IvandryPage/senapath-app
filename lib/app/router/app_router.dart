@@ -165,6 +165,9 @@ final appRouter = GoRouter(
                   builder: (context, state) => SavedRoutesScreen(
                     rideCoachCubit: context.read<RideCoachCubit>(),
                     preRideWeatherService: OpenMeteoPreRideWeatherService(),
+                    rideHistoryRepository: context
+                        .read<RideSessionCubit>()
+                        .rideHistoryRepository,
                   ),
                 ),
                 GoRoute(

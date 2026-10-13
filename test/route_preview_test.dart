@@ -17,6 +17,7 @@ import 'package:senapath/features/routes/data/route_file_exchange.dart';
 import 'package:senapath/features/routes/data/saved_route_repository.dart';
 import 'package:senapath/features/routes/presentation/routes_cubit.dart';
 import 'package:senapath/features/routes/presentation/routes_screen.dart';
+import 'package:senapath/features/ride_prediction/data/ride_history_repository.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
@@ -163,6 +164,82 @@ void main() {
 
     expect(find.text('Loop Utara'), findsOneWidget);
     expect(find.text('Loop Selatan'), findsNothing);
+  });
+
+  testWidgets('shows a personal duration estimate in the saved GPX preview', (
+    tester,
+  ) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final routeRepository = SavedRouteRepository(
+      database,
+      geometryCodec: EncryptedTelemetryCodec(secureVault: _MemorySecureVault()),
+    );
+    await routeRepository.saveImportedRoute(
+      name: 'Loop Estimasi',
+      points: const [
+        (latitude: -6.2, longitude: 106.8, elevation: 10),
+        (latitude: -6.21, longitude: 106.8, elevation: 110),
+      ],
+    );
+    final rideHistoryRepository = RideHistoryRepository(database);
+    for (var index = 0; index < 3; index++) {
+      final startedAt = DateTime.utc(2026, 10, 1 + index, 8);
+      final endedAt = startedAt.add(Duration(minutes: 60 + index * 10));
+      await rideHistoryRepository.recordCompletedRide(
+        RideSessionSummary(
+          session: RideSessionSnapshot(
+            id: 'history-$index',
+            startedAt: startedAt,
+            endedAt: endedAt,
+            status: RideSessionStatus.completed,
+            totalPausedMilliseconds: 0,
+            distanceMeters: 1000,
+            currentSpeedMetersPerSecond: 0,
+          ),
+          sampleCount: 10,
+          speedSamples: const [],
+          elevationGainMeters: 100,
+          elevationSource: 'Barometer',
+        ),
+      );
+    }
+    final routesCubit = RoutesCubit(
+      routeRepository,
+      const RouteFileExchange(SessionFileService()),
+    );
+    final unitCubit = UnitSettingsCubit(UnitSettingsRepository(database));
+    await routesCubit.load();
+    await unitCubit.load();
+    addTearDown(routesCubit.close);
+    addTearDown(unitCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: routesCubit),
+          BlocProvider.value(value: unitCubit),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SavedRoutesScreen(
+              rideHistoryRepository: rideHistoryRepository,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Loop Estimasi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Estimasi durasi'), findsOneWidget);
+    expect(find.text('≈ 1 jam 10 menit'), findsOneWidget);
+    expect(
+      find.text('Rata-rata dari 3 gowes serupa · offline'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows live speed and distance above the session button', (
