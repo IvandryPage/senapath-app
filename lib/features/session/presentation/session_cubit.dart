@@ -465,9 +465,35 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       await _startMotionSensorStreams();
       _startTicker();
       await _updateWorkoutProgress();
-    } catch (_) {
-      _setMessage(
-        'Perjalanan tidak dapat dimulai. Rekaman lama tetap tersimpan.',
+    } catch (error) {
+      final session = state.session;
+      RideSessionSnapshot? pausedSession;
+      var recoveryMessage = '';
+      if (session?.status == RideSessionStatus.recording) {
+        try {
+          await _stopLocationStream();
+          await _stopBarometerStream();
+          await _stopMotionSensorStreams();
+          _ticker?.cancel();
+          _ticker = null;
+          pausedSession = await repository.pause(
+            session!.id,
+            _clock().toUtc(),
+          );
+          recoveryMessage = ' Sesi tersimpan dan dijeda.';
+        } catch (recoveryError) {
+          recoveryMessage =
+              ' Pemulihan sesi juga gagal: ${_errorDetails(recoveryError)}.';
+        }
+      }
+      emit(
+        state.copyWith(
+          session: pausedSession,
+          message:
+              'Perjalanan tidak dapat dimulai: ${_errorDetails(error)}.'
+              '$recoveryMessage',
+          messageIsSuccess: false,
+        ),
       );
     }
   }
@@ -1184,9 +1210,53 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     _positionSubscription = locationSource.positions.listen(
       (position) => unawaited(_handlePosition(sessionId, position)),
-      onError: (Object _) =>
-          _setMessage('Sinyal GPS terputus. Sesi tetap lokal.'),
+      onError: (Object error) => unawaited(
+        _handleLocationStreamError(sessionId, error),
+      ),
     );
+  }
+
+  Future<void> _handleLocationStreamError(
+    String sessionId,
+    Object error,
+  ) async {
+    final session = state.session;
+    if (session?.id != sessionId ||
+        session?.status != RideSessionStatus.recording) {
+      return;
+    }
+    RideSessionSnapshot? pausedSession;
+    var recoveryMessage = '';
+    try {
+      await _stopLocationStream();
+      await _stopBarometerStream();
+      await _stopMotionSensorStreams();
+      _ticker?.cancel();
+      _ticker = null;
+      pausedSession = await repository.pause(sessionId, _clock().toUtc());
+      recoveryMessage = ' Sesi tersimpan dan dijeda.';
+    } catch (recoveryError) {
+      recoveryMessage =
+          ' Pemulihan sesi juga gagal: ${_errorDetails(recoveryError)}.';
+    }
+    emit(
+      state.copyWith(
+        session: pausedSession,
+        message:
+            'Perekaman lokasi gagal: ${_errorDetails(error)}.$recoveryMessage',
+        messageIsSuccess: false,
+      ),
+    );
+  }
+
+  String _errorDetails(Object error) {
+    if (error is PlatformException) {
+      final message = error.message;
+      return message == null || message.isEmpty
+          ? error.code
+          : '${error.code}: $message';
+    }
+    return error.toString();
   }
 
   Future<void> _startBarometerStream() async {

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../data/notification_settings_repository.dart';
@@ -87,7 +88,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         await _notifications.cancelWeeklyReminders();
       }
       if (!isClosed) emit(NotificationSettingsState(settings: settings));
-    } catch (_) {
+    } catch (error) {
       if (!isClosed) {
         String? rollbackError;
         try {
@@ -105,8 +106,10 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
           NotificationSettingsState(
             settings: previous,
             error: rollbackError == null
-                ? 'Pengaturan notifikasi tidak dapat disimpan. Coba lagi.'
-                : 'Pengaturan tidak dapat disimpan dan setelan sebelumnya belum pulih sepenuhnya.',
+                ? 'Pengaturan notifikasi tidak dapat disimpan. '
+                      'Detail: ${_errorDetails(error)}'
+                : 'Pengaturan tidak dapat disimpan dan setelan sebelumnya '
+                      'belum pulih sepenuhnya. Detail: ${_errorDetails(error)}',
           ),
         );
       }
@@ -142,6 +145,16 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         hour: settings.reminderHour,
         minute: settings.reminderMinute,
       );
+
+  String _errorDetails(Object error) {
+    if (error is PlatformException) {
+      final message = error.message;
+      return message == null || message.isEmpty
+          ? error.code
+          : '${error.code}: $message';
+    }
+    return error.toString();
+  }
 
   Future<void> sendRecommendation(String recommendation) async {
     if (recommendation.trim().isEmpty) {

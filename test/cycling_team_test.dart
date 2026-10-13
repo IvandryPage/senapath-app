@@ -78,6 +78,33 @@ void main() {
     expect(cubit.state.message, 'Tim berhasil dihapus.');
   });
 
+  test('keeps a deleted team removed if refreshing the list fails', () async {
+    final repository = _DeleteTeamRepository()..failLoadingTeams = true;
+    final cubit = CyclingTeamCubit(repository);
+    addTearDown(cubit.close);
+
+    await cubit.deleteTeam('team-1');
+
+    expect(repository.deletedTeamId, 'team-1');
+    expect(cubit.state.teams, isEmpty);
+    expect(cubit.state.isSaving, isFalse);
+    expect(cubit.state.message, contains('berhasil dihapus'));
+    expect(cubit.state.message, contains('refresh failed'));
+  });
+
+  test('shows the backend error when deleting a team fails', () async {
+    final repository = _DeleteTeamRepository()
+      ..deleteError = StateError('Only a team manager can delete the team.');
+    final cubit = CyclingTeamCubit(repository);
+    addTearDown(cubit.close);
+
+    await cubit.deleteTeam('team-1');
+
+    expect(cubit.state.isSaving, isFalse);
+    expect(cubit.state.error, contains('Tidak dapat menghapus tim.'));
+    expect(cubit.state.error, contains('Only a team manager'));
+  });
+
   testWidgets('team screen explains when online account setup is missing', (
     tester,
   ) async {
@@ -182,9 +209,18 @@ class _AvailableTeamRepository extends _UnconfiguredTeamRepository {
 
 class _DeleteTeamRepository extends _UnconfiguredTeamRepository {
   String? deletedTeamId;
+  Object? deleteError;
+  bool failLoadingTeams = false;
+
+  @override
+  Future<List<CyclingTeam>> loadTeams() async {
+    if (failLoadingTeams) throw StateError('refresh failed');
+    return const [];
+  }
 
   @override
   Future<void> deleteTeam(String teamId) async {
+    if (deleteError case final error?) throw error;
     deletedTeamId = teamId;
   }
 }

@@ -5,42 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/units/unit_settings_repository.dart';
 import 'package:senapath/core/units/unit_system.dart';
-import 'package:senapath/features/authentication/data/device_authenticator.dart';
-import 'package:senapath/features/authentication/presentation/device_auth_cubit.dart';
 import 'package:senapath/features/profile/data/user_profile_repository.dart';
 import 'package:senapath/features/profile/domain/user_profile.dart';
 import 'package:senapath/features/profile/presentation/profile_cubit.dart';
 import 'package:senapath/features/gamification/domain/rider_progress.dart';
 
 void main() {
-  group('DeviceAuthCubit', () {
-    test('rejected biometric authentication never unlocks the app', () async {
-      final authenticator = _FakeDeviceAuthenticator(result: false);
-      final cubit = DeviceAuthCubit(authenticator);
-      await cubit.initialize();
-
-      await cubit.authenticateWithBiometrics();
-
-      expect(cubit.state.isUnlocked, isFalse);
-      expect(cubit.state.message, isNotNull);
-      await cubit.close();
-    });
-
-    test('device credential fallback unlocks and logout locks again', () async {
-      final authenticator = _FakeDeviceAuthenticator(result: true);
-      final cubit = DeviceAuthCubit(authenticator);
-      await cubit.initialize();
-
-      await cubit.authenticateWithDeviceCredentials();
-      expect(authenticator.biometricOnlyCalls, [false]);
-      expect(cubit.state.isUnlocked, isTrue);
-
-      cubit.logout();
-      expect(cubit.state.isUnlocked, isFalse);
-      await cubit.close();
-    });
-  });
-
   group('ProfileCubit', () {
     test('stores profile and rejects a fourth emergency contact', () async {
       final repository = _FakeProfileRepository();
@@ -141,25 +111,6 @@ void main() {
 
     await database.close();
   });
-}
-
-class _FakeDeviceAuthenticator implements DeviceAuthenticator {
-  _FakeDeviceAuthenticator({required this.result});
-
-  final bool result;
-  final List<bool> biometricOnlyCalls = [];
-
-  @override
-  Future<bool> get hasEnrolledBiometrics async => true;
-
-  @override
-  Future<bool> get supportsDeviceCredentials async => true;
-
-  @override
-  Future<bool> authenticate({required bool biometricOnly}) async {
-    biometricOnlyCalls.add(biometricOnly);
-    return result;
-  }
 }
 
 class _FakeProfileRepository

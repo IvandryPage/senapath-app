@@ -149,14 +149,24 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
     emit(state.copyWith(isSaving: true, clearError: true, clearMessage: true));
     try {
       await _repository.deleteTeam(teamId);
-      final teams = await _repository.loadTeams();
+      var teams = state.teams
+          .where((team) => team.id != teamId)
+          .toList(growable: false);
+      var message = 'Tim berhasil dihapus.';
+      try {
+        teams = await _repository.loadTeams();
+      } catch (error) {
+        message =
+            'Tim berhasil dihapus, tetapi daftar tim tidak dapat diperbarui. '
+            '${_message(error, 'Coba muat ulang daftar tim.')}';
+      }
       emit(
         state.copyWith(
           teams: teams,
           hasLoadedTeams: true,
           isSaving: false,
           clearDashboard: true,
-          message: 'Tim berhasil dihapus.',
+          message: message,
         ),
       );
     } catch (error) {
@@ -239,5 +249,8 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
   void clearMessage() =>
       emit(state.copyWith(clearMessage: true, clearError: true));
 
-  String _message(Object _, String fallback) => fallback;
+  String _message(Object error, String fallback) {
+    final details = error is StateError ? error.message : error;
+    return '$fallback ${details.toString()}';
+  }
 }

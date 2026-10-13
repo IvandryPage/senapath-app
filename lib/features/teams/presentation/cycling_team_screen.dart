@@ -524,11 +524,10 @@ class _CyclingTeamDashboardScreenState
       ),
     );
     if (!mounted || confirmed != true) return;
-    await context.read<CyclingTeamCubit>().deleteTeam(widget.teamId);
+    final cubit = context.read<CyclingTeamCubit>();
+    await cubit.deleteTeam(widget.teamId);
     if (mounted &&
-        !context.read<CyclingTeamCubit>().state.teams.any(
-          (team) => team.id == widget.teamId,
-        )) {
+        cubit.state.message?.startsWith('Tim berhasil dihapus') == true) {
       context.pop();
     }
   }

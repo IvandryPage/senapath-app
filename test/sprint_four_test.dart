@@ -112,6 +112,34 @@ void main() {
     );
   });
 
+  test('pauses the session and reports location stream failures', () async {
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+    );
+
+    await sessionCubit!.initialize();
+    await sessionCubit!.start();
+    final sessionId = sessionCubit!.state.session!.id;
+
+    positions.addError(StateError('foreground notification unavailable'));
+
+    final pausedState = await sessionCubit!.stream
+        .firstWhere(
+          (state) =>
+              state.session?.id == sessionId &&
+                state.session?.status == RideSessionStatus.paused &&
+                state.message?.contains(
+                      'foreground notification unavailable',
+                    ) ==
+                    true,
+          )
+        .timeout(const Duration(seconds: 2));
+
+    expect(pausedState.message, contains('tersimpan dan dijeda'));
+  });
+
   test('account GPS sync stays local until the user opts in', () async {
     final session = await repository.start(DateTime.utc(2026, 9, 30, 10));
     await repository.finish(session.id, DateTime.utc(2026, 9, 30, 11));

@@ -71,7 +71,8 @@ void main() {
     await cubit.update(requested);
 
     expect(cubit.state.settings.remindersEnabled, isFalse);
-    expect(cubit.state.error, contains('gagal disimpan'));
+    expect(cubit.state.error, contains('tidak dapat disimpan'));
+    expect(cubit.state.error, contains('schedule failed'));
     expect((await repository.load()).remindersEnabled, isFalse);
   });
 }
