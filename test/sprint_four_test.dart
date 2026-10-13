@@ -83,6 +83,35 @@ void main() {
     expect(gateway.uploadedSummary?.session.id, sessionId);
   });
 
+  test('reports local save success when refreshing history fails', () async {
+    final failingRepository = _HistoryFailingRepository(
+      database: database,
+      telemetryCodec: EncryptedTelemetryCodec(
+        secureVault: _MemorySecureVault(),
+      ),
+    );
+    sessionCubit = RideSessionCubit(
+      repository: failingRepository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+    );
+
+    await sessionCubit!.initialize();
+    await sessionCubit!.start();
+    failingRepository.failHistoryLoads = true;
+    final sessionId = sessionCubit!.state.session!.id;
+
+    await sessionCubit!.finish();
+
+    expect(sessionCubit!.state.session?.status, RideSessionStatus.completed);
+    expect(sessionCubit!.state.messageIsSuccess, isTrue);
+    expect(sessionCubit!.state.message, contains('tersimpan aman di perangkat'));
+    expect(
+      (await repository.loadCompletedSessions()).single.id,
+      sessionId,
+    );
+  });
+
   test('account GPS sync stays local until the user opts in', () async {
     final session = await repository.start(DateTime.utc(2026, 9, 30, 10));
     await repository.finish(session.id, DateTime.utc(2026, 9, 30, 11));
@@ -593,6 +622,21 @@ void main() {
     expect(await repository.loadCompletedSessions(), isEmpty);
     expect(await repository.loadTelemetryLocations(session.id), isEmpty);
   });
+}
+
+class _HistoryFailingRepository extends DriftRideSessionRepository {
+  _HistoryFailingRepository({
+    required super.database,
+    required super.telemetryCodec,
+  });
+
+  bool failHistoryLoads = false;
+
+  @override
+  Future<List<RideSessionSnapshot>> loadCompletedSessions() {
+    if (failHistoryLoads) throw StateError('History refresh unavailable.');
+    return super.loadCompletedSessions();
+  }
 }
 
 Position _positionAt(DateTime timestamp, {double longitude = 106.8}) =>

@@ -115,7 +115,8 @@ class SenapathApp extends StatelessWidget {
           child: MaterialApp.router(
             title: 'Senapath',
             theme: AppTheme.light,
-            themeMode: ThemeMode.light,
+            darkTheme: AppTheme.dark,
+            themeMode: ThemeMode.system,
             routerConfig: appRouter,
           ),
         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/widgets/press_scale.dart';
+
 abstract final class SenapathColors {
   static const navy = Color(0xFF0C3156);
   static const blue = Color(0xFF0A7DD2);
@@ -150,6 +152,7 @@ class SenapathButton extends StatelessWidget {
     this.fullWidth = true,
     this.backgroundColor = SenapathColors.blue,
     this.foregroundColor = SenapathColors.white,
+    this.animatePress = false,
     super.key,
   });
 
@@ -160,11 +163,12 @@ class SenapathButton extends StatelessWidget {
   final bool fullWidth;
   final Color backgroundColor;
   final Color foregroundColor;
+  final bool animatePress;
 
   @override
   Widget build(BuildContext context) {
     final button = SenapathCard(
-      onTap: isLoading ? null : onPressed,
+      onTap: animatePress || isLoading ? null : onPressed,
       padding: const EdgeInsets.symmetric(
         horizontal: SenapathSpacing.md,
         vertical: SenapathSpacing.sm,
@@ -202,7 +206,14 @@ class SenapathButton extends StatelessWidget {
         ),
       ),
     );
-    return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
+    final action = animatePress
+        ? PressScale(
+            onTap: onPressed,
+            enabled: !isLoading && onPressed != null,
+            child: button,
+          )
+        : button;
+    return fullWidth ? SizedBox(width: double.infinity, child: action) : action;
   }
 }
 

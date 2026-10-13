@@ -163,10 +163,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Widget _themeModeInfo() => SenapathCard(
     child: ListTile(
-      leading: const Icon(Icons.light_mode_outlined),
-      title: const Text('Tema terang'),
+      leading: Icon(
+        Theme.of(context).brightness == Brightness.dark
+            ? Icons.dark_mode_outlined
+            : Icons.light_mode_outlined,
+      ),
+      title: const Text('Tema perangkat'),
       subtitle: const Text(
-        'Senapath menggunakan tema terang di semua kondisi.',
+        'Tampilan mengikuti mode terang atau gelap yang dipilih di perangkat.',
       ),
     ),
   );

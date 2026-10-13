@@ -164,8 +164,8 @@ void main() {
     expect(find.text('Strategi rute'), findsNothing);
     expect(find.byKey(const Key('home-chat-ai')), findsOneWidget);
     final configuredApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(configuredApp.themeMode, ThemeMode.light);
-    expect(configuredApp.darkTheme, isNull);
+    expect(configuredApp.themeMode, ThemeMode.system);
+    expect(configuredApp.darkTheme?.brightness, Brightness.dark);
     expect(configuredApp.theme?.brightness, Brightness.light);
 
     await tester.scrollUntilVisible(
@@ -511,6 +511,12 @@ class _UnavailableRideCoachGateway implements RideCoachGateway {
   @override
   Future<String> recommend({
     required Map<String, Object?> rideContext,
+    required bool consent,
+  }) async => throw StateError('Not configured');
+
+  @override
+  Future<String> prepareRide({
+    required Map<String, Object?> routeAndWeather,
     required bool consent,
   }) async => throw StateError('Not configured');
 

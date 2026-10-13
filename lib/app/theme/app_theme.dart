@@ -3,6 +3,252 @@ import 'package:flutter/material.dart';
 import 'senapath_design.dart';
 
 abstract final class AppTheme {
+  static ThemeData get dark {
+    const background = Color(0xFF071122);
+    const surface = Color(0xFF10243A);
+    const surfaceRaised = Color(0xFF18334F);
+    const foreground = Color(0xFFF4F7FB);
+    const accent = Color(0xFF7FC8FF);
+    const outline = Color(0xFF42617E);
+    final lightTheme = light;
+    final darkColorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: accent,
+      onPrimary: background,
+      secondary: const Color(0xFFDDF3FE),
+      onSecondary: background,
+      error: const Color(0xFFFFB4AB),
+      onError: const Color(0xFF690005),
+      surface: surface,
+      onSurface: foreground,
+      tertiary: const Color(0xFF99D0EC),
+      onTertiary: background,
+      surfaceContainerHighest: surfaceRaised,
+      onSurfaceVariant: const Color(0xFFD0DDE9),
+      outline: accent,
+      outlineVariant: outline,
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: foreground,
+      onInverseSurface: background,
+      inversePrimary: SenapathColors.blue,
+      surfaceTint: accent,
+      primaryContainer: surfaceRaised,
+      onPrimaryContainer: foreground,
+      secondaryContainer: surfaceRaised,
+      onSecondaryContainer: foreground,
+      tertiaryContainer: surfaceRaised,
+      onTertiaryContainer: foreground,
+      errorContainer: const Color(0xFF93000A),
+      onErrorContainer: const Color(0xFFFFDAD6),
+    );
+    final darkTextTheme = lightTheme.textTheme.apply(
+      bodyColor: foreground,
+      displayColor: foreground,
+    );
+    final border = BorderSide(color: outline);
+
+    return lightTheme.copyWith(
+      brightness: Brightness.dark,
+      colorScheme: darkColorScheme,
+      scaffoldBackgroundColor: background,
+      canvasColor: background,
+      textTheme: darkTextTheme,
+      primaryTextTheme: lightTheme.primaryTextTheme.apply(
+        bodyColor: foreground,
+        displayColor: foreground,
+      ),
+      appBarTheme: lightTheme.appBarTheme.copyWith(
+        backgroundColor: background,
+        foregroundColor: foreground,
+        titleTextStyle: darkTextTheme.titleLarge?.copyWith(
+          color: foreground,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        actionsIconTheme: const IconThemeData(color: accent),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surface,
+        indicatorColor: surfaceRaised,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        elevation: 0,
+        height: 74,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            color: foreground,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w800
+                : FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      ),
+      cardTheme: lightTheme.cardTheme.copyWith(
+        color: surface,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SenapathShape.medium),
+          side: border,
+        ),
+      ),
+      listTileTheme: lightTheme.listTileTheme.copyWith(
+        iconColor: accent,
+        textColor: foreground,
+      ),
+      inputDecorationTheme: lightTheme.inputDecorationTheme.copyWith(
+        fillColor: surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SenapathShape.small),
+          borderSide: border,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SenapathShape.small),
+          borderSide: border,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SenapathShape.small),
+          borderSide: const BorderSide(color: accent, width: 2),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: lightTheme.filledButtonTheme.style?.copyWith(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.disabled)
+                ? foreground.withValues(alpha: 0.45)
+                : background,
+          ),
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.disabled)
+                ? accent.withValues(alpha: 0.35)
+                : accent,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: lightTheme.outlinedButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(foreground),
+          side: WidgetStatePropertyAll(border),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: lightTheme.textButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(accent),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: lightTheme.iconButtonTheme.style?.copyWith(
+          foregroundColor: const WidgetStatePropertyAll(foreground),
+        ),
+      ),
+      floatingActionButtonTheme: lightTheme.floatingActionButtonTheme.copyWith(
+        backgroundColor: accent,
+        foregroundColor: background,
+      ),
+      dialogTheme: lightTheme.dialogTheme.copyWith(
+        backgroundColor: surface,
+        titleTextStyle: darkTextTheme.titleLarge?.copyWith(color: foreground),
+        contentTextStyle: darkTextTheme.bodyMedium?.copyWith(color: foreground),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SenapathShape.medium),
+          side: border,
+        ),
+      ),
+      bottomSheetTheme: lightTheme.bottomSheetTheme.copyWith(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(SenapathShape.large),
+          ),
+          side: border,
+        ),
+      ),
+      snackBarTheme: lightTheme.snackBarTheme.copyWith(
+        backgroundColor: surfaceRaised,
+        contentTextStyle: TextStyle(color: foreground),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SenapathShape.small),
+          side: border,
+        ),
+      ),
+      dividerTheme: lightTheme.dividerTheme.copyWith(color: outline),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(color: accent),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) ? background : foreground,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) ? accent : surfaceRaised,
+        ),
+        trackOutlineColor: const WidgetStatePropertyAll(outline),
+      ),
+      iconTheme: const IconThemeData(color: accent),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected) ? accent : null,
+        ),
+        checkColor: const WidgetStatePropertyAll(background),
+      ),
+      radioTheme: RadioThemeData(fillColor: WidgetStatePropertyAll(accent)),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: surfaceRaised,
+          borderRadius: BorderRadius.circular(SenapathShape.small),
+        ),
+        textStyle: const TextStyle(color: foreground),
+      ),
+    );
+  }
+
+  static ThemeData get rideBright {
+    const background = Color(0xFF071122);
+    const surface = Color(0xFF101D31);
+    const foreground = Color(0xFFF4F7FB);
+    const accent = Color(0xFF0A7DD2);
+    final textTheme = light.textTheme
+        .apply(bodyColor: foreground, displayColor: foreground)
+        .copyWith(
+          bodySmall: light.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          bodyMedium: light.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          bodyLarge: light.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        );
+    return light.copyWith(
+      brightness: Brightness.dark,
+      colorScheme: light.colorScheme.copyWith(
+        brightness: Brightness.dark,
+        primary: accent,
+        onPrimary: Colors.white,
+        secondary: const Color(0xFF7FC8FF),
+        onSecondary: background,
+        surface: surface,
+        onSurface: foreground,
+        outline: accent,
+        outlineVariant: const Color(0xFF41536A),
+        surfaceContainerHighest: const Color(0xFF17263B),
+        onSurfaceVariant: const Color(0xFFD0D9E5),
+        surfaceTint: accent,
+      ),
+      scaffoldBackgroundColor: background,
+      textTheme: textTheme,
+      appBarTheme: light.appBarTheme.copyWith(
+        backgroundColor: background,
+        foregroundColor: foreground,
+      ),
+      cardTheme: light.cardTheme.copyWith(
+        color: surface,
+        shadowColor: Colors.transparent,
+      ),
+    );
+  }
+
   static ThemeData get light {
     const ink = SenapathColors.ink;
     const canvas = SenapathColors.canvas;

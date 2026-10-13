@@ -38,7 +38,7 @@ class LocalRideNotificationService implements RideNotificationService {
     timezone.setLocalLocation(timezone.getLocation(localTimezone.identifier));
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('notification_icon'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,

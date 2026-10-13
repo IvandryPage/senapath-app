@@ -67,10 +67,32 @@ void main() {
     expect(cubit.hasConsentForSession('ride-1'), isFalse);
     expect(cubit.hasConsentForSession('ride-2'), isFalse);
   });
+
+  test('keeps a route-specific pre-ride briefing and reports failures', () async {
+    gateway.briefings.add(Future.value('Simpan tenaga untuk tanjakan nanti.'));
+    await cubit.prepareRide(
+      routeId: 'route-1',
+      routeAndWeather: const {},
+      consent: true,
+    );
+
+    expect(cubit.state.preRideBriefing, 'Simpan tenaga untuk tanjakan nanti.');
+    expect(cubit.state.preRideRouteId, 'route-1');
+
+    gateway.briefings.add(Future.error(StateError('Kuota AI harian tercapai.')));
+    await cubit.prepareRide(
+      routeId: 'route-1',
+      routeAndWeather: const {},
+      consent: true,
+    );
+    expect(cubit.state.preRideBriefing, 'Simpan tenaga untuk tanjakan nanti.');
+    expect(cubit.state.preRideError, 'Kuota AI harian tercapai.');
+  });
 }
 
 class _FakeRideCoachGateway implements RideCoachGateway {
   final List<Future<String>> responses = [];
+  final List<Future<String>> briefings = [];
 
   @override
   bool get isConfigured => true;
@@ -86,4 +108,10 @@ class _FakeRideCoachGateway implements RideCoachGateway {
     required Map<String, Object?> rideContext,
     required bool consent,
   }) => responses.removeAt(0);
+
+  @override
+  Future<String> prepareRide({
+    required Map<String, Object?> routeAndWeather,
+    required bool consent,
+  }) => briefings.removeAt(0);
 }

@@ -8,4 +8,9 @@ abstract interface class RideCoachGateway {
     required Map<String, Object?> rideContext,
     required bool consent,
   });
+
+  Future<String> prepareRide({
+    required Map<String, Object?> routeAndWeather,
+    required bool consent,
+  });
 }

@@ -9,11 +9,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../domain/nearby_route_place.dart';
 import '../domain/saved_route.dart';
 
 class ExploreMap extends StatefulWidget {
   const ExploreMap({
     this.routes = const [],
+    this.nearbyPlaces = const [],
     this.trackPoints = const [],
     this.currentLocation,
     this.followLocation = false,
@@ -30,6 +32,7 @@ class ExploreMap extends StatefulWidget {
   });
 
   final List<RouteRecord> routes;
+  final List<NearbyRoutePlace> nearbyPlaces;
   final List<LatLng> trackPoints;
   final LatLng? currentLocation;
   final bool followLocation;
@@ -240,6 +243,40 @@ class _ExploreMapState extends State<ExploreMap> {
                               ),
                             ),
                           ),
+                      for (final place in widget.nearbyPlaces)
+                        Marker(
+                          point: LatLng(place.latitude, place.longitude),
+                          width: 42,
+                          height: 46,
+                          child: Tooltip(
+                            message: '${place.name} · ${place.category.label}',
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => launchUrl(place.osmUri),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: colors.surface,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: SenapathColors.navy,
+                                    width: 2,
+                                  ),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x33000000),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  _nearbyPlaceIcon(place.category),
+                                  color: SenapathColors.navy,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       if (currentLocation case final location?)
                         Marker(
                           point: location,
@@ -425,6 +462,14 @@ class _ExploreMapState extends State<ExploreMap> {
       ),
     );
   }
+
+  IconData _nearbyPlaceIcon(NearbyRoutePlaceCategory category) =>
+      switch (category) {
+        NearbyRoutePlaceCategory.trainStation => Icons.train,
+        NearbyRoutePlaceCategory.busTerminal => Icons.directions_bus,
+        NearbyRoutePlaceCategory.clinic => Icons.local_hospital,
+        NearbyRoutePlaceCategory.bicycleRepair => Icons.pedal_bike,
+      };
 
   Future<void> _showCurrentLocation() async {
     setState(() {

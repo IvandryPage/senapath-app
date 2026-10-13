@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../../../core/widgets/press_scale.dart';
 import '../../routes/domain/saved_route.dart';
 import '../domain/logistics_models.dart';
 import 'amount_input_formatter.dart';
@@ -292,8 +293,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
       button: true,
       selected: selected,
       label: item.label,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+      child: PressScale(
         onTap: () {
           setState(() {
             _selectedItemId = item.id;

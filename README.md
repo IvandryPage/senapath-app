@@ -58,7 +58,7 @@ Nama dan tipe pesepeda di **Edit profil** disinkronkan ke profil akun Supabase s
 
 ## Tema tampilan
 
-Senapath menggunakan **tema terang** di seluruh aplikasi, terlepas dari pengaturan tampilan perangkat.
+Senapath mengikuti pengaturan tampilan sistem: mode terang memakai tema terang, sedangkan mode gelap memakai palet gelap dengan latar dan permukaan gelap serta teks terang. Ubah tampilan perangkat untuk beralih di antara keduanya.
 
 ## Rute GPX dan panduan offline
 
@@ -73,7 +73,16 @@ Rekaman sesi menyimpan titik GPS secara lokal. Saat mulai, aplikasi meminta izin
 
 Sebelum mulai, aplikasi memeriksa ulang izin dan layanan lokasi; pada Jelajah, **Cek GPS sekarang** mencoba mendapatkan fix hingga 20 detik, sedangkan tombol lokasi di peta menunggu hingga 15 detik. Pemeriksaan awal tidak menunggu fix agar layar tidak tertahan. Jika fix belum datang, aktifkan lokasi perangkat dan coba di luar ruangan dengan pandangan langit terbuka; status akan menyebutkan apakah GPS belum dicek atau sudah dicoba tetapi belum mendapat fix. GPS aktif di pengaturan saja belum menjamin perangkat mendapat fix. Jika aplikasi dibuka kembali setelah proses dihentikan, sesi dipulihkan sebagai jeda untuk dikonfirmasi.
 
-Pencarian rute hanya bekerja pada nama GPX yang sudah diimpor dan disimpan lokal; Jelajah tidak mencari tempat/alamat eksternal dan tidak memerlukan Google Maps API.
+Pencarian rute hanya bekerja pada nama GPX yang sudah diimpor dan disimpan lokal. Setelah memilih rute di Jelajah, **Cari fasilitas** dapat mencari stasiun kereta, terminal, klinik/fasilitas kesehatan, dan bengkel sepeda di sekitar rute melalui Overpass API. Pencarian berjalan asinkron setelah konfirmasi; koordinat rute dikirim ke layanan Overpass publik. Hasil OpenStreetMap ditampilkan sebagai penanda dan dapat dibuka pada situs OpenStreetMap. Kelengkapan hasil bergantung pada data peta komunitas dan koneksi internet.
+Di **Ikuti rute**, ikon angin menampilkan arah hembusan relatif terhadap arah jalur tanpa angka kecepatan. Ketuk ikon untuk menyetujui pengiriman koordinat GPS saat ini ke Open-Meteo; selama panduan aktif, data arah angin diperbarui secara berkala atau setelah berpindah cukup jauh. Arah rute dihitung dari segmen GPX terdekat, sehingga angin diberi label depan, belakang, atau samping. Fitur ini memerlukan GPS akurat dan internet, dan bukan alat keselamatan atau prakiraan khusus lokasi jalan.
+
+Pratinjau rute GPX menyediakan **Briefing taktis** sebelum bersepeda. Setelah persetujuan terpisah, hanya titik awal dikirim ke Open-Meteo untuk cuaca terkini, lalu nama rute, jarak, sampel elevasi, arah relatif angin, dan ringkasan cuaca dikirim melalui sesi akun terautentikasi ke Supabase Edge Function `rider-coach`/Gemini. Koordinat GPS dan geometri lengkap tidak dikirim ke AI. Briefing memakai kuota AI harian yang sama; login, koneksi, konfigurasi Gemini, dan kuota tetap diperlukan.
+
+**Ghost Pacer** pada panduan rute membandingkan GPX dengan jejak GPS sesi selesai yang tersimpan lokal. Bila jejak memiliki kecocokan geometri dan cakupan yang cukup, satu panah kecil transparan menunjukkan posisi pada sesi tercepat yang cocok, berdasarkan waktu berjalan sesi tersebut; tidak ada data yang dikirim ke server. Sesi lama yang tidak mempunyai jejak memadai atau rute yang hanya berdekatan/tidak cukup cocok tidak menghasilkan hantu. Waktu jeda pada rekaman lama dinormalisasi sepanjang jejak, sehingga posisi hantu adalah pembanding pacing, bukan replay presisi.
+
+Selama merekam, Auto-Visor membaca sensor cahaya ambient Android melalui Android SensorManager dan Flutter EventChannel bawaan aplikasi, tanpa plugin Gradle tambahan atau izin runtime. Di layar gowes dan panduan saja, kondisi sangat terang mengaktifkan tema gelap `#071122`, teks lebih tebal, dan aksen `#0A7DD2` dengan transisi singkat; sensor tidak tersedia atau gagal berarti tema normal tetap digunakan. Pada iOS fitur ini fallback ke tema normal.
+
+Saat perjalanan dihentikan, status selesai terlebih dahulu disimpan secara lokal di Drift. Konfirmasi hijau menegaskan perjalanan aman di perangkat dan membedakan sinkronisasi otomatis aktif, nonaktif, atau memerlukan login kembali. Pembaruan riwayat, ledger, atau sinkronisasi merupakan pekerjaan lanjutan; kegagalannya tidak membatalkan penyimpanan lokal dan perjalanan cloud yang tertunda tetap berstatus pending.
 Jika sebelumnya pernah men-deploy Edge Function `cycling-route`, hapus function dan secret Google lama dari project Supabase yang bersangkutan (`supabase functions delete cycling-route` dan `supabase secrets unset GOOGLE_MAPS_API_KEY`). Perubahan repository ini tidak menghapus resource yang sudah di-deploy.
 
 Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. **Beranda → Lihat progres** menampilkan agregat mingguan (Senin–Senin) dan bulanan dengan jarak, jumlah sesi selesai, durasi aktif, serta daftar sesi sumber yang dapat dibuka kembali. Semua sesi selesai lokal digunakan, bukan hanya 50 terbaru. Target jarak, jumlah sesi, atau durasi dapat dibuat untuk periode mingguan/bulanan; target disimpan lokal di database preferensi dan tidak disinkronkan.
@@ -90,7 +99,7 @@ Impor GPX menerima file hingga 10 MB, memvalidasi titik track, dan mempertahanka
 
 Pemeriksaan pra-balapan menampilkan status izin notifikasi. Jika belum diberikan, pengguna dapat meminta izin OS dari layar tersebut atau membuka pengaturan perangkat bila izin pernah ditolak permanen. Ini hanya meminta izin; pengingat hidrasi dan peringatan cuaca/rute terjadwal belum tersedia.
 
-Integrasi menggunakan layanan tile publik OpenStreetMap untuk penggunaan ringan. Jangan melakukan prefetch/download tile atau mengandalkan layanan publik ini untuk trafik produksi berskala besar; evaluasi provider tile yang sesuai dengan kebutuhan, lisensi, dan kebijakan penggunaan sebelum rilis publik.
+Integrasi menggunakan layanan tile publik OpenStreetMap dan Overpass API untuk penggunaan ringan. Jangan melakukan prefetch/download tile atau mengandalkan layanan publik ini untuk trafik produksi berskala besar; evaluasi provider tile dan POI yang sesuai dengan kebutuhan, lisensi, dan kebijakan penggunaan sebelum rilis publik.
 
 ## Konversi zona waktu dunia
 

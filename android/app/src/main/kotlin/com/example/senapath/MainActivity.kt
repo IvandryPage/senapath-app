@@ -1,20 +1,74 @@
 package com.example.senapath
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import java.io.IOException
 
 class MainActivity : FlutterFragmentActivity() {
     private var pendingExportResult: MethodChannel.Result? = null
     private var pendingExportBytes: ByteArray? = null
+    private var ambientSensorManager: SensorManager? = null
+    private var ambientSensorListener: SensorEventListener? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.dartExecutor.binaryMessenger.let { messenger ->
+            EventChannel(messenger, AMBIENT_LIGHT_CHANNEL).setStreamHandler(
+                object : EventChannel.StreamHandler {
+                    override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                        val manager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+                        val sensor = manager?.getDefaultSensor(Sensor.TYPE_LIGHT)
+                        if (manager == null || sensor == null) {
+                            events.error(
+                                "sensor_unavailable",
+                                "This device does not provide an ambient light sensor.",
+                                null,
+                            )
+                            return
+                        }
+
+                        val listener = object : SensorEventListener {
+                            override fun onSensorChanged(event: SensorEvent) {
+                                val lux = event.values.firstOrNull()
+                                if (lux != null && lux.isFinite() && lux >= 0f) {
+                                    events.success(lux.toInt())
+                                }
+                            }
+
+                            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+                        }
+                        ambientSensorManager = manager
+                        ambientSensorListener = listener
+                        if (!manager.registerListener(
+                                listener,
+                                sensor,
+                                SensorManager.SENSOR_DELAY_NORMAL,
+                            )
+                        ) {
+                            clearAmbientSensorListener()
+                            events.error(
+                                "sensor_unavailable",
+                                "The ambient light sensor could not be started.",
+                                null,
+                            )
+                        }
+                    }
+
+                    override fun onCancel(arguments: Any?) {
+                        clearAmbientSensorListener()
+                    }
+                },
+            )
             MethodChannel(messenger, FILE_EXPORT_CHANNEL).setMethodCallHandler { call, result ->
                 if (call.method != "saveFile") {
                     result.notImplemented()
@@ -85,8 +139,17 @@ class MainActivity : FlutterFragmentActivity() {
         pendingExportBytes = null
     }
 
+    private fun clearAmbientSensorListener() {
+        ambientSensorListener?.let { listener ->
+            ambientSensorManager?.unregisterListener(listener)
+        }
+        ambientSensorListener = null
+        ambientSensorManager = null
+    }
+
     companion object {
         private const val FILE_EXPORT_CHANNEL = "senapath/file_export"
+        private const val AMBIENT_LIGHT_CHANNEL = "senapath/ambient_light"
         private const val FILE_EXPORT_REQUEST_CODE = 0x534e
     }
 }

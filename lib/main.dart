@@ -24,6 +24,7 @@ import 'features/routes/data/saved_route_repository.dart';
 import 'features/routes/data/route_file_exchange.dart';
 import 'features/routes/presentation/routes_cubit.dart';
 import 'features/session/data/session_file_service.dart';
+import 'features/session/data/ambient_light_source.dart';
 import 'features/session/data/encrypted_telemetry_codec.dart';
 import 'features/session/data/readiness_checker.dart';
 import 'features/session/data/ride_session_cloud_sync.dart';
@@ -175,6 +176,7 @@ Future<void> main() async {
         locationSource: const GeolocatorLocationSource(),
         barometerSource: const SensorsPlusBarometerSource(),
         motionSensorSource: const SensorsPlusMotionSensorSource(),
+        ambientLightSource: const DeviceAmbientLightSource(),
         notificationService: notificationService,
         notificationSettingsRepository: notificationSettingsRepository,
         ledgerRepository: rideLedgerRepository,

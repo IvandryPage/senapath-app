@@ -3,12 +3,16 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../core/widgets/press_scale.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../app/theme/senapath_design.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../routes/data/route_file_exchange.dart';
 import '../../routes/presentation/explore_map.dart';
 import '../../routes/presentation/routes_cubit.dart';
@@ -93,237 +97,280 @@ class _SessionScreenState extends State<SessionScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<RideSessionCubit, RideSessionState>(
-      listenWhen: (previous, current) =>
-          previous.message != current.message && current.message != null,
-      listener: (context, state) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(state.message!)));
-        context.read<RideSessionCubit>().clearMessage();
-      },
-      child: BlocBuilder<RideSessionCubit, RideSessionState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final unitSystem = context
-              .watch<UnitSettingsCubit>()
-              .state
-              .unitSystem;
-          final readiness = state.readiness;
-          final session = state.session;
-
-          if (widget.historyOnly) {
-            if (widget.summarySessionId case final sessionId?) {
-              final summary = state.summary;
-              if (state.isLoadingSummary || summary == null) {
-                return Center(
-                  child: state.isLoadingSummary
-                      ? const CircularProgressIndicator()
-                      : const Text('Ringkasan perjalanan belum tersedia.'),
-                );
-              }
-              if (summary.session.id != sessionId) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                children: [
-                  _buildSummaryDetail(
-                    context,
-                    summary,
-                    state.summaryLocations,
-                    unitSystem,
-                  ),
-                ],
-              );
-            }
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-              children: [
-                if (state.completedSessions.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'Perjalanan yang selesai akan muncul di sini.',
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                else ...[
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        _exportAllSessions(context, state.completedSessions),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Ekspor perjalanan dan rute GPS'),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildHistory(context, state.completedSessions, unitSystem),
-                ],
-              ],
-            );
-          }
-
-          final recordedLocations = state.recordedLocations;
-          final trackPoints = [
-            for (final location in recordedLocations)
-              latlong.LatLng(location.latitude, location.longitude),
-          ];
-          final currentLocation = recordedLocations.isEmpty
-              ? null
-              : trackPoints.last;
-
-          return LayoutBuilder(
-            builder: (context, constraints) => Stack(
-              fit: StackFit.expand,
-              children: [
-                if (widget.showMap)
-                  ExploreMap(
-                    height: constraints.maxHeight,
-                    borderRadius: 0,
-                    trackPoints: trackPoints,
-                    currentLocation: currentLocation,
-                    followLocation:
-                        session?.status == RideSessionStatus.recording,
-                    showEmptyMessage: false,
-                  ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: SizedBox(
-                    height:
-                        constraints.maxHeight *
-                        (widget.showMap
-                            ? widget.panelHeightFactor.clamp(0.2, 1.0)
-                            : 1.0),
-                    child: Material(
-                      color: Theme.of(context).colorScheme.surface
-                          .withValues(alpha: 0.97),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(widget.showMap ? 4 : 0),
-                        ),
-                        side: BorderSide(
-                          color: Theme.of(context).colorScheme.outline,
-                          width: widget.showMap ? 2 : 0,
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                        children: [
-                          if (widget.compactControls) ...[
-                            _buildCompactControls(context, state, unitSystem),
-                            if (session != null &&
-                                session.status !=
-                                    RideSessionStatus.completed) ...[
-                              const SizedBox(height: 24),
-                              _buildLivePerformance(
-                                context,
-                                state,
-                                session,
-                                unitSystem,
-                              ),
-                            ],
-                            if (!widget.hideReadinessDetails &&
-                                (session == null ||
-                                    session.status ==
-                                        RideSessionStatus.completed)) ...[
-                              const SizedBox(height: 8),
-                              Theme(
-                                data: Theme.of(context)
-                                    .copyWith(dividerColor: Colors.transparent),
-                                child: ExpansionTile(
-                                  tilePadding: EdgeInsets.zero,
-                                  childrenPadding: EdgeInsets.zero,
-                                  title: const Text(
-                                    'Izin dan kesiapan perangkat',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  children: [
-                                    _buildReadiness(context, readiness, state),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ] else ...[
-                            _buildSessionStatus(context, session),
-                            if (session != null) ...[
-                              if (state.workout?.visualCueEnabled == true &&
-                                  state.workoutProgress != null) ...[
-                                const SizedBox(height: 16),
-                                _buildWorkoutProgress(context, state),
-                              ],
-                              const SizedBox(height: 24),
-                              _buildMetrics(
-                                context,
-                                session,
-                                state.elapsed,
-                                unitSystem,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildSessionControls(context, state),
-                            ] else ...[
-                              const SizedBox(height: 24),
-                              _buildReadiness(context, readiness, state),
-                              const SizedBox(height: 20),
-                              _buildWorkoutPicker(context),
-                              const SizedBox(height: 10),
-                              _buildStartControl(context, state),
-                            ],
-                          ],
-                          if (widget.showHistory &&
-                              state.completedSessions.isNotEmpty) ...[
-                            const SizedBox(height: 28),
-                            _buildHistory(
-                              context,
-                              state.completedSessions,
-                              unitSystem,
-                            ),
-                          ],
-                          if (state.isLoadingSummary) ...[
-                            const SizedBox(height: 20),
-                            const LinearProgressIndicator(),
-                          ],
-                          if (widget.showSummary)
-                            if (state.summary case final summary?) ...[
-                              const SizedBox(height: 24),
-                              _buildSummaryDetail(
-                                context,
-                                summary,
-                                state.summaryLocations,
-                                unitSystem,
-                              ),
-                            ],
-                          const SizedBox(height: 24),
-                          if (widget.showMap) ...[
-                            _buildEmergencyPanel(
-                              context,
-                              context.watch<ProfileCubit>().state.contacts,
-                              context.watch<EmergencyCubit>().state,
-                              state.recordedLocations.isEmpty
-                                  ? null
-                                  : state.recordedLocations.last,
-                            ),
-                            const SizedBox(height: 18),
-                            const Text(
-                              'Perjalanan dan titik lokasinya tetap tersimpan '
-                              'dengan aman di ponsel. Hanya ringkasan yang '
-                              'dikirim setelah kamu menyetujuinya.',
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+    return BlocBuilder<RideSessionCubit, RideSessionState>(
+      builder: (context, visorState) => AnimatedTheme(
+        data:
+            !widget.historyOnly &&
+                (visorState.session?.status == RideSessionStatus.recording ||
+                    visorState.session?.status == RideSessionStatus.paused) &&
+                visorState.isAmbientBright
+            ? AppTheme.rideBright
+            : Theme.of(context),
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+        child: BlocListener<RideSessionCubit, RideSessionState>(
+          listenWhen: (previous, current) =>
+              previous.message != current.message && current.message != null,
+          listener: (context, state) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  backgroundColor: state.messageIsSuccess
+                      ? const Color(0xFF16834A)
+                      : null,
+                  content: Row(
+                    children: [
+                      if (state.messageIsSuccess) ...[
+                        const Icon(Icons.check_circle, color: Colors.white),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(child: Text(state.message!)),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          );
-        },
+              );
+            context.read<RideSessionCubit>().clearMessage();
+          },
+          child: BlocBuilder<RideSessionCubit, RideSessionState>(
+            builder: (context, state) {
+              if (state.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final unitSystem = context
+                  .watch<UnitSettingsCubit>()
+                  .state
+                  .unitSystem;
+              final readiness = state.readiness;
+              final session = state.session;
+
+              if (widget.historyOnly) {
+                if (widget.summarySessionId case final sessionId?) {
+                  final summary = state.summary;
+                  if (state.isLoadingSummary || summary == null) {
+                    return Center(
+                      child: state.isLoadingSummary
+                          ? const CircularProgressIndicator()
+                          : const Text('Ringkasan perjalanan belum tersedia.'),
+                    );
+                  }
+                  if (summary.session.id != sessionId) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                    children: [
+                      _buildSummaryDetail(
+                        context,
+                        summary,
+                        state.summaryLocations,
+                        unitSystem,
+                      ),
+                    ],
+                  );
+                }
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                  children: [
+                    if (state.completedSessions.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Text(
+                          'Perjalanan yang selesai akan muncul di sini.',
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    else ...[
+                      OutlinedButton.icon(
+                        onPressed: () => _exportAllSessions(
+                          context,
+                          state.completedSessions,
+                        ),
+                        icon: const Icon(Icons.download_outlined),
+                        label: const Text('Ekspor perjalanan dan rute GPS'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildHistory(
+                        context,
+                        state.completedSessions,
+                        unitSystem,
+                      ),
+                    ],
+                  ],
+                );
+              }
+
+              final recordedLocations = state.recordedLocations;
+              final trackPoints = [
+                for (final location in recordedLocations)
+                  latlong.LatLng(location.latitude, location.longitude),
+              ];
+              final currentLocation = recordedLocations.isEmpty
+                  ? null
+                  : trackPoints.last;
+
+              return LayoutBuilder(
+                builder: (context, constraints) => Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (widget.showMap)
+                      ExploreMap(
+                        height: constraints.maxHeight,
+                        borderRadius: 0,
+                        trackPoints: trackPoints,
+                        currentLocation: currentLocation,
+                        followLocation:
+                            session?.status == RideSessionStatus.recording,
+                        showEmptyMessage: false,
+                      ),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        height:
+                            constraints.maxHeight *
+                            (widget.showMap
+                                ? widget.panelHeightFactor.clamp(0.2, 1.0)
+                                : 1.0),
+                        child: Material(
+                          color: Theme.of(context).colorScheme.surface
+                              .withValues(alpha: 0.97),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(widget.showMap ? 4 : 0),
+                            ),
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: widget.showMap ? 2 : 0,
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                            children: [
+                              if (widget.compactControls) ...[
+                                _buildCompactControls(
+                                  context,
+                                  state,
+                                  unitSystem,
+                                ),
+                                if (session != null &&
+                                    session.status !=
+                                        RideSessionStatus.completed) ...[
+                                  const SizedBox(height: 24),
+                                  _buildLivePerformance(
+                                    context,
+                                    state,
+                                    session,
+                                    unitSystem,
+                                  ),
+                                ],
+                                if (!widget.hideReadinessDetails &&
+                                    (session == null ||
+                                        session.status ==
+                                            RideSessionStatus.completed)) ...[
+                                  const SizedBox(height: 8),
+                                  Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dividerColor: Colors.transparent,
+                                    ),
+                                    child: ExpansionTile(
+                                      tilePadding: EdgeInsets.zero,
+                                      childrenPadding: EdgeInsets.zero,
+                                      title: const Text(
+                                        'Izin dan kesiapan perangkat',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      children: [
+                                        _buildReadiness(
+                                          context,
+                                          readiness,
+                                          state,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ] else ...[
+                                _buildSessionStatus(context, session),
+                                if (session != null) ...[
+                                  if (state.workout?.visualCueEnabled == true &&
+                                      state.workoutProgress != null) ...[
+                                    const SizedBox(height: 16),
+                                    _buildWorkoutProgress(context, state),
+                                  ],
+                                  const SizedBox(height: 24),
+                                  _buildMetrics(
+                                    context,
+                                    session,
+                                    state.elapsed,
+                                    unitSystem,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildSessionControls(context, state),
+                                ] else ...[
+                                  const SizedBox(height: 24),
+                                  _buildReadiness(context, readiness, state),
+                                  const SizedBox(height: 20),
+                                  _buildWorkoutPicker(context),
+                                  const SizedBox(height: 10),
+                                  _buildStartControl(context, state),
+                                ],
+                              ],
+                              if (widget.showHistory &&
+                                  state.completedSessions.isNotEmpty) ...[
+                                const SizedBox(height: 28),
+                                _buildHistory(
+                                  context,
+                                  state.completedSessions,
+                                  unitSystem,
+                                ),
+                              ],
+                              if (state.isLoadingSummary) ...[
+                                const SizedBox(height: 20),
+                                const LinearProgressIndicator(),
+                              ],
+                              if (widget.showSummary)
+                                if (state.summary case final summary?) ...[
+                                  const SizedBox(height: 24),
+                                  _buildSummaryDetail(
+                                    context,
+                                    summary,
+                                    state.summaryLocations,
+                                    unitSystem,
+                                  ),
+                                ],
+                              const SizedBox(height: 24),
+                              if (widget.showMap) ...[
+                                _buildEmergencyPanel(
+                                  context,
+                                  context.watch<ProfileCubit>().state.contacts,
+                                  context.watch<EmergencyCubit>().state,
+                                  state.recordedLocations.isEmpty
+                                      ? null
+                                      : state.recordedLocations.last,
+                                ),
+                                const SizedBox(height: 18),
+                                const Text(
+                                  'Perjalanan dan titik lokasinya tetap tersimpan '
+                                  'dengan aman di ponsel. Hanya ringkasan yang '
+                                  'dikirim setelah kamu menyetujuinya.',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -1026,6 +1073,7 @@ class _SessionScreenState extends State<SessionScreen>
           : null,
       icon: Icons.play_arrow,
       label: 'Mulai merekam',
+      animatePress: true,
     );
   }
 
@@ -1116,14 +1164,21 @@ class _SessionScreenState extends State<SessionScreen>
       return Row(
         children: [
           Expanded(
-            child: FilledButton.icon(
-              onPressed: state.canStart
-                  ? () => context.read<RideSessionCubit>().resume(
-                      route: context.read<RoutesCubit>().state.sessionRoute,
-                    )
-                  : null,
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Lanjutkan'),
+            child: PressScale(
+              enabled: state.canStart,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  overlayColor: Colors.transparent,
+                  splashFactory: NoSplash.splashFactory,
+                ),
+                onPressed: state.canStart
+                    ? () => context.read<RideSessionCubit>().resume(
+                        route: context.read<RoutesCubit>().state.sessionRoute,
+                      )
+                    : null,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Lanjutkan'),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -1139,10 +1194,16 @@ class _SessionScreenState extends State<SessionScreen>
     return Row(
       children: [
         Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: () => context.read<RideSessionCubit>().pause(),
-            icon: const Icon(Icons.pause),
-            label: const Text('Jeda'),
+          child: PressScale(
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                overlayColor: Colors.transparent,
+                splashFactory: NoSplash.splashFactory,
+              ),
+              onPressed: () => context.read<RideSessionCubit>().pause(),
+              icon: const Icon(Icons.pause),
+              label: const Text('Jeda'),
+            ),
           ),
         ),
         const SizedBox(width: 12),

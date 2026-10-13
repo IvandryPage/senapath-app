@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../data/readiness_checker.dart';
+import '../data/ambient_light_source.dart';
 import '../data/ride_session_cloud_sync.dart';
 import '../data/ride_session_repository.dart';
 import '../data/session_sync_coordinator.dart';
@@ -43,6 +44,8 @@ class RideSessionState {
     this.motion,
     this.now,
     this.message,
+    this.isAmbientBright = false,
+    this.messageIsSuccess = false,
   });
 
   final bool isInitialized;
@@ -66,6 +69,8 @@ class RideSessionState {
   final MotionSnapshot? motion;
   final DateTime? now;
   final String? message;
+  final bool isAmbientBright;
+  final bool messageIsSuccess;
 
   RideSessionState copyWith({
     bool? isInitialized,
@@ -96,6 +101,8 @@ class RideSessionState {
     DateTime? now,
     String? message,
     bool clearMessage = false,
+    bool? isAmbientBright,
+    bool messageIsSuccess = false,
   }) => RideSessionState(
     isInitialized: isInitialized ?? this.isInitialized,
     isLoading: isLoading ?? this.isLoading,
@@ -126,6 +133,12 @@ class RideSessionState {
     motion: clearMotion ? null : motion ?? this.motion,
     now: now ?? this.now,
     message: clearMessage ? null : message ?? this.message,
+    isAmbientBright: isAmbientBright ?? this.isAmbientBright,
+    messageIsSuccess: clearMessage
+        ? false
+        : message == null
+        ? this.messageIsSuccess
+        : messageIsSuccess,
   );
 
   bool get canStart => readiness?.canStartRecording ?? false;
@@ -149,6 +162,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     this.notificationSettingsRepository,
     this.ledgerRepository,
     this.intervalWorkoutRepository,
+    this.ambientLightSource,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now,
        super(const RideSessionState());
@@ -165,11 +179,13 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final NotificationSettingsRepository? notificationSettingsRepository;
   final RideLedgerRepository? ledgerRepository;
   final IntervalWorkoutRepository? intervalWorkoutRepository;
+  final AmbientLightSource? ambientLightSource;
   final DateTime Function() _clock;
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<double>? _barometerSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
+  StreamSubscription<int>? _ambientLightSubscription;
   double? _barometricPressureHpa;
   double? _accelerationMagnitude;
   double? _rotationRateMagnitude;
@@ -276,6 +292,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       if (autoSyncEnabled) {
         _startAutoSyncRetry(runImmediately: !canCloudSync);
       }
+      _startAmbientLightStream();
       if (session?.status == RideSessionStatus.recording) {
         await _startLocationStream(session!.id);
         await _startBarometerStream();
@@ -495,57 +512,81 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       _setMessage('Tidak ada sesi aktif untuk diakhiri.');
       return;
     }
-    await _stopLocationStream();
-    await _stopBarometerStream();
-    await _stopMotionSensorStreams();
+    final followUpMessages = <String>[];
+    for (final stopStream in [
+      _stopLocationStream,
+      _stopBarometerStream,
+      _stopMotionSensorStreams,
+    ]) {
+      try {
+        await stopStream();
+      } catch (_) {
+        followUpMessages.add('Sebagian sensor belum berhenti dengan rapi.');
+      }
+    }
     _ticker?.cancel();
+    late final RideSessionSnapshot completed;
     try {
-      final completed = await repository.finish(session.id, _clock().toUtc());
-      var workoutCleanupMessage = false;
-      try {
-        await intervalWorkoutRepository?.clearCheckpoint();
-      } catch (_) {
-        workoutCleanupMessage = true;
-      }
-      _workoutCheckpoint = null;
-      final history = await repository.loadCompletedSessions();
-      String? ledgerMessage;
-      try {
-        await ledgerRepository?.appendSession(completed);
-      } catch (_) {
-        ledgerMessage =
-            'Perjalanan selesai, tetapi kode buktinya belum dibuat.';
-      }
-      if (workoutCleanupMessage) {
-        ledgerMessage = ledgerMessage == null
-            ? 'Perjalanan selesai, tetapi kemajuan latihan belum dibersihkan.'
-            : '$ledgerMessage Kemajuan latihan juga belum dibersihkan.';
-      }
-      emit(
-        state.copyWith(
-          session: completed,
-          clearActiveRoute: true,
-          clearRouteProgress: true,
-          completedSessions: history,
-          now: completed.endedAt,
-          clearSummary: true,
-          clearMotion: true,
-          clearWorkout: true,
-        ),
-      );
-      _activeRoute = null;
-      _routeProgressCalculator = null;
-      if (state.autoSyncEnabled) {
-        if (canCloudSync) {
-          unawaited(_pushCloudSession(completed.id));
-        } else {
-          unawaited(_syncCompletedSession(completed.id));
-        }
-      }
+      completed = await repository.finish(session.id, _clock().toUtc());
     } catch (_) {
       _setMessage(
         'Perjalanan belum dapat diselesaikan. Data di ponsel tetap aman.',
       );
+      return;
+    }
+
+    final confirmation = !state.autoSyncEnabled
+        ? 'Perjalanan epik Anda tersimpan aman di perangkat. Sinkronisasi cloud nonaktif.'
+        : canCloudSync || canSyncSessions
+        ? 'Perjalanan epik Anda tersimpan aman di perangkat. Sinkronisasi cloud akan dicoba saat koneksi tersedia.'
+        : 'Perjalanan epik Anda tersimpan aman di perangkat. Untuk sinkronisasi cloud, masuk kembali ke akun dan sambungkan internet.';
+    _workoutCheckpoint = null;
+    _activeRoute = null;
+    _routeProgressCalculator = null;
+    emit(
+      state.copyWith(
+        session: completed,
+        clearActiveRoute: true,
+        clearRouteProgress: true,
+        now: completed.endedAt,
+        clearSummary: true,
+        clearMotion: true,
+        clearWorkout: true,
+        message: confirmation,
+        messageIsSuccess: true,
+      ),
+    );
+
+    try {
+      await intervalWorkoutRepository?.clearCheckpoint();
+    } catch (_) {
+      followUpMessages.add('Kemajuan latihan belum dibersihkan.');
+    }
+    try {
+      final history = await repository.loadCompletedSessions();
+      if (!isClosed) emit(state.copyWith(completedSessions: history));
+    } catch (_) {
+      followUpMessages.add('Riwayat lokal belum dapat dimuat ulang.');
+    }
+    try {
+      await ledgerRepository?.appendSession(completed);
+    } catch (_) {
+      followUpMessages.add('Kode bukti perjalanan belum dibuat.');
+    }
+    if (followUpMessages.isNotEmpty && !isClosed) {
+      _setMessage(
+        '$confirmation ${followUpMessages.join(' ')}',
+        isSuccess: true,
+      );
+    }
+    if (state.autoSyncEnabled) {
+      if (canCloudSync) {
+        unawaited(_pushCloudSession(completed.id));
+      } else {
+        unawaited(
+          _syncCompletedSession(completed.id, preserveLocalConfirmation: true),
+        );
+      }
     }
   }
 
@@ -641,6 +682,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     String sessionId, {
     required bool consented,
     String? shareWithTeamId,
+    bool preserveLocalConfirmation = false,
   }) async {
     final coordinator = syncCoordinator;
     if (coordinator == null) {
@@ -650,7 +692,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     if (state.syncingSessionId != null) return;
 
     final generation = ++_syncGeneration;
-    emit(state.copyWith(syncingSessionId: sessionId, clearMessage: true));
+    emit(
+      state.copyWith(
+        syncingSessionId: sessionId,
+        clearMessage: !preserveLocalConfirmation,
+      ),
+    );
     try {
       await coordinator.syncSummary(
         sessionId,
@@ -698,7 +745,10 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           summary: summary,
           summaryLocations: summaryLocations,
           clearSyncingSession: true,
-          message: 'Ringkasan belum bisa disimpan ke akun online. Data tetap aman di ponsel; coba lagi saat internet tersedia.',
+          message: preserveLocalConfirmation
+              ? 'Perjalanan epik Anda tersimpan aman di perangkat. Sinkronisasi cloud tertunda; perjalanan ini tetap menunggu sinkronisasi.'
+              : 'Ringkasan belum bisa disimpan ke akun online. Data tetap aman di ponsel; coba lagi saat internet tersedia.',
+          messageIsSuccess: preserveLocalConfirmation,
         ),
       );
     }
@@ -847,7 +897,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     } catch (_) {
       if (!isClosed) {
         _setMessage(
-          'Sesi tersimpan lokal; sinkronisasi cloud gagal dan akan dicoba lagi.',
+          'Perjalanan epik Anda tersimpan aman di perangkat. Sinkronisasi cloud tertunda; perjalanan ini tetap menunggu sinkronisasi.',
+          isSuccess: true,
         );
       }
     }
@@ -863,14 +914,21 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> _syncCompletedSession(String sessionId) async {
+  Future<void> _syncCompletedSession(
+    String sessionId, {
+    bool preserveLocalConfirmation = false,
+  }) async {
     if (!state.autoSyncEnabled ||
         canCloudSync ||
         !canSyncSessions ||
         state.syncingSessionId != null) {
       return;
     }
-    await syncSummary(sessionId, consented: true);
+    await syncSummary(
+      sessionId,
+      consented: true,
+      preserveLocalConfirmation: preserveLocalConfirmation,
+    );
   }
 
   void cancelPendingSync() {
@@ -1367,14 +1425,56 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  void _setMessage(String message) => emit(state.copyWith(message: message));
+  void _setMessage(String message, {bool isSuccess = false}) =>
+      emit(state.copyWith(message: message, messageIsSuccess: isSuccess));
 
   void clearMessage() => emit(state.copyWith(clearMessage: true));
+
+  void _startAmbientLightStream() {
+    final source = ambientLightSource;
+    if (source == null || _ambientLightSubscription != null) return;
+    try {
+      _ambientLightSubscription = source.readings.listen(
+        (lux) {
+          final isBright = shouldUseHighAmbientContrast(
+            isBright: state.isAmbientBright,
+            lux: lux,
+          );
+          if (isBright != state.isAmbientBright && !isClosed) {
+            emit(state.copyWith(isAmbientBright: isBright));
+          }
+        },
+        onError: (Object _) {
+          if (!isClosed) {
+            emit(
+              state.copyWith(
+                isAmbientBright: false,
+                message: 'Sensor cahaya tidak tersedia; tampilan menggunakan kontras standar.',
+              ),
+            );
+          }
+        },
+        onDone: () {
+          if (!isClosed && state.isAmbientBright) {
+            emit(state.copyWith(isAmbientBright: false));
+          }
+        },
+      );
+    } catch (_) {
+      emit(
+        state.copyWith(
+          isAmbientBright: false,
+          message: 'Sensor cahaya tidak tersedia; tampilan menggunakan kontras standar.',
+        ),
+      );
+    }
+  }
 
   @override
   Future<void> close() async {
     _ticker?.cancel();
     _autoSyncRetryTimer?.cancel();
+    await _ambientLightSubscription?.cancel();
     await _stopLocationStream();
     await _stopBarometerStream();
     await _stopMotionSensorStreams();

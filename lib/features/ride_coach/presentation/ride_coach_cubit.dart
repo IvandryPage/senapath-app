@@ -8,12 +8,20 @@ class RideCoachState {
     this.isLoading = false,
     this.error,
     this.notice,
+    this.preRideBriefing,
+    this.preRideRouteId,
+    this.isLoadingPreRide = false,
+    this.preRideError,
   });
 
   final String? recommendation;
   final bool isLoading;
   final String? error;
   final String? notice;
+  final String? preRideBriefing;
+  final String? preRideRouteId;
+  final bool isLoadingPreRide;
+  final String? preRideError;
 }
 
 class RideCoachCubit extends Cubit<RideCoachState> {
@@ -71,6 +79,52 @@ class RideCoachCubit extends Cubit<RideCoachState> {
           RideCoachState(
             recommendation: state.recommendation,
             error: error is StateError ? error.message : 'Saran belum tersedia. Periksa koneksi internet dan coba lagi.',
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> prepareRide({
+    required String routeId,
+    required Map<String, Object?> routeAndWeather,
+    required bool consent,
+  }) async {
+    if (state.isLoading || state.isLoadingPreRide) return;
+    final generation = ++_requestGeneration;
+    emit(
+      RideCoachState(
+        recommendation: state.recommendation,
+        isLoading: state.isLoading,
+        preRideBriefing: state.preRideBriefing,
+        preRideRouteId: routeId,
+        isLoadingPreRide: true,
+      ),
+    );
+    try {
+      final briefing = await _gateway.prepareRide(
+        routeAndWeather: routeAndWeather,
+        consent: consent,
+      );
+      if (!isClosed && generation == _requestGeneration) {
+        emit(
+          RideCoachState(
+            recommendation: state.recommendation,
+            preRideBriefing: briefing,
+            preRideRouteId: routeId,
+          ),
+        );
+      }
+    } catch (error) {
+      if (!isClosed && generation == _requestGeneration) {
+        emit(
+          RideCoachState(
+            recommendation: state.recommendation,
+            preRideBriefing: state.preRideBriefing,
+            preRideRouteId: routeId,
+            preRideError: error is StateError
+                ? error.message
+                : 'Briefing belum tersedia. Periksa koneksi internet dan coba lagi.',
           ),
         );
       }

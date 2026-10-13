@@ -12,6 +12,21 @@ void main() {
     expect(theme.scaffoldBackgroundColor, isNot(Colors.black));
   });
 
+  test('dark theme reverses light surfaces and text contrast', () {
+    final theme = AppTheme.dark;
+
+    expect(theme.brightness, Brightness.dark);
+    expect(theme.colorScheme.brightness, Brightness.dark);
+    expect(theme.scaffoldBackgroundColor, const Color(0xFF071122));
+    expect(theme.colorScheme.surface, const Color(0xFF10243A));
+    expect(theme.colorScheme.onSurface, const Color(0xFFF4F7FB));
+    expect(theme.cardTheme.color, const Color(0xFF10243A));
+    expect(
+      theme.filledButtonTheme.style?.backgroundColor?.resolve({}),
+      const Color(0xFF7FC8FF),
+    );
+  });
+
   testWidgets('shared alert dialogs use comfortable internal spacing', (
     tester,
   ) async {

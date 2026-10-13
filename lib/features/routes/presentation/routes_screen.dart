@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,13 +13,18 @@ import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/active_navigation_branch.dart';
 import '../../../core/widgets/feature_state_view.dart';
+import '../data/overpass_route_places_service.dart';
+import '../data/pre_ride_weather_service.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../logistics/presentation/logistics_cubit.dart';
 import '../../logistics/presentation/resupply_cache_sheet.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../domain/gps_movement_bearing.dart';
+import '../domain/route_wind.dart';
+import '../domain/nearby_route_place.dart';
 import '../domain/saved_route.dart';
+import '../../ride_coach/presentation/ride_coach_cubit.dart';
 import 'routes_cubit.dart';
 import 'explore_map.dart';
 import '../../session/domain/ride_session.dart';
@@ -27,13 +33,28 @@ import '../../session/presentation/session_screen.dart';
 import '../../workouts/presentation/interval_workout_cubit.dart';
 
 class RoutesScreen extends StatefulWidget {
-  const RoutesScreen({super.key});
+  const RoutesScreen({
+    this.routePlacesService,
+    this.preRideWeatherService,
+    this.rideCoachCubit,
+    super.key,
+  });
+
+  final OverpassRoutePlacesService? routePlacesService;
+  final PreRideWeatherService? preRideWeatherService;
+  final RideCoachCubit? rideCoachCubit;
 
   @override
   State<RoutesScreen> createState() => _RoutesScreenState();
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
+  late final OverpassRoutePlacesService _routePlacesService =
+      widget.routePlacesService ?? OverpassRoutePlacesService();
+  List<NearbyRoutePlace> _nearbyPlaces = const [];
+  String? _nearbyPlacesRouteId;
+  bool _isLoadingNearbyPlaces = false;
+
   bool _northUpLocked = false;
   bool _isExploreBranchActive = true;
 
@@ -77,7 +98,22 @@ class _RoutesScreenState extends State<RoutesScreen> {
             listener: (context, state) {
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(content: Text(state.message!)));
+                ..showSnackBar(
+                  SnackBar(
+                    backgroundColor: state.messageIsSuccess
+                        ? const Color(0xFF16834A)
+                        : null,
+                    content: Row(
+                      children: [
+                        if (state.messageIsSuccess) ...[
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(child: Text(state.message!)),
+                      ],
+                    ),
+                  ),
+                );
               context.read<RideSessionCubit>().clearMessage();
             },
             child: BlocBuilder<RideSessionCubit, RideSessionState>(
@@ -120,6 +156,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           routes: activeRoute == null
                               ? const []
                               : [activeRoute],
+                          nearbyPlaces: _nearbyPlacesRouteId == activeRoute?.id
+                              ? _nearbyPlaces
+                              : const [],
                           autoLocate: _isExploreBranchActive,
                           height: constraints.maxHeight,
                           trackPoints: trackPoints,
@@ -221,6 +260,47 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                   ),
                           ),
                         ),
+                        if (activeRoute != null &&
+                            activeRoute.points.length >= 2)
+                          Positioned(
+                            top: 78,
+                            left: 16,
+                            child: OutlinedButton.icon(
+                              key: const Key('route-nearby-places'),
+                              onPressed: _isLoadingNearbyPlaces
+                                  ? null
+                                  : () => _nearbyPlacesRouteId == activeRoute.id
+                                        ? _showNearbyPlaces(_nearbyPlaces)
+                                        : _confirmAndLoadNearbyPlaces(
+                                            activeRoute,
+                                          ),
+                              icon: _isLoadingNearbyPlaces
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Icon(
+                                      _nearbyPlacesRouteId == activeRoute.id
+                                          ? Icons.place
+                                          : Icons.search,
+                                    ),
+                              label: Text(
+                                _isLoadingNearbyPlaces
+                                    ? 'Mencari fasilitas…'
+                                    : _nearbyPlacesRouteId == activeRoute.id
+                                    ? 'Fasilitas (${_nearbyPlaces.length})'
+                                    : 'Cari fasilitas',
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .surface,
+                              ),
+                            ),
+                          ),
                         Positioned(
                           right: 16,
                           bottom: 16,
@@ -295,6 +375,145 @@ class _RoutesScreenState extends State<RoutesScreen> {
       builder: (_) => const _GpxRoutePicker(),
     );
   }
+
+  Future<void> _confirmAndLoadNearbyPlaces(RouteRecord route) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SenapathAlertDialog(
+        title: const Text('Cari fasilitas sekitar rute?'),
+        content: const Text(
+          'Koordinat rute akan dikirim ke layanan publik Overpass API untuk '
+          'mencari stasiun kereta, terminal, klinik, dan bengkel sepeda dalam '
+          'jarak sekitar 700 meter. Permintaan dilakukan saat kamu memilih '
+          'Cari, dan hasilnya berasal dari OpenStreetMap.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Kirim koordinat & cari'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoadingNearbyPlaces = true);
+    try {
+      final places = await _routePlacesService.findAlongRoute(route);
+      if (!mounted) return;
+      setState(() {
+        _nearbyPlaces = places;
+        _nearbyPlacesRouteId = route.id;
+        _isLoadingNearbyPlaces = false;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              places.isEmpty
+                  ? 'Fasilitas di sekitar rute tidak ditemukan.'
+                  : '${places.length} fasilitas ditemukan dan ditandai di peta.',
+            ),
+          ),
+        );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingNearbyPlaces = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Fasilitas sekitar rute tidak dapat dimuat. Periksa koneksi '
+              'internet dan coba lagi.',
+            ),
+          ),
+        );
+    }
+  }
+
+  Future<void> _showNearbyPlaces(
+    List<NearbyRoutePlace> places,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    builder: (sheetContext) => SafeArea(
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.65,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fasilitas sekitar rute',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Data OpenStreetMap · pencarian sekitar 700 m dari rute',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: places.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Tidak ada fasilitas yang ditemukan di sekitar '
+                          'rute. Data OpenStreetMap mungkin belum lengkap.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: places.length,
+                      itemBuilder: (context, index) {
+                        final place = places[index];
+                        return ListTile(
+                          leading: Icon(_placeIcon(place.category)),
+                          title: Text(place.name),
+                          subtitle: Text(place.category.label),
+                          trailing: const Icon(Icons.open_in_new),
+                          onTap: () async {
+                            final opened = await launchUrl(place.osmUri);
+                            if (!opened && sheetContext.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Lokasi OpenStreetMap tidak dapat dibuka.',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  IconData _placeIcon(NearbyRoutePlaceCategory category) => switch (category) {
+    NearbyRoutePlaceCategory.trainStation => Icons.train,
+    NearbyRoutePlaceCategory.busTerminal => Icons.directions_bus,
+    NearbyRoutePlaceCategory.clinic => Icons.local_hospital,
+    NearbyRoutePlaceCategory.bicycleRepair => Icons.pedal_bike,
+  };
 
   Future<void> _callEmergencyContact(EmergencyContact contact) async {
     final emergencyCubit = context.read<EmergencyCubit>();
@@ -655,7 +874,14 @@ class _SessionMetricsOverlay extends StatelessWidget {
 }
 
 class SavedRoutesScreen extends StatefulWidget {
-  const SavedRoutesScreen({super.key});
+  const SavedRoutesScreen({
+    this.preRideWeatherService,
+    this.rideCoachCubit,
+    super.key,
+  });
+
+  final PreRideWeatherService? preRideWeatherService;
+  final RideCoachCubit? rideCoachCubit;
 
   @override
   State<SavedRoutesScreen> createState() => _SavedRoutesScreenState();
@@ -736,7 +962,12 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
               )
             else
               for (final route in state.routes)
-                _RouteTile(route: route, unitSystem: unitSystem),
+                _RouteTile(
+                  route: route,
+                  unitSystem: unitSystem,
+                  weatherService: widget.preRideWeatherService,
+                  rideCoachCubit: widget.rideCoachCubit,
+                ),
           ],
         );
       },
@@ -744,11 +975,277 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   }
 }
 
+class _PreRideBriefing extends StatefulWidget {
+  const _PreRideBriefing({
+    required this.route,
+    required this.weatherService,
+    required this.rideCoachCubit,
+  });
+
+  final RouteRecord route;
+  final PreRideWeatherService weatherService;
+  final RideCoachCubit rideCoachCubit;
+
+  @override
+  State<_PreRideBriefing> createState() => _PreRideBriefingState();
+}
+
+class _PreRideBriefingState extends State<_PreRideBriefing> {
+  bool _isLoadingWeather = false;
+  String? _weatherError;
+
+  Future<void> _requestBriefing() async {
+    final coach = widget.rideCoachCubit;
+    if (!coach.isConfigured) {
+      setState(
+        () => _weatherError = 'Layanan briefing AI belum dikonfigurasi.',
+      );
+      return;
+    }
+    if (!coach.isSignedIn) {
+      setState(
+        () => _weatherError = 'Masuk ke akun online untuk meminta briefing AI.',
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SenapathAlertDialog(
+        title: const Text('Buat briefing pra-perjalanan?'),
+        content: const Text(
+          'Setelah disetujui, titik awal rute akan dikirim ke Open-Meteo untuk mengambil cuaca saat ini. Ringkasan nama rute, jarak, elevasi, dan cuaca akan dikirim secara aman ke Supabase/Gemini. Titik GPS dan jejak lengkap rute tidak dikirim ke AI.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Setuju dan buat'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _isLoadingWeather = true;
+      _weatherError = null;
+    });
+    try {
+      final start = widget.route.points.first;
+      final weather = await widget.weatherService.fetchCurrentWeather(
+        latitude: start.latitude,
+        longitude: start.longitude,
+      );
+      final heading = routeHeadingDegrees(widget.route.points, 0);
+      final windRelation = relativeWindDescription(
+        windFromDegrees: weather.windDirectionFromDegrees,
+        routeHeadingDegrees: heading,
+      );
+      final profile = _elevationProfile(widget.route.points);
+      if (profile.isEmpty) {
+        throw StateError('Profil elevasi rute tidak tersedia.');
+      }
+      final distanceKm =
+          widget.route.distanceMeters != null &&
+              widget.route.distanceMeters!.isFinite &&
+              widget.route.distanceMeters! > 0
+          ? widget.route.distanceMeters! / 1000
+          : _distanceMeters(widget.route.points) / 1000;
+      if (!distanceKm.isFinite || distanceKm <= 0 || distanceKm > 1000) {
+        throw StateError('Jarak rute tidak valid untuk membuat briefing.');
+      }
+      final ascentMeters =
+          widget.route.elevationGainMeters != null &&
+              widget.route.elevationGainMeters!.isFinite &&
+              widget.route.elevationGainMeters! >= 0
+          ? widget.route.elevationGainMeters!
+          : _ascentMeters(widget.route.points);
+      await coach.prepareRide(
+        routeId: widget.route.id,
+        consent: true,
+        routeAndWeather: {
+          'routeName': widget.route.name,
+          'distanceKm': distanceKm,
+          'ascentMeters': ascentMeters,
+          'elevationProfile': profile,
+          'weather': weather.toBriefingJson(windRelation: windRelation),
+          'routeHeadingDegrees': heading,
+          'windRelation': windRelation,
+        },
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _weatherError = error is StateError
+              ? error.message
+              : 'Cuaca rute tidak dapat dimuat. Periksa koneksi dan coba lagi.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingWeather = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<RideCoachCubit, RideCoachState>(
+      bloc: widget.rideCoachCubit,
+      builder: (context, state) {
+        final briefing = state.preRideRouteId == widget.route.id
+            ? state.preRideBriefing
+            : null;
+        final error =
+            _weatherError ??
+            (state.preRideRouteId == widget.route.id
+                ? state.preRideError
+                : null);
+        final loading =
+            _isLoadingWeather ||
+            (state.preRideRouteId == widget.route.id && state.isLoadingPreRide);
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome_outlined),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Briefing taktis',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                  ],
+                ),
+                if (briefing != null) ...[
+                  const SizedBox(height: 8),
+                  Text(briefing),
+                ] else ...[
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Ringkasan elevasi dan cuaca membantu menyiapkan strategi sebelum mulai.',
+                  ),
+                ],
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    error,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: loading ? null : _requestBriefing,
+                    icon: loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(
+                      loading
+                          ? 'Menyiapkan briefing…'
+                          : briefing == null
+                          ? 'Buat briefing'
+                          : 'Perbarui briefing',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+List<Map<String, double>> _elevationProfile(List<RoutePoint> points) {
+  if (points.length < 2 ||
+      points.any((point) => !point.elevationMeters.isFinite)) {
+    return const [];
+  }
+  final cumulativeDistances = _cumulativeRouteDistances(points);
+  final sampleCount = math.min(points.length, 24);
+  final indexes = <int>{};
+  if (sampleCount == 1) {
+    indexes.add(0);
+  } else {
+    for (var index = 0; index < sampleCount; index++) {
+      indexes.add((index * (points.length - 1) / (sampleCount - 1)).round());
+    }
+  }
+  return [
+    for (final index in indexes)
+      {
+        'distanceKm': cumulativeDistances[index] / 1000,
+        'elevationMeters': points[index].elevationMeters,
+      },
+  ];
+}
+
+double _ascentMeters(List<RoutePoint> points) {
+  var ascent = 0.0;
+  for (var index = 1; index < points.length; index++) {
+    final delta =
+        points[index].elevationMeters - points[index - 1].elevationMeters;
+    if (delta.isFinite && delta > 0) ascent += delta;
+  }
+  return ascent;
+}
+
+double _distanceMeters(List<RoutePoint> points) {
+  final distances = _cumulativeRouteDistances(points);
+  return distances.isEmpty ? 0 : distances.last;
+}
+
+List<double> _cumulativeRouteDistances(List<RoutePoint> points) {
+  final distances = <double>[0];
+  for (var index = 1; index < points.length; index++) {
+    final first = points[index - 1];
+    final second = points[index];
+    final latitude1 = first.latitude * math.pi / 180;
+    final latitude2 = second.latitude * math.pi / 180;
+    final latitudeDelta = latitude2 - latitude1;
+    final longitudeDelta = (second.longitude - first.longitude) * math.pi / 180;
+    final a =
+        math.pow(math.sin(latitudeDelta / 2), 2) +
+        math.cos(latitude1) *
+            math.cos(latitude2) *
+            math.pow(math.sin(longitudeDelta / 2), 2);
+    final meters = 6371000 * 2 * math.asin(math.sqrt(a));
+    distances.add(distances.last + (meters.isFinite ? meters : 0));
+  }
+  return distances;
+}
+
 class _RouteTile extends StatelessWidget {
-  const _RouteTile({required this.route, required this.unitSystem});
+  const _RouteTile({
+    required this.route,
+    required this.unitSystem,
+    this.weatherService,
+    this.rideCoachCubit,
+  });
 
   final RouteRecord route;
   final UnitSystem unitSystem;
+  final PreRideWeatherService? weatherService;
+  final RideCoachCubit? rideCoachCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -844,53 +1341,82 @@ class _RouteTile extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(route.name, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 4),
-              Text(
-                route.points.isEmpty
-                    ? 'Garis rute belum tersimpan.'
-                    : route.source == 'GPX lokal'
-                    ? 'File rute di ponsel · ${route.points.length} titik · bisa dipakai tanpa internet'
-                    : 'Rute online · ${route.points.length} titik · perlu internet',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 16),
-              if (route.points.length >= 2)
-                RouteMapPreview(points: route.points, source: route.source)
-              else
-                const SizedBox(
-                  height: 180,
-                  child: Center(child: Icon(Icons.route_outlined, size: 44)),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(route.name, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(
+                  route.points.isEmpty
+                      ? 'Garis rute belum tersimpan.'
+                      : route.source == 'GPX lokal'
+                      ? 'File rute di ponsel · ${route.points.length} titik · bisa dipakai tanpa internet'
+                      : 'Rute online · ${route.points.length} titik · perlu internet',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-              const SizedBox(height: 12),
-              Text('$distance · $elevation · $poi'),
-              if (route.description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(route.description),
-              ],
-              if (route.points.length >= 2) ...[
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      context.read<RoutesCubit>().selectSessionRoute(route);
-                      Navigator.of(context).pop();
-                      router?.go('/routes');
-                    },
-                    icon: const Icon(Icons.navigation),
-                    label: const Text('Tampilkan di Jelajah'),
+                if (route.points.length >= 2)
+                  RouteMapPreview(points: route.points, source: route.source)
+                else
+                  const SizedBox(
+                    height: 180,
+                    child: Center(child: Icon(Icons.route_outlined, size: 44)),
                   ),
-                ),
+                const SizedBox(height: 12),
+                Text('$distance · $elevation · $poi'),
+                if (route.description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(route.description),
+                ],
+                if (route.points.length >= 2 && rideCoachCubit != null) ...[
+                  const SizedBox(height: 16),
+                  _PreRideBriefing(
+                    route: route,
+                    weatherService:
+                        weatherService ?? OpenMeteoPreRideWeatherService(),
+                    rideCoachCubit: rideCoachCubit!,
+                  ),
+                ],
+                if (route.points.length >= 2) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: router == null
+                          ? null
+                          : () {
+                              Navigator.of(context).pop();
+                              router.push<void>(
+                                '/routes/guidance',
+                                extra: route,
+                              );
+                            },
+                      icon: const Icon(Icons.navigation),
+                      label: const Text('Mulai panduan'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        context.read<RoutesCubit>().selectSessionRoute(route);
+                        Navigator.of(context).pop();
+                        router?.go('/routes');
+                      },
+                      icon: const Icon(Icons.navigation),
+                      label: const Text('Tampilkan di Jelajah'),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -919,6 +1445,8 @@ class RouteMapPreview extends StatefulWidget {
     required this.points,
     this.source = 'GPX lokal',
     this.currentPosition,
+    this.ghostPosition,
+    this.ghostHeadingDegrees,
     this.height = 220,
     super.key,
   });
@@ -926,6 +1454,8 @@ class RouteMapPreview extends StatefulWidget {
   final List<RoutePoint> points;
   final String source;
   final RoutePoint? currentPosition;
+  final RoutePoint? ghostPosition;
+  final double? ghostHeadingDegrees;
   final double? height;
 
   @override
@@ -945,6 +1475,10 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
     final positionPoint = position == null
         ? null
         : LatLng(position.latitude, position.longitude);
+    final ghostPosition = widget.ghostPosition;
+    final ghostPoint = ghostPosition == null
+        ? null
+        : LatLng(ghostPosition.latitude, ghostPosition.longitude);
 
     return Semantics(
       label:
@@ -1016,6 +1550,26 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                             Icons.flag,
                             color: SenapathColors.accent,
                             size: 28,
+                          ),
+                        ),
+                      if (ghostPoint != null)
+                        Marker(
+                          point: ghostPoint,
+                          width: 24,
+                          height: 24,
+                          child: Tooltip(
+                            message: 'Hantu dari sesi terbaik sebelumnya',
+                            child: Transform.rotate(
+                              angle:
+                                  (widget.ghostHeadingDegrees ?? 0) *
+                                  math.pi /
+                                  180,
+                              child: Icon(
+                                Icons.navigation,
+                                color: colors.primary.withValues(alpha: 0.42),
+                                size: 18,
+                              ),
+                            ),
                           ),
                         ),
                       if (positionPoint != null)

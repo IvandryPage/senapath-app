@@ -88,6 +88,47 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     return recommendation.trim();
   }
 
+  @override
+  Future<String> prepareRide({
+    required Map<String, Object?> routeAndWeather,
+    required bool consent,
+  }) async {
+    final client = _client;
+    if (client == null) {
+      throw StateError('Layanan briefing belum dikonfigurasi.');
+    }
+    if (!consent) {
+      throw StateError('Persetujuan briefing pra-perjalanan diperlukan.');
+    }
+    if (_sessionManager.currentUserId == null) {
+      throw StateError('Masuk ke akun sebelum meminta briefing AI.');
+    }
+    late final FunctionResponse response;
+    try {
+      response = await _sessionManager.invokeAuthenticatedFunction(
+        'rider-coach',
+        body: {'action': 'pre_ride', 'consent': consent, 'preRide': routeAndWeather},
+      );
+    } on FunctionException catch (error) {
+      throw StateError(_functionErrorMessage(error));
+    }
+    if (response.status < 200 || response.status >= 300) {
+      final data = response.data;
+      final message = data is Map ? data['error'] : null;
+      throw StateError(
+        message is String && message.isNotEmpty
+            ? message
+            : 'Layanan briefing gagal (HTTP ${response.status}).',
+      );
+    }
+    final data = response.data;
+    final briefing = data is Map ? data['briefing'] : null;
+    if (briefing is! String || briefing.trim().isEmpty) {
+      throw const FormatException('Respons briefing AI tidak valid.');
+    }
+    return briefing.trim();
+  }
+
   String _functionErrorMessage(FunctionException error) {
     final details = error.details;
     final message = details is Map ? details['error'] : null;

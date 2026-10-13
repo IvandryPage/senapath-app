@@ -181,6 +181,7 @@ class GeolocatorLocationSource implements LocationSource {
             notificationTitle: 'Senapath sedang merekam',
             notificationText: 'Lokasi dipakai untuk progres sesi bersepeda.',
             notificationChannelName: 'Perekaman sesi',
+            notificationIcon: AndroidResource(name: 'notification_icon'),
             enableWakeLock: true,
           ),
         ),
