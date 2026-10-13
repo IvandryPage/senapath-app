@@ -410,6 +410,17 @@ class _CyclingTeamDashboardScreenState
                       icon: const Icon(Icons.exit_to_app),
                       label: const Text('Keluar dari tim'),
                     ),
+                  if (dashboard.team.isManager) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: state.isSaving ? null : _deleteTeam,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Hapus tim'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -478,6 +489,42 @@ class _CyclingTeamDashboardScreenState
     );
     if (!mounted || confirmed != true) return;
     await context.read<CyclingTeamCubit>().leaveTeam(widget.teamId);
+    if (mounted &&
+        !context.read<CyclingTeamCubit>().state.teams.any(
+          (team) => team.id == widget.teamId,
+        )) {
+      context.pop();
+    }
+  }
+
+  Future<void> _deleteTeam() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => SenapathAlertDialog(
+        title: const Text('Hapus tim secara permanen?'),
+        content: const Text(
+          'Tim dan keanggotaannya akan dihapus untuk semua anggota. '
+          'Tautan ringkasan perjalanan yang dibagikan ke tim ikut dihapus, '
+          'tetapi riwayat perjalanan pribadi tetap tersimpan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            child: const Text('Hapus tim'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    await context.read<CyclingTeamCubit>().deleteTeam(widget.teamId);
     if (mounted &&
         !context.read<CyclingTeamCubit>().state.teams.any(
           (team) => team.id == widget.teamId,

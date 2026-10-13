@@ -137,7 +137,34 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
       );
     } catch (error) {
       emit(
-        state.copyWith(error: _message(error, 'Tidak dapat keluar dari tim.')),
+        state.copyWith(
+          isSaving: false,
+          error: _message(error, 'Tidak dapat keluar dari tim.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> deleteTeam(String teamId) async {
+    emit(state.copyWith(isSaving: true, clearError: true, clearMessage: true));
+    try {
+      await _repository.deleteTeam(teamId);
+      final teams = await _repository.loadTeams();
+      emit(
+        state.copyWith(
+          teams: teams,
+          hasLoadedTeams: true,
+          isSaving: false,
+          clearDashboard: true,
+          message: 'Tim berhasil dihapus.',
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          isSaving: false,
+          error: _message(error, 'Tidak dapat menghapus tim.'),
+        ),
       );
     }
   }

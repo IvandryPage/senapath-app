@@ -65,6 +65,19 @@ void main() {
     expect(dashboard.sessionsFor('unknown'), isEmpty);
   });
 
+  test('team manager can delete a team and refresh membership', () async {
+    final repository = _DeleteTeamRepository();
+    final cubit = CyclingTeamCubit(repository);
+    addTearDown(cubit.close);
+
+    await cubit.deleteTeam('team-1');
+
+    expect(repository.deletedTeamId, 'team-1');
+    expect(cubit.state.teams, isEmpty);
+    expect(cubit.state.isSaving, isFalse);
+    expect(cubit.state.message, 'Tim berhasil dihapus.');
+  });
+
   testWidgets('team screen explains when online account setup is missing', (
     tester,
   ) async {
@@ -145,6 +158,9 @@ class _UnconfiguredTeamRepository implements CyclingTeamRepository {
   Future<void> leaveTeam(String teamId) => throw UnimplementedError();
 
   @override
+  Future<void> deleteTeam(String teamId) => throw UnimplementedError();
+
+  @override
   Future<void> unshareSession(String teamId, String sessionId) =>
       throw UnimplementedError();
 
@@ -162,4 +178,13 @@ class _AvailableTeamRepository extends _UnconfiguredTeamRepository {
 
   @override
   String? get currentUserId => 'rider-1';
+}
+
+class _DeleteTeamRepository extends _UnconfiguredTeamRepository {
+  String? deletedTeamId;
+
+  @override
+  Future<void> deleteTeam(String teamId) async {
+    deletedTeamId = teamId;
+  }
 }

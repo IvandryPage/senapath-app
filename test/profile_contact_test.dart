@@ -181,6 +181,9 @@ class _TestCyclingTeamRepository implements CyclingTeamRepository {
   Future<void> leaveTeam(String teamId) => throw UnimplementedError();
 
   @override
+  Future<void> deleteTeam(String teamId) => throw UnimplementedError();
+
+  @override
   Future<void> unshareSession(String teamId, String sessionId) =>
       throw UnimplementedError();
 

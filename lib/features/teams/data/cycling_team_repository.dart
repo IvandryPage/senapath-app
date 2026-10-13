@@ -14,6 +14,7 @@ abstract interface class CyclingTeamRepository {
   Future<CyclingTeam> joinTeam(String inviteCode, String displayName);
   Future<CyclingTeamDashboard> loadDashboard(String teamId);
   Future<void> leaveTeam(String teamId);
+  Future<void> deleteTeam(String teamId);
   Future<void> unshareSession(String teamId, String sessionId);
   Future<void> setMemberRole(String teamId, String userId, String role);
 }
@@ -244,6 +245,12 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
   Future<void> leaveTeam(String teamId) async {
     final client = await _requireClient();
     await client.rpc('leave_cycling_team', params: {'p_team_id': teamId});
+  }
+
+  @override
+  Future<void> deleteTeam(String teamId) async {
+    final client = await _requireClient();
+    await client.rpc('delete_cycling_team', params: {'p_team_id': teamId});
   }
 
   @override

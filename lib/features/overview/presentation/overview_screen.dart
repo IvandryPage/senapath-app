@@ -16,6 +16,7 @@ import '../../gamification/presentation/rider_avatar.dart';
 
 import '../../routes/domain/route_progress.dart';
 import '../../routes/domain/saved_route.dart';
+import '../../ride_coach/domain/coach_recommendation_formatter.dart';
 import '../../ride_coach/presentation/ride_coach_cubit.dart';
 
 class OverviewScreen extends StatefulWidget {
@@ -406,10 +407,36 @@ class _RideCoachPreview extends StatelessWidget {
                 ],
               ),
               if (coachState.recommendation != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  coachState.recommendation!,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.tips_and_updates_outlined,
+                        size: 20,
+                        color: colors.onTertiaryContainer,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          formatCoachRecommendation(
+                            coachState.recommendation!,
+                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: colors.onTertiaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ] else if (isActive && coachState.isLoading) ...[
                 const SizedBox(height: 16),

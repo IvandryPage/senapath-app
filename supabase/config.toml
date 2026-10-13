@@ -2,7 +2,7 @@
 verify_jwt = false
 
 [functions.rider-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.rider-coach]
 verify_jwt = false

@@ -54,7 +54,7 @@ Migrasi mempertahankan UUID akun lama dari `auth.users`, tetapi password Supabas
 
 Di **Profil → Akun & keamanan**, pengguna dapat mendaftar/masuk dengan email dan password serta keluar dari akun cloud. Password dikirim via HTTPS ke Edge Function; token sesi disimpan di secure storage dan refresh token selalu dirotasi. Setelah pernah login, sesi tersimpan dapat dipulihkan dari layar akun memakai biometrik perangkat—password tidak disimpan, dan biometrik bukan gerbang unlock seluruh aplikasi. Login biometrik hanya tersedia jika sesi masih tersimpan; logout cloud mencabut sesi itu. Keluar dari akun cloud mempertahankan data lokal.
 
-Nama dan tipe pesepeda di **Edit profil** disinkronkan ke profil akun Supabase saat masuk. Perubahan nama juga memperbarui nama anggota di semua tim; keanggotaan tim tetap dikelola di **Profil → Tim saya**. Saat offline, perubahan profil tetap tersimpan lokal dan aplikasi memberi tahu jika sinkronisasi cloud gagal. Foto profil dan kontak darurat tetap tersimpan terenkripsi di perangkat.
+Nama dan tipe pesepeda di **Edit profil** disinkronkan ke profil akun Supabase saat masuk. Perubahan nama juga memperbarui nama anggota di semua tim; keanggotaan tim dikelola di **Profil → Tim saya**. Anggota dapat keluar jika aturan ketua terpenuhi, sedangkan ketua dapat menghapus tim secara permanen. Penghapusan tim menghapus tautan ringkasan yang dibagikan ke tim, bukan riwayat perjalanan pribadi. Saat offline, perubahan profil tetap tersimpan lokal dan aplikasi memberi tahu jika sinkronisasi cloud gagal. Foto profil dan kontak darurat tetap tersimpan terenkripsi di perangkat.
 
 ## Tema tampilan
 
@@ -147,6 +147,8 @@ supabase functions deploy rider-coach
 ```
 
 Untuk menjalankan Edge Function secara lokal, isi `GEMINI_API_KEY` di `.env` lalu gunakan `supabase functions serve --env-file .env`; Supabase CLI menyediakan variabel Supabase lokal bagi function. Saat deploy, masukkan Gemini key ke Supabase Secrets seperti perintah di atas. Jangan simpan `SUPABASE_SERVICE_ROLE_KEY` di Flutter atau commit ke repo.
+
+Kedua function AI memverifikasi JWT aplikasi kustom di dalam function; `verify_jwt = false` pada `supabase/config.toml` menghindari verifikasi JWT Supabase yang terpisah. Deploy ulang function setelah perubahan konfigurasi.
 
 Jika chat tidak mendapat jawaban, pastikan akun online sudah masuk, migrasi kuota sudah diterapkan, lalu cek nama secrets tanpa menampilkan nilainya dan lihat log function:
 
