@@ -56,8 +56,26 @@ class SavedRoutes extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class RideHistory extends Table {
+  TextColumn get sessionId => text()();
+  RealColumn get distanceKm => real()();
+  RealColumn get elevationGainMeters => real()();
+  RealColumn get elevationPerDistance => real()();
+  RealColumn get durationMinutes => real()();
+  DateTimeColumn get completedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {sessionId};
+}
+
 @DriftDatabase(
-  tables: [AppPreferences, RideSessions, TelemetryPoints, SavedRoutes],
+  tables: [
+    AppPreferences,
+    RideSessions,
+    TelemetryPoints,
+    SavedRoutes,
+    RideHistory,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'senapath'));
@@ -65,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +107,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8) {
         await customStatement('DROP TABLE IF EXISTS reaction_test_results');
         await customStatement('DROP TABLE IF EXISTS strategy_game_results');
+      }
+      if (from < 9) {
+        await migrator.createTable(rideHistory);
       }
     },
   );

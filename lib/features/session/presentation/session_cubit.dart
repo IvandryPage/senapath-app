@@ -15,6 +15,7 @@ import '../data/session_sync_settings_repository.dart';
 import '../../notifications/data/notification_settings_repository.dart';
 import '../../notifications/data/ride_notification_service.dart';
 import '../../ledger/data/ride_ledger_repository.dart';
+import '../../ride_prediction/data/ride_history_repository.dart';
 import '../../routes/domain/route_progress.dart';
 import '../../routes/domain/saved_route.dart';
 import '../domain/ride_session.dart';
@@ -161,6 +162,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     this.notificationService,
     this.notificationSettingsRepository,
     this.ledgerRepository,
+    this.rideHistoryRepository,
     this.intervalWorkoutRepository,
     this.ambientLightSource,
     DateTime Function()? clock,
@@ -178,6 +180,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final RideNotificationService? notificationService;
   final NotificationSettingsRepository? notificationSettingsRepository;
   final RideLedgerRepository? ledgerRepository;
+  final RideHistoryRepository? rideHistoryRepository;
   final IntervalWorkoutRepository? intervalWorkoutRepository;
   final AmbientLightSource? ambientLightSource;
   final DateTime Function() _clock;
@@ -289,6 +292,23 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           message: locationMessage,
         ),
       );
+      final historyRepository = rideHistoryRepository;
+      if (historyRepository != null) {
+        unawaited(
+          historyRepository
+              .backfillCompletedRides(
+                sessions: completedSessions,
+                loadSummary: repository.loadSummary,
+              )
+              .catchError((Object _) {
+                if (!isClosed) {
+                  _setMessage(
+                    'Sebagian riwayat lama belum dapat disiapkan untuk prediksi.',
+                  );
+                }
+              }),
+        );
+      }
       if (autoSyncEnabled) {
         _startAutoSyncRetry(runImmediately: !canCloudSync);
       }
@@ -572,6 +592,16 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       await ledgerRepository?.appendSession(completed);
     } catch (_) {
       followUpMessages.add('Kode bukti perjalanan belum dibuat.');
+    }
+    try {
+      final historyRepository = rideHistoryRepository;
+      if (historyRepository != null) {
+        await historyRepository.recordCompletedRide(
+          await repository.loadSummary(completed.id),
+        );
+      }
+    } catch (_) {
+      followUpMessages.add('Fitur prediksi belum dapat menyimpan data latihan.');
     }
     if (followUpMessages.isNotEmpty && !isClosed) {
       _setMessage(

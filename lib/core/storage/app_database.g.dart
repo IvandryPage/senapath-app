@@ -1970,6 +1970,459 @@ class SavedRoutesCompanion extends UpdateCompanion<SavedRoute> {
   }
 }
 
+class $RideHistoryTable extends RideHistory
+    with TableInfo<$RideHistoryTable, RideHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RideHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _distanceKmMeta = const VerificationMeta(
+    'distanceKm',
+  );
+  @override
+  late final GeneratedColumn<double> distanceKm = GeneratedColumn<double>(
+    'distance_km',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _elevationGainMetersMeta =
+      const VerificationMeta('elevationGainMeters');
+  @override
+  late final GeneratedColumn<double> elevationGainMeters =
+      GeneratedColumn<double>(
+        'elevation_gain_meters',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _elevationPerDistanceMeta =
+      const VerificationMeta('elevationPerDistance');
+  @override
+  late final GeneratedColumn<double> elevationPerDistance =
+      GeneratedColumn<double>(
+        'elevation_per_distance',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _durationMinutesMeta = const VerificationMeta(
+    'durationMinutes',
+  );
+  @override
+  late final GeneratedColumn<double> durationMinutes = GeneratedColumn<double>(
+    'duration_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sessionId,
+    distanceKm,
+    elevationGainMeters,
+    elevationPerDistance,
+    durationMinutes,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ride_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RideHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('distance_km')) {
+      context.handle(
+        _distanceKmMeta,
+        distanceKm.isAcceptableOrUnknown(data['distance_km']!, _distanceKmMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_distanceKmMeta);
+    }
+    if (data.containsKey('elevation_gain_meters')) {
+      context.handle(
+        _elevationGainMetersMeta,
+        elevationGainMeters.isAcceptableOrUnknown(
+          data['elevation_gain_meters']!,
+          _elevationGainMetersMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_elevationGainMetersMeta);
+    }
+    if (data.containsKey('elevation_per_distance')) {
+      context.handle(
+        _elevationPerDistanceMeta,
+        elevationPerDistance.isAcceptableOrUnknown(
+          data['elevation_per_distance']!,
+          _elevationPerDistanceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_elevationPerDistanceMeta);
+    }
+    if (data.containsKey('duration_minutes')) {
+      context.handle(
+        _durationMinutesMeta,
+        durationMinutes.isAcceptableOrUnknown(
+          data['duration_minutes']!,
+          _durationMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMinutesMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_completedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sessionId};
+  @override
+  RideHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RideHistoryData(
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      distanceKm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_km'],
+      )!,
+      elevationGainMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}elevation_gain_meters'],
+      )!,
+      elevationPerDistance: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}elevation_per_distance'],
+      )!,
+      durationMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}duration_minutes'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RideHistoryTable createAlias(String alias) {
+    return $RideHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class RideHistoryData extends DataClass implements Insertable<RideHistoryData> {
+  final String sessionId;
+  final double distanceKm;
+  final double elevationGainMeters;
+  final double elevationPerDistance;
+  final double durationMinutes;
+  final DateTime completedAt;
+  const RideHistoryData({
+    required this.sessionId,
+    required this.distanceKm,
+    required this.elevationGainMeters,
+    required this.elevationPerDistance,
+    required this.durationMinutes,
+    required this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['session_id'] = Variable<String>(sessionId);
+    map['distance_km'] = Variable<double>(distanceKm);
+    map['elevation_gain_meters'] = Variable<double>(elevationGainMeters);
+    map['elevation_per_distance'] = Variable<double>(elevationPerDistance);
+    map['duration_minutes'] = Variable<double>(durationMinutes);
+    map['completed_at'] = Variable<DateTime>(completedAt);
+    return map;
+  }
+
+  RideHistoryCompanion toCompanion(bool nullToAbsent) {
+    return RideHistoryCompanion(
+      sessionId: Value(sessionId),
+      distanceKm: Value(distanceKm),
+      elevationGainMeters: Value(elevationGainMeters),
+      elevationPerDistance: Value(elevationPerDistance),
+      durationMinutes: Value(durationMinutes),
+      completedAt: Value(completedAt),
+    );
+  }
+
+  factory RideHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RideHistoryData(
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      distanceKm: serializer.fromJson<double>(json['distanceKm']),
+      elevationGainMeters: serializer.fromJson<double>(
+        json['elevationGainMeters'],
+      ),
+      elevationPerDistance: serializer.fromJson<double>(
+        json['elevationPerDistance'],
+      ),
+      durationMinutes: serializer.fromJson<double>(json['durationMinutes']),
+      completedAt: serializer.fromJson<DateTime>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sessionId': serializer.toJson<String>(sessionId),
+      'distanceKm': serializer.toJson<double>(distanceKm),
+      'elevationGainMeters': serializer.toJson<double>(elevationGainMeters),
+      'elevationPerDistance': serializer.toJson<double>(elevationPerDistance),
+      'durationMinutes': serializer.toJson<double>(durationMinutes),
+      'completedAt': serializer.toJson<DateTime>(completedAt),
+    };
+  }
+
+  RideHistoryData copyWith({
+    String? sessionId,
+    double? distanceKm,
+    double? elevationGainMeters,
+    double? elevationPerDistance,
+    double? durationMinutes,
+    DateTime? completedAt,
+  }) => RideHistoryData(
+    sessionId: sessionId ?? this.sessionId,
+    distanceKm: distanceKm ?? this.distanceKm,
+    elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
+    elevationPerDistance: elevationPerDistance ?? this.elevationPerDistance,
+    durationMinutes: durationMinutes ?? this.durationMinutes,
+    completedAt: completedAt ?? this.completedAt,
+  );
+  RideHistoryData copyWithCompanion(RideHistoryCompanion data) {
+    return RideHistoryData(
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      distanceKm: data.distanceKm.present
+          ? data.distanceKm.value
+          : this.distanceKm,
+      elevationGainMeters: data.elevationGainMeters.present
+          ? data.elevationGainMeters.value
+          : this.elevationGainMeters,
+      elevationPerDistance: data.elevationPerDistance.present
+          ? data.elevationPerDistance.value
+          : this.elevationPerDistance,
+      durationMinutes: data.durationMinutes.present
+          ? data.durationMinutes.value
+          : this.durationMinutes,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RideHistoryData(')
+          ..write('sessionId: $sessionId, ')
+          ..write('distanceKm: $distanceKm, ')
+          ..write('elevationGainMeters: $elevationGainMeters, ')
+          ..write('elevationPerDistance: $elevationPerDistance, ')
+          ..write('durationMinutes: $durationMinutes, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    sessionId,
+    distanceKm,
+    elevationGainMeters,
+    elevationPerDistance,
+    durationMinutes,
+    completedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RideHistoryData &&
+          other.sessionId == this.sessionId &&
+          other.distanceKm == this.distanceKm &&
+          other.elevationGainMeters == this.elevationGainMeters &&
+          other.elevationPerDistance == this.elevationPerDistance &&
+          other.durationMinutes == this.durationMinutes &&
+          other.completedAt == this.completedAt);
+}
+
+class RideHistoryCompanion extends UpdateCompanion<RideHistoryData> {
+  final Value<String> sessionId;
+  final Value<double> distanceKm;
+  final Value<double> elevationGainMeters;
+  final Value<double> elevationPerDistance;
+  final Value<double> durationMinutes;
+  final Value<DateTime> completedAt;
+  final Value<int> rowid;
+  const RideHistoryCompanion({
+    this.sessionId = const Value.absent(),
+    this.distanceKm = const Value.absent(),
+    this.elevationGainMeters = const Value.absent(),
+    this.elevationPerDistance = const Value.absent(),
+    this.durationMinutes = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RideHistoryCompanion.insert({
+    required String sessionId,
+    required double distanceKm,
+    required double elevationGainMeters,
+    required double elevationPerDistance,
+    required double durationMinutes,
+    required DateTime completedAt,
+    this.rowid = const Value.absent(),
+  }) : sessionId = Value(sessionId),
+       distanceKm = Value(distanceKm),
+       elevationGainMeters = Value(elevationGainMeters),
+       elevationPerDistance = Value(elevationPerDistance),
+       durationMinutes = Value(durationMinutes),
+       completedAt = Value(completedAt);
+  static Insertable<RideHistoryData> custom({
+    Expression<String>? sessionId,
+    Expression<double>? distanceKm,
+    Expression<double>? elevationGainMeters,
+    Expression<double>? elevationPerDistance,
+    Expression<double>? durationMinutes,
+    Expression<DateTime>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sessionId != null) 'session_id': sessionId,
+      if (distanceKm != null) 'distance_km': distanceKm,
+      if (elevationGainMeters != null)
+        'elevation_gain_meters': elevationGainMeters,
+      if (elevationPerDistance != null)
+        'elevation_per_distance': elevationPerDistance,
+      if (durationMinutes != null) 'duration_minutes': durationMinutes,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RideHistoryCompanion copyWith({
+    Value<String>? sessionId,
+    Value<double>? distanceKm,
+    Value<double>? elevationGainMeters,
+    Value<double>? elevationPerDistance,
+    Value<double>? durationMinutes,
+    Value<DateTime>? completedAt,
+    Value<int>? rowid,
+  }) {
+    return RideHistoryCompanion(
+      sessionId: sessionId ?? this.sessionId,
+      distanceKm: distanceKm ?? this.distanceKm,
+      elevationGainMeters: elevationGainMeters ?? this.elevationGainMeters,
+      elevationPerDistance: elevationPerDistance ?? this.elevationPerDistance,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (distanceKm.present) {
+      map['distance_km'] = Variable<double>(distanceKm.value);
+    }
+    if (elevationGainMeters.present) {
+      map['elevation_gain_meters'] = Variable<double>(
+        elevationGainMeters.value,
+      );
+    }
+    if (elevationPerDistance.present) {
+      map['elevation_per_distance'] = Variable<double>(
+        elevationPerDistance.value,
+      );
+    }
+    if (durationMinutes.present) {
+      map['duration_minutes'] = Variable<double>(durationMinutes.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RideHistoryCompanion(')
+          ..write('sessionId: $sessionId, ')
+          ..write('distanceKm: $distanceKm, ')
+          ..write('elevationGainMeters: $elevationGainMeters, ')
+          ..write('elevationPerDistance: $elevationPerDistance, ')
+          ..write('durationMinutes: $durationMinutes, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1979,6 +2432,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $SavedRoutesTable savedRoutes = $SavedRoutesTable(this);
+  late final $RideHistoryTable rideHistory = $RideHistoryTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1988,6 +2442,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     rideSessions,
     telemetryPoints,
     savedRoutes,
+    rideHistory,
   ];
 }
 
@@ -3228,6 +3683,244 @@ typedef $$SavedRoutesTableProcessedTableManager =
       SavedRoute,
       PrefetchHooks Function()
     >;
+typedef $$RideHistoryTableCreateCompanionBuilder =
+    RideHistoryCompanion Function({
+      required String sessionId,
+      required double distanceKm,
+      required double elevationGainMeters,
+      required double elevationPerDistance,
+      required double durationMinutes,
+      required DateTime completedAt,
+      Value<int> rowid,
+    });
+typedef $$RideHistoryTableUpdateCompanionBuilder =
+    RideHistoryCompanion Function({
+      Value<String> sessionId,
+      Value<double> distanceKm,
+      Value<double> elevationGainMeters,
+      Value<double> elevationPerDistance,
+      Value<double> durationMinutes,
+      Value<DateTime> completedAt,
+      Value<int> rowid,
+    });
+
+class $$RideHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $RideHistoryTable> {
+  $$RideHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceKm => $composableBuilder(
+    column: $table.distanceKm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get elevationGainMeters => $composableBuilder(
+    column: $table.elevationGainMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get elevationPerDistance => $composableBuilder(
+    column: $table.elevationPerDistance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get durationMinutes => $composableBuilder(
+    column: $table.durationMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RideHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $RideHistoryTable> {
+  $$RideHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanceKm => $composableBuilder(
+    column: $table.distanceKm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get elevationGainMeters => $composableBuilder(
+    column: $table.elevationGainMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get elevationPerDistance => $composableBuilder(
+    column: $table.elevationPerDistance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get durationMinutes => $composableBuilder(
+    column: $table.durationMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RideHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RideHistoryTable> {
+  $$RideHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<double> get distanceKm => $composableBuilder(
+    column: $table.distanceKm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get elevationGainMeters => $composableBuilder(
+    column: $table.elevationGainMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get elevationPerDistance => $composableBuilder(
+    column: $table.elevationPerDistance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get durationMinutes => $composableBuilder(
+    column: $table.durationMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$RideHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RideHistoryTable,
+          RideHistoryData,
+          $$RideHistoryTableFilterComposer,
+          $$RideHistoryTableOrderingComposer,
+          $$RideHistoryTableAnnotationComposer,
+          $$RideHistoryTableCreateCompanionBuilder,
+          $$RideHistoryTableUpdateCompanionBuilder,
+          (
+            RideHistoryData,
+            BaseReferences<_$AppDatabase, $RideHistoryTable, RideHistoryData>,
+          ),
+          RideHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$RideHistoryTableTableManager(_$AppDatabase db, $RideHistoryTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RideHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RideHistoryTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RideHistoryTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> sessionId = const Value.absent(),
+                Value<double> distanceKm = const Value.absent(),
+                Value<double> elevationGainMeters = const Value.absent(),
+                Value<double> elevationPerDistance = const Value.absent(),
+                Value<double> durationMinutes = const Value.absent(),
+                Value<DateTime> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RideHistoryCompanion(
+                sessionId: sessionId,
+                distanceKm: distanceKm,
+                elevationGainMeters: elevationGainMeters,
+                elevationPerDistance: elevationPerDistance,
+                durationMinutes: durationMinutes,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String sessionId,
+                required double distanceKm,
+                required double elevationGainMeters,
+                required double elevationPerDistance,
+                required double durationMinutes,
+                required DateTime completedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => RideHistoryCompanion.insert(
+                sessionId: sessionId,
+                distanceKm: distanceKm,
+                elevationGainMeters: elevationGainMeters,
+                elevationPerDistance: elevationPerDistance,
+                durationMinutes: durationMinutes,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RideHistoryTable, RideHistoryData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RideHistoryTable,
+                    RideHistoryData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RideHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RideHistoryTable,
+      RideHistoryData,
+      $$RideHistoryTableFilterComposer,
+      $$RideHistoryTableOrderingComposer,
+      $$RideHistoryTableAnnotationComposer,
+      $$RideHistoryTableCreateCompanionBuilder,
+      $$RideHistoryTableUpdateCompanionBuilder,
+      (
+        RideHistoryData,
+        BaseReferences<_$AppDatabase, $RideHistoryTable, RideHistoryData>,
+      ),
+      RideHistoryData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3240,4 +3933,6 @@ class $AppDatabaseManager {
       $$TelemetryPointsTableTableManager(_db, _db.telemetryPoints);
   $$SavedRoutesTableTableManager get savedRoutes =>
       $$SavedRoutesTableTableManager(_db, _db.savedRoutes);
+  $$RideHistoryTableTableManager get rideHistory =>
+      $$RideHistoryTableTableManager(_db, _db.rideHistory);
 }

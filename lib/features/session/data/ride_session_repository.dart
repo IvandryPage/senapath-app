@@ -284,6 +284,9 @@ class DriftRideSessionRepository implements RideSessionRepository {
     }
     await database.transaction(() async {
       await (database.delete(
+        database.rideHistory,
+      )..where((entry) => entry.sessionId.equals(sessionId))).go();
+      await (database.delete(
         database.telemetryPoints,
       )..where((point) => point.sessionId.equals(sessionId))).go();
       await (database.delete(

@@ -17,11 +17,16 @@ Jalankan `Copy-Item` hanya saat `.env` belum ada agar konfigurasi lokal tidak te
 ## Pemeriksaan kualitas
 
 Isi konfigurasi klien di `.env` lokal. Runner membuat asset `assets/config/client.env` yang hanya memuat URL dan publishable key; `.env` sumber tidak pernah dimasukkan ke APK. Signing secret JWT, service-role key, dan Gemini key hanya dipakai Supabase Edge Functions.
+
+```sh
 dart format lib test
 flutter analyze
 flutter test
+```
 
-````
+### Prediksi durasi rute (backend lokal)
+
+Setelah sesi gowes selesai, aplikasi menyimpan jarak, total tanjakan, rasio tanjakan per kilometer, dan durasi aktif di tabel lokal Drift `ride_history`. Prediktor KNN membandingkan ketiga fitur rute dan merata-ratakan durasi dari tiga sesi terdekat. Koordinat GPS tidak disimpan di tabel fitur ini, prediksi tetap bekerja offline, dan belum ada data yang dikirim ke Supabase. Belum tersedia prediksi jika belum ada sedikitnya tiga sesi selesai dengan elevasi yang dapat dihitung. UI prediksi akan ditambahkan pada iterasi terpisah.
 
 GitHub Actions menjalankan pemeriksaan format, analisis statis, dan widget tests pada push ke `main` serta pull request.
 

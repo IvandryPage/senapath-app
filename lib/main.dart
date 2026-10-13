@@ -53,6 +53,7 @@ import 'features/ledger/data/ride_ledger_sync_gateway.dart';
 import 'features/ledger/presentation/ride_ledger_cubit.dart';
 import 'features/ride_coach/data/supabase_ride_coach_gateway.dart';
 import 'features/ride_coach/presentation/ride_coach_cubit.dart';
+import 'features/ride_prediction/data/ride_history_repository.dart';
 import 'features/workouts/data/interval_workout_repository.dart';
 import 'features/workouts/presentation/interval_workout_cubit.dart';
 import 'features/feedback/data/feedback_repository.dart';
@@ -101,6 +102,7 @@ Future<void> main() async {
     authSessionManager,
   );
   final rideLedgerRepository = RideLedgerRepository(database);
+  final rideHistoryRepository = RideHistoryRepository(database);
   final telemetryCodec = EncryptedTelemetryCodec(secureVault: secureVault);
   final sessionRepository = DriftRideSessionRepository(
     database: database,
@@ -180,6 +182,7 @@ Future<void> main() async {
         notificationService: notificationService,
         notificationSettingsRepository: notificationSettingsRepository,
         ledgerRepository: rideLedgerRepository,
+        rideHistoryRepository: rideHistoryRepository,
         intervalWorkoutRepository: intervalWorkoutRepository,
         syncCoordinator: SessionSyncCoordinator(
           repository: sessionRepository,
