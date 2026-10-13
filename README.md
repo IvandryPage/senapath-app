@@ -78,9 +78,9 @@ Jika sebelumnya pernah men-deploy Edge Function `cycling-route`, hapus function 
 
 Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, aktivitas terbaru, peta, dan pintasan fitur dalam kartu. **Beranda → Lihat progres** menampilkan agregat mingguan (Senin–Senin) dan bulanan dengan jarak, jumlah sesi selesai, durasi aktif, serta daftar sesi sumber yang dapat dibuka kembali. Semua sesi selesai lokal digunakan, bukan hanya 50 terbaru. Target jarak, jumlah sesi, atau durasi dapat dibuat untuk periode mingguan/bulanan; target disimpan lokal di database preferensi dan tidak disinkronkan.
 
-Riwayat sesi menyimpan judul, jenis aktivitas (bersepeda, komuter, latihan, atau balapan), dan sumber pencatatan lokal. Judul dan jenis dapat diubah dari detail ringkasan tanpa mengubah titik GPS/telemetri. Aktivitas lama mendapat nilai bawaan saat migrasi database lokal versi 8. Metadata ini saat ini hanya lokal; payload sinkronisasi cloud tetap hanya memuat ringkasan yang dijelaskan pada bagian sinkronisasi. Dari **Profil → Riwayat sesi**, ekspor JSON dapat mencakup seluruh sesi selesai dan jejak GPS lokal. Aplikasi meminta konfirmasi sebelum ekspor karena koordinat merupakan data sensitif. Aktivitas selesai juga dapat dihapus dari perangkat; salinan yang pernah tersinkron ke cloud harus dikelola terpisah. Ekspor dan penghapusan seluruh data profil/rute/preferences maupun penghapusan akun/cloud belum tersedia.
+Riwayat sesi menyimpan judul, jenis aktivitas (bersepeda, komuter, latihan, atau balapan), dan sumber pencatatan lokal. Judul dan jenis dapat diubah dari detail ringkasan tanpa mengubah titik GPS/telemetri. Aktivitas lama mendapat nilai bawaan saat migrasi database lokal versi 8. Dari **Profil → Riwayat sesi**, ekspor JSON dapat mencakup seluruh sesi selesai dan jejak GPS lokal. Aplikasi meminta konfirmasi sebelum ekspor karena koordinat merupakan data sensitif. Aktivitas selesai dapat dihapus dari perangkat dan salinan cloud; penghapusan dibatalkan bila salinan online tidak dapat dihapus. Ekspor dan penghapusan seluruh data profil/rute/preferences maupun penghapusan akun/cloud belum tersedia.
 
-Halaman Profil mengelompokkan kontak darurat di bagian keselamatan, riwayat/progres/rute di bagian aktivitas, dan pengaturan akun secara terpisah. **Saran dan kesan** adalah halaman statis untuk mata kuliah Pemrograman Aplikasi Mobile; teksnya masih dummy dan tidak dikirim atau disimpan.
+Halaman Profil mengelompokkan kontak darurat di bagian keselamatan, riwayat/progres/rute di bagian aktivitas, dan pengaturan akun secara terpisah. **Saran dan kesan** menyediakan formulir dengan persetujuan eksplisit, antrean lokal aman, status pengiriman dan aksi coba ulang. Pengiriman memerlukan sesi akun online; masa penyimpanan feedback pada server belum ditetapkan dan dijelaskan di layar sebelum pengguna setuju.
 
 ## Tim bersepeda
 
@@ -104,15 +104,15 @@ Karakter rider (level/XP/gaya) tersedia di **Beranda → Karakter rider**. Sebal
 
 Peringkat tersedia melalui **Beranda → Papan peringkat** setelah masuk akun online dan menyetujui partisipasi. Nama yang diatur di profil dipakai sebagai nama publik; tidak ada alias terpisah. Durasi terlama dan jarak terjauh dicatat otomatis dari sesi selesai dan terlihat di profil. Saat partisipasi aktif, hanya dua nilai rekor tersebut yang disinkronkan ke papan peringkat—tidak perlu mengirim skor atau menyinkronkan ringkasan sesi satu per satu. Peringkat menampilkan rekor sepanjang masa; durasi dan jarak terbaik dapat berasal dari sesi berbeda. Mencabut partisipasi menarik rekor dari papan peringkat, sedangkan riwayat lokal tetap tersedia. Skor berasal dari data aplikasi dan belum diverifikasi independen. Terapkan migrasi terbaru dengan `supabase db push`.
 
-## Sinkronisasi ringkasan sesi
+## Sinkronisasi perjalanan ke akun cloud
 
-Sinkronisasi memerlukan login online dan migrasi Supabase terbaru:
+Sinkronisasi perjalanan memerlukan login online, persetujuan melalui **Profil → Pengaturan → Simpan perjalanan online otomatis**, dan migrasi Supabase terbaru:
 
 ```sh
 supabase db push
 ```
 
-Setelah sesi selesai, buka ringkasannya lalu pilih **Sinkronkan ringkasan** dan setujui pengiriman. Hanya waktu mulai/selesai, durasi, jarak, jumlah sampel, informasi elevasi, dan jumlah sampel sensor yang dikirim ke `ride_session_summaries`; koordinat GPS, geometri rute, dan telemetri mentah tidak dikirim. Status lokal menjadi tersinkron hanya setelah upsert server berhasil. Kunci idempotensi gabungan `user_id, session_id` mencegah retry membuat duplikat, RLS membatasi akses per akun, dan penghapusan akun menghapus ringkasan cloud melalui foreign key cascade.
+Saat opsi otomatis aktif, sesi selesai akan disinkronkan otomatis. Sinkronisasi akun menyimpan metadata perjalanan dan seluruh track GPS/telemetri mentah ke `ride_sessions` dan `ride_session_telemetry`, lalu memulihkannya pada perangkat lain yang masuk ke akun yang sama. Ini termasuk data lokasi sensitif. Data tetap lokal bila opsi mati, akun belum terhubung, atau jaringan gagal. Mematikan opsi menghentikan sinkronisasi berikutnya, tetapi tidak menghapus data yang sudah terunggah; sesi cloud dapat dihapus dengan menghapus sesi terkait saat online. Status tersinkron hanya ditetapkan setelah server mengonfirmasi upload. Tabel memiliki RLS per akun dan kunci idempotensi; deployment migrasi/RLS live masih harus diverifikasi. Fitur ekspor/penghapusan seluruh akun belum tersedia.
 
 ## Chat AI (Supabase + Gemini)
 
@@ -181,4 +181,4 @@ Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi s
 .\scripts\flutter_with_env.ps1 build apk --release
 ```
 
-Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Halaman **Profil → Saran dan kesan** saat ini hanya menampilkan teks statis untuk mata kuliah dan tidak mengirim atau menyimpan masukan. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat memerlukan sesi akun.
+Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Halaman **Profil → Saran dan kesan** menyimpan masukan yang belum berhasil dikirim di penyimpanan aman perangkat dan menyediakan aksi coba ulang. Pengiriman ke server memerlukan sesi akun online dan persetujuan eksplisit; layar menjelaskan bahwa masa penyimpanan server belum ditetapkan. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat memerlukan sesi akun.

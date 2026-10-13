@@ -68,6 +68,7 @@ void main() {
       locationSource: _EmptyLocationSource(),
     );
     await unitCubit.load();
+    await workoutCubit.load();
     await sessionCubit.initialize();
     addTearDown(routesCubit.close);
     addTearDown(unitCubit.close);
@@ -101,13 +102,14 @@ void main() {
 
     expect(find.byType(DraggableScrollableSheet), findsNothing);
     expect(find.byType(ListView), findsWidgets);
-    await tester.tap(find.text('Mulai sesi'));
+    await tester.ensureVisible(find.text('Mulai merekam'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mulai merekam'));
     await tester.pumpAndSettle();
     expect(find.text('Pakai rute untuk sesi ini?'), findsNothing);
     expect(routesCubit.state.sessionRoute?.name, 'Loop Utara');
     expect(sessionCubit.state.session?.status, RideSessionStatus.recording);
-    await tester.ensureVisible(find.text('Performa sesi'));
-    expect(find.text('Performa sesi'), findsOneWidget);
+    expect(find.text('SEDANG MEREKAM'), findsOneWidget);
     await sessionCubit.pause();
   });
 

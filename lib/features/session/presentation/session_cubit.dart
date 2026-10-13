@@ -273,7 +273,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           message: locationMessage,
         ),
       );
-      if (autoSyncEnabled) _startAutoSyncRetry();
+      if (autoSyncEnabled) {
+        _startAutoSyncRetry(runImmediately: !canCloudSync);
+      }
       if (session?.status == RideSessionStatus.recording) {
         await _startLocationStream(session!.id);
         await _startBarometerStream();
@@ -533,10 +535,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       );
       _activeRoute = null;
       _routeProgressCalculator = null;
-      if (canCloudSync) {
-        unawaited(_pushCloudSession(completed.id));
-      } else if (state.autoSyncEnabled) {
-        unawaited(_syncCompletedSession(completed.id));
+      if (state.autoSyncEnabled) {
+        if (canCloudSync) {
+          unawaited(_pushCloudSession(completed.id));
+        } else {
+          unawaited(_syncCompletedSession(completed.id));
+        }
       }
     } catch (_) {
       _setMessage(
@@ -598,31 +602,38 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   }
 
   Future<void> deleteCompletedSession(String sessionId) async {
+    final sync = cloudSync;
+    final remoteCopyMayExist = state.completedSessions.any(
+      (session) => session.id == sessionId && session.syncStatus != 'pending',
+    );
+    if (remoteCopyMayExist && (sync == null || !sync.canSync)) {
+      _setMessage(
+        'Perjalanan belum dihapus. Sambungkan akun online untuk menghapus salinannya juga.',
+      );
+      return;
+    }
+
+    final deleteOnlineCopy = sync?.canSync == true;
     try {
+      if (deleteOnlineCopy) await sync!.deleteSession(sessionId);
       await repository.deleteCompletedSession(sessionId);
       final history = state.completedSessions
           .where((session) => session.id != sessionId)
           .toList(growable: false);
       final clearSummary = state.summary?.session.id == sessionId;
-      final sync = cloudSync;
-      var cloudMessage = '';
-      if (sync != null && canCloudSync) {
-        try {
-          await sync.deleteSession(sessionId);
-          cloudMessage = ' Salinan online juga dihapus.';
-        } catch (_) {
-          cloudMessage = ' Salinan online belum dapat dihapus.';
-        }
-      }
       emit(
         state.copyWith(
           completedSessions: history,
           clearSummary: clearSummary,
-          message: 'Perjalanan dihapus dari ponsel.$cloudMessage',
+          message: deleteOnlineCopy
+              ? 'Perjalanan dihapus dari ponsel dan akun online.'
+              : 'Perjalanan dihapus dari ponsel.',
         ),
       );
     } catch (_) {
-      _setMessage('Perjalanan di ponsel tidak dapat dihapus.');
+      _setMessage(
+        'Perjalanan belum dihapus. Salinan online tidak dapat dihapus. Periksa koneksi dan coba lagi.',
+      );
     }
   }
 
@@ -726,8 +737,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       if (isClosed) return;
       emit(state.copyWith(autoSyncEnabled: enabled, isSavingAutoSync: false));
       if (enabled) {
-        _startAutoSyncRetry();
-        unawaited(syncPendingSessions());
+        _startAutoSyncRetry(runImmediately: !canCloudSync);
+        if (canCloudSync) unawaited(syncCloudSessions());
       } else {
         _autoSyncRetryTimer?.cancel();
         _autoSyncRetryTimer = null;
@@ -744,7 +755,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   }
 
   Future<void> syncPendingSessions() async {
-    if (!state.autoSyncEnabled || !canSyncSessions || isClosed) return;
+    if (!state.autoSyncEnabled ||
+        canCloudSync ||
+        !canSyncSessions ||
+        isClosed) {
+      return;
+    }
     final pendingSessions = state.completedSessions
         .where(
           (session) =>
@@ -758,21 +774,32 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  void _startAutoSyncRetry() {
+  void _startAutoSyncRetry({bool runImmediately = true}) {
     _autoSyncRetryTimer ??= Timer.periodic(
       const Duration(minutes: 1),
-      (_) => unawaited(syncPendingSessions()),
+      (_) => unawaited(
+        canCloudSync ? _pushPendingCloudSessions() : syncPendingSessions(),
+      ),
     );
-    unawaited(syncPendingSessions());
+    if (runImmediately) {
+      unawaited(
+        canCloudSync ? _pushPendingCloudSessions() : syncPendingSessions(),
+      );
+    }
   }
 
   /// Pulls every ride from the account cloud, merges it into local storage, and
   /// pushes any locally recorded rides that are not yet in the cloud.
   Future<void> syncCloudSessions() async {
     final sync = cloudSync;
-    if (sync == null || !canCloudSync || isClosed) return;
+    if (sync == null || !state.autoSyncEnabled || !canCloudSync || isClosed) {
+      return;
+    }
     try {
-      await sync.pullSessions(shouldContinue: () => !isClosed);
+      await sync.pullSessions(
+        shouldContinue: () =>
+            !isClosed && state.autoSyncEnabled && canCloudSync,
+      );
     } catch (_) {
       // Offline or transient failure: local history remains authoritative.
     }
@@ -782,17 +809,20 @@ class RideSessionCubit extends Cubit<RideSessionState> {
 
   Future<void> _pushPendingCloudSessions() async {
     final sync = cloudSync;
-    if (sync == null || !canCloudSync || isClosed) return;
+    if (sync == null || !state.autoSyncEnabled || !canCloudSync || isClosed) {
+      return;
+    }
     final pending = state.completedSessions
         .where((session) => session.syncStatus != 'synced')
         .toList(growable: false);
     var changed = false;
     for (final session in pending) {
-      if (isClosed || !canCloudSync) break;
+      if (isClosed || !state.autoSyncEnabled || !canCloudSync) break;
       try {
         final pushed = await sync.pushSession(
           session.id,
-          shouldContinue: () => !isClosed,
+          shouldContinue: () =>
+              !isClosed && state.autoSyncEnabled && canCloudSync,
         );
         if (pushed) changed = true;
       } catch (_) {
@@ -804,9 +834,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
 
   Future<void> _pushCloudSession(String sessionId) async {
     final sync = cloudSync;
-    if (sync == null || !canCloudSync || isClosed) return;
+    if (sync == null || !state.autoSyncEnabled || !canCloudSync || isClosed) {
+      return;
+    }
     try {
-      await sync.pushSession(sessionId, shouldContinue: () => !isClosed);
+      await sync.pushSession(
+        sessionId,
+        shouldContinue: () =>
+            !isClosed && state.autoSyncEnabled && canCloudSync,
+      );
       await _reloadCompletedSessions();
     } catch (_) {
       if (!isClosed) {
@@ -829,6 +865,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
 
   Future<void> _syncCompletedSession(String sessionId) async {
     if (!state.autoSyncEnabled ||
+        canCloudSync ||
         !canSyncSessions ||
         state.syncingSessionId != null) {
       return;

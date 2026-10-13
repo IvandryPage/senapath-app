@@ -58,6 +58,25 @@ void main() {
       expect(result.progressFor(goal), 1);
     });
 
+    test('counts each completed session only once', () {
+      final session = _session(
+        'duplicate',
+        DateTime(2026, 6, 16, 8),
+        12000,
+        2400,
+      );
+      final result = calculator.calculate(
+        [session, session],
+        now: now,
+        period: ProgressPeriod.week,
+      );
+
+      expect(result.sessionIds, ['duplicate']);
+      expect(result.completedSessions, 1);
+      expect(result.distanceMeters, 12000);
+      expect(result.activeSeconds, 2400);
+    });
+
     test('uses the matching previous calendar period for comparison', () {
       final result = calculator.calculate(
         [

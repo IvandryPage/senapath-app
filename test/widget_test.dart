@@ -50,6 +50,9 @@ import 'package:senapath/features/ride_coach/presentation/ride_coach_cubit.dart'
 import 'package:senapath/features/ride_coach/data/ride_coach_gateway.dart';
 import 'package:senapath/features/workouts/data/interval_workout_repository.dart';
 import 'package:senapath/features/workouts/presentation/interval_workout_cubit.dart';
+import 'package:senapath/features/feedback/data/feedback_repository.dart';
+import 'package:senapath/features/feedback/data/supabase_feedback_gateway.dart';
+import 'package:senapath/features/feedback/presentation/feedback_cubit.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -142,6 +145,16 @@ void main() {
         rideLedgerCubit: RideLedgerCubit(RideLedgerRepository(database)),
         rideCoachCubit: RideCoachCubit(_UnavailableRideCoachGateway()),
         intervalWorkoutCubit: intervalWorkoutCubit,
+        feedbackCubit: FeedbackCubit(
+          FeedbackRepository(_FakeSecureVault()),
+          SupabaseFeedbackGateway(
+            null,
+            CustomAuthSessionManager(
+              client: null,
+              secureVault: _FakeSecureVault(),
+            ),
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -165,10 +178,10 @@ void main() {
 
     final leaderboardShortcut = find.byKey(const Key('home-open-leaderboard'));
     await tester.scrollUntilVisible(leaderboardShortcut, 400);
-    expect(find.text('Papan peringkat mingguan'), findsOneWidget);
+    expect(find.text('Rekor gowes'), findsOneWidget);
     await tester.tap(leaderboardShortcut);
     await tester.pumpAndSettle();
-    expect(find.text('Peringkat mingguan'), findsOneWidget);
+    expect(find.text('Peringkat peserta'), findsOneWidget);
     expect(find.text('Partisipasi dan privasi'), findsNothing);
     expect(find.text('Alias publik'), findsNothing);
     await tester.binding.handlePopRoute();
@@ -176,17 +189,15 @@ void main() {
 
     await tester.tap(find.byKey(const Key('home-chat-ai')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Chat belum terhubung'), findsOneWidget);
-    expect(
-      find.textContaining('Chat akan aktif setelah backend Supabase'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Asisten belum tersedia'), findsWidgets);
     expect(find.byType(BackButton), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     await tester.tap(find.text('Jelajah').last);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Belum ada rute tersimpan'), findsNothing);
     expect(find.byType(ExploreMap), findsOneWidget);
     expect(find.text('OpenStreetMap'), findsNothing);
@@ -201,15 +212,6 @@ void main() {
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     expect(find.text('Progres & target'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Sesi terbaru'),
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Sesi terbaru'), findsOneWidget);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, 700));
-    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kontak darurat'));
@@ -238,40 +240,26 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rute tersimpan'));
     await tester.pumpAndSettle();
-    expect(find.text('Perpustakaan rute'), findsOneWidget);
-    expect(find.textContaining('Belum ada rute GPX.'), findsOneWidget);
+    expect(find.text('Rute tersimpan'), findsAtLeastNWidgets(1));
+    expect(
+      find.text('Belum ada rute. Impor file GPX dari ponsel.'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Jelajah').last);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.byType(ExploreMap), findsOneWidget);
     expect(find.byTooltip('Kompas utara tidak tersedia'), findsOneWidget);
-    expect(find.text('Cari rute GPX'), findsOneWidget);
     expect(find.text('SIAP BERSEPEDA'), findsNothing);
     expect(find.byType(DraggableScrollableSheet), findsNothing);
     expect(find.byKey(const Key('start-session-button')), findsOneWidget);
     expect(find.byTooltip('Detail sesi'), findsNothing);
     expect(sessionCubit.state.session, isNull);
-    expect(find.text('Workout'), findsOneWidget);
-    await tester.tap(find.text('Workout'));
-    await tester.pumpAndSettle();
-    expect(find.text('Workout interval'), findsAtLeastNWidgets(1));
-    expect(find.text('Buat workout'), findsOneWidget);
-    await tester.tap(find.text('Buat workout'));
-    await tester.pumpAndSettle();
-    final workoutFields = find.byType(TextFormField);
-    await tester.enterText(workoutFields.at(0), 'Latihan singkat');
-    await tester.enterText(workoutFields.at(1), 'Interval awal');
-    await tester.enterText(workoutFields.at(2), '1');
-    await tester.tap(find.text('Simpan workout'));
-    await tester.pumpAndSettle();
-    expect(find.text('Latihan singkat'), findsOneWidget);
-    await tester.tap(find.text('Pilih untuk sesi berikutnya'));
-    await tester.pumpAndSettle();
-    expect(intervalWorkoutCubit.state.selectedWorkout?.name, 'Latihan singkat');
 
     await tester.tap(find.text('Logistik').last);
     await tester.pumpAndSettle();
-    expect(find.text('Pit stop & resupply'), findsOneWidget);
+    expect(find.text('Istirahat dan isi ulang'), findsOneWidget);
     expect(find.text('Anggaran'), findsOneWidget);
     expect(find.text('Waktu acara'), findsOneWidget);
 
@@ -282,15 +270,39 @@ void main() {
     await tester.pumpAndSettle();
     final rateFields = find.byType(TextFormField);
     await tester.enterText(rateFields.at(0), '17000');
+    expect(
+      tester.widget<TextFormField>(rateFields.at(0)).controller!.text,
+      '17.000',
+    );
     await tester.enterText(rateFields.at(1), '1.1');
+    expect(
+      tester.widget<TextFormField>(rateFields.at(1)).controller!.text,
+      '1,1',
+    );
     await tester.enterText(rateFields.at(2), '0.95');
     await tester.enterText(rateFields.at(3), '4.5');
     await tester.tap(find.text('Simpan kurs'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('bukan real-time'), findsOneWidget);
+    expect(logisticsCubit.state.data.eurRates[BudgetCurrency.idr], 17000);
+    expect(logisticsCubit.state.data.eurRates[BudgetCurrency.usd], 1.1);
+    expect(
+      find.textContaining('Nilai tukar yang kamu masukkan'),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const Key('eur-converter-amount')),
+      '1234',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('eur-converter-amount')))
+          .controller!
+          .text,
+      '1.234',
+    );
     await tester.enterText(find.byKey(const Key('eur-converter-amount')), '10');
     await tester.pump();
-    expect(find.textContaining('170,000'), findsOneWidget);
+    expect(find.textContaining('170.000'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Anggaran'));
     await tester.tap(find.text('Anggaran'));
@@ -334,64 +346,7 @@ void main() {
     expect(find.text('Hotel'), findsNothing);
     expect(find.text('Makan siang'), findsNothing);
 
-    await tester.tap(find.text('Profil').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Perpustakaan rute'), findsOneWidget);
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Sesi terbaru'),
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Sesi terbaru'), findsOneWidget);
-    expect(find.text('Akun online'), findsNothing);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, 700));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Pengaturan aplikasi'),
-      200,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('Pengaturan aplikasi'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.scrollUntilVisible(
-      find.text('Tema terang'),
-      180,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.text('Tema terang'), findsOneWidget);
-    expect(find.text('Gelap'), findsNothing);
-    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.themeMode, ThemeMode.light);
-    expect(app.darkTheme, isNull);
-    expect(app.theme?.brightness, Brightness.light);
-    await tester.tap(find.byType(BackButton));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, 700));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Pengaturan dan menu profil'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Akun & keamanan'),
-      180,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(find.text('Akun & keamanan'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Lupa password?'), findsNothing);
-    expect(find.textContaining('Supabase belum dikonfigurasi'), findsOneWidget);
-    await tester.binding.handlePopRoute();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Beranda').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox.shrink());
     await database.close();

@@ -220,10 +220,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       child: SwitchListTile(
         title: const Text('Simpan perjalanan online otomatis'),
         subtitle: const Text(
-          'Setelah perjalanan selesai, ringkasan waktu, jarak, elevasi, dan '
-          'data sensor dikirim ke akun online. Titik GPS, rute, dan data '
-          'sensor mentah tidak ikut dikirim. Perjalanan tetap tersimpan di '
-          'ponsel jika pengiriman gagal.',
+          'Saat aktif dan akun online terhubung, perjalanan lengkap termasuk '
+          'track GPS dan data sensor mentah akan dikirim otomatis serta dapat '
+          'dipulihkan di perangkat lain. Saat nonaktif atau offline, data '
+          'tetap tersimpan di ponsel. Mematikan opsi ini tidak menghapus '
+          'salinan yang sudah tersimpan online.',
         ),
         value: state.autoSyncEnabled,
         onChanged: state.isSavingAutoSync

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../domain/event_time_converter.dart';
 import '../domain/logistics_models.dart';
+import 'amount_input_formatter.dart';
 import 'logistics_cubit.dart';
 
 class LogisticsScreen extends StatefulWidget {
@@ -371,6 +372,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         TextField(
           key: const Key('eur-converter-amount'),
           controller: _eurAmountController,
+          inputFormatters: const [AmountInputFormatter()],
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             labelText: 'Nominal',
@@ -850,11 +852,11 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
   }
 
   String _formatMoney(double amount, BudgetCurrency currency) =>
-      NumberFormat.currency(
-        name: currency.code,
-        symbol: '${currency.code} ',
+      AmountInputFormatter.formatMoney(
+        amount,
+        currencyCode: currency.code,
         decimalDigits: currency.decimalDigits,
-      ).format(amount);
+      );
 
   String _formatDate(DateTime date) {
     const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -1027,7 +1029,7 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
     _amountController = TextEditingController(
       text: widget.existing == null
           ? ''
-          : _decimalText(widget.existing!.amount),
+          : AmountInputFormatter.formatValue(widget.existing!.amount),
     );
     _currency = widget.existing?.currency ?? widget.defaultCurrency;
   }
@@ -1056,6 +1058,7 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
           const SizedBox(height: 12),
           TextFormField(
             controller: _amountController,
+            inputFormatters: const [AmountInputFormatter()],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Nominal'),
             validator: (value) {
@@ -1129,7 +1132,7 @@ class _BudgetExpenseDialogState extends State<_BudgetExpenseDialog> {
     _amountController = TextEditingController(
       text: widget.existing == null
           ? ''
-          : _decimalText(widget.existing!.amount),
+          : AmountInputFormatter.formatValue(widget.existing!.amount),
     );
     _noteController = TextEditingController(text: widget.existing?.note ?? '');
     _currency = widget.existing?.currency ?? widget.budgetItem.currency;
@@ -1176,6 +1179,7 @@ class _BudgetExpenseDialogState extends State<_BudgetExpenseDialog> {
           children: [
             TextFormField(
               controller: _amountController,
+              inputFormatters: const [AmountInputFormatter()],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -1273,7 +1277,9 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
           currency: TextEditingController(
             text: widget.data.eurRates[currency] == null
                 ? ''
-                : _decimalText(widget.data.eurRates[currency]!),
+                : AmountInputFormatter.formatValue(
+                    widget.data.eurRates[currency]!,
+                  ),
           ),
     };
   }
@@ -1303,6 +1309,7 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _controllers[currency],
+                inputFormatters: const [AmountInputFormatter()],
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -1347,10 +1354,4 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
   );
 }
 
-String _decimalText(double amount) => amount
-    .toStringAsFixed(6)
-    .replaceFirst(RegExp(r'0+$'), '')
-    .replaceFirst(RegExp(r'\.$'), '');
-
-double? _parseAmount(String? value) =>
-    double.tryParse(value?.trim().replaceAll(',', '.') ?? '');
+double? _parseAmount(String? value) => AmountInputFormatter.parse(value);

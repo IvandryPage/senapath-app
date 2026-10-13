@@ -6,12 +6,15 @@ import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:senapath/core/storage/app_database.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
+import 'package:senapath/features/account_sync/data/account_cloud_gateway.dart';
+import 'package:senapath/features/gamification/domain/rider_progress.dart';
 import 'package:senapath/features/notifications/data/notification_settings_repository.dart';
 import 'package:senapath/features/notifications/data/ride_notification_service.dart';
 import 'package:senapath/features/routes/domain/saved_route.dart';
 import 'package:senapath/features/session/data/encrypted_telemetry_codec.dart';
 import 'package:senapath/features/session/data/readiness_checker.dart';
 import 'package:senapath/features/session/data/ride_session_repository.dart';
+import 'package:senapath/features/session/data/ride_session_cloud_sync.dart';
 import 'package:senapath/features/session/data/session_sync_coordinator.dart';
 import 'package:senapath/features/session/data/session_sync_gateway.dart';
 import 'package:senapath/features/session/data/session_sync_settings_repository.dart';
@@ -68,16 +71,71 @@ void main() {
     await sessionCubit!.start();
     final sessionId = sessionCubit!.state.session!.id;
     await sessionCubit!.finish();
-    await sessionCubit!.stream.firstWhere(
-      (state) =>
-          state.completedSessions.any(
+    await sessionCubit!.stream
+        .firstWhere(
+          (state) => state.completedSessions.any(
             (session) =>
                 session.id == sessionId && session.syncStatus == 'synced',
           ),
-    ).timeout(const Duration(seconds: 2));
+        )
+        .timeout(const Duration(seconds: 2));
 
     expect(gateway.uploadedSummary?.session.id, sessionId);
   });
+
+  test('account GPS sync stays local until the user opts in', () async {
+    final session = await repository.start(DateTime.utc(2026, 9, 30, 10));
+    await repository.finish(session.id, DateTime.utc(2026, 9, 30, 11));
+    final gateway = _TestAccountCloudGateway();
+    sessionCubit = RideSessionCubit(
+      repository: repository,
+      readinessChecker: const _RecordingReadinessChecker(),
+      locationSource: _TestLocationSource(positions.stream),
+      syncSettingsRepository: SessionSyncSettingsRepository(database),
+      cloudSync: RideSessionCloudSync(repository: repository, gateway: gateway),
+    );
+
+    await sessionCubit!.initialize();
+    await sessionCubit!.syncCloudSessions();
+
+    expect(gateway.pullCalls, 0);
+    expect(gateway.pushCalls, 0);
+    expect(
+      (await repository.loadCompletedSessions()).single.syncStatus,
+      'pending',
+    );
+  });
+
+  test(
+    'account GPS sync uploads opted-in sessions and restores cloud data',
+    () async {
+      final session = await repository.start(DateTime.utc(2026, 9, 30, 10));
+      await repository.finish(session.id, DateTime.utc(2026, 9, 30, 11));
+      final settingsRepository = SessionSyncSettingsRepository(database);
+      await settingsRepository.saveAutoSyncEnabled(true);
+      final gateway = _TestAccountCloudGateway();
+      sessionCubit = RideSessionCubit(
+        repository: repository,
+        readinessChecker: const _RecordingReadinessChecker(),
+        locationSource: _TestLocationSource(positions.stream),
+        syncSettingsRepository: settingsRepository,
+        cloudSync: RideSessionCloudSync(
+          repository: repository,
+          gateway: gateway,
+        ),
+      );
+
+      await sessionCubit!.initialize();
+      await sessionCubit!.syncCloudSessions();
+
+      expect(gateway.pullCalls, 1);
+      expect(gateway.pushCalls, 1);
+      expect(
+        (await repository.loadCompletedSessions()).single.syncStatus,
+        'synced',
+      );
+    },
+  );
 
   test('motion sensors keep recording after session resume', () async {
     sessionCubit = RideSessionCubit(
@@ -131,45 +189,50 @@ void main() {
     );
   });
 
-  test('performance chart samples every five seconds without dropping GPS', () async {
-    var now = DateTime.utc(2026, 9, 30, 12);
-    sessionCubit = RideSessionCubit(
-      repository: repository,
-      readinessChecker: const _RecordingReadinessChecker(),
-      locationSource: _TestLocationSource(positions.stream),
-      clock: () => now,
-    );
-    await sessionCubit!.start();
+  test(
+    'performance chart samples every five seconds without dropping GPS',
+    () async {
+      var now = DateTime.utc(2026, 9, 30, 12);
+      sessionCubit = RideSessionCubit(
+        repository: repository,
+        readinessChecker: const _RecordingReadinessChecker(),
+        locationSource: _TestLocationSource(positions.stream),
+        clock: () => now,
+      );
+      await sessionCubit!.start();
 
-    var recorded = sessionCubit!.stream.firstWhere(
-      (state) => state.recordedLocations.length == 1,
-    );
-    positions.add(_positionAt(now));
-    await recorded.timeout(const Duration(seconds: 2));
-    expect(sessionCubit!.state.performanceLocations.length, 1);
+      var recorded = sessionCubit!.stream.firstWhere(
+        (state) => state.recordedLocations.length == 1,
+      );
+      positions.add(_positionAt(now));
+      await recorded.timeout(const Duration(seconds: 2));
+      expect(sessionCubit!.state.performanceLocations.length, 1);
 
-    now = now.add(const Duration(seconds: 4));
-    recorded = sessionCubit!.stream.firstWhere(
-      (state) => state.recordedLocations.length == 2,
-    );
-    positions.add(_positionAt(now, longitude: 106.8001));
-    await recorded.timeout(const Duration(seconds: 2));
-    expect(sessionCubit!.state.performanceLocations.length, 1);
+      now = now.add(const Duration(seconds: 4));
+      recorded = sessionCubit!.stream.firstWhere(
+        (state) => state.recordedLocations.length == 2,
+      );
+      positions.add(_positionAt(now, longitude: 106.8001));
+      await recorded.timeout(const Duration(seconds: 2));
+      expect(sessionCubit!.state.performanceLocations.length, 1);
 
-    now = now.add(const Duration(seconds: 1));
-    recorded = sessionCubit!.stream.firstWhere(
-      (state) => state.recordedLocations.length == 3,
-    );
-    positions.add(_positionAt(now, longitude: 106.8002));
-    await recorded.timeout(const Duration(seconds: 2));
+      now = now.add(const Duration(seconds: 1));
+      recorded = sessionCubit!.stream.firstWhere(
+        (state) => state.recordedLocations.length == 3,
+      );
+      positions.add(_positionAt(now, longitude: 106.8002));
+      await recorded.timeout(const Duration(seconds: 2));
 
-    expect(sessionCubit!.state.recordedLocations, hasLength(3));
-    expect(sessionCubit!.state.performanceLocations, hasLength(2));
-    expect(
-      await repository.loadTelemetryLocations(sessionCubit!.state.session!.id),
-      hasLength(3),
-    );
-  });
+      expect(sessionCubit!.state.recordedLocations, hasLength(3));
+      expect(sessionCubit!.state.performanceLocations, hasLength(2));
+      expect(
+        await repository.loadTelemetryLocations(
+          sessionCubit!.state.session!.id,
+        ),
+        hasLength(3),
+      );
+    },
+  );
 
   test('active GPX sessions notify route progress and checkpoints', () async {
     final notificationService = _RecordingRideNotificationService();
@@ -642,6 +705,55 @@ class _TestSessionSyncGateway implements SessionSyncGateway {
   }) async {
     uploadedSummary = summary;
   }
+}
+
+class _TestAccountCloudGateway implements AccountCloudGateway {
+  int pullCalls = 0;
+  int pushCalls = 0;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  bool get isSignedIn => true;
+
+  @override
+  Future<Object?> pullSetting(String key) async => null;
+
+  @override
+  Future<void> pushSetting(String key, Object? value) async {}
+
+  @override
+  Future<void> pushRideSession(
+    RideSessionSnapshot session,
+    List<TelemetryLocation> points,
+  ) async {
+    pushCalls++;
+  }
+
+  @override
+  Future<List<CloudRideSession>> pullRideSessions() async {
+    pullCalls++;
+    return const [];
+  }
+
+  @override
+  Future<void> deleteRideSession(String sessionId) async {}
+
+  @override
+  Future<void> pushRiderProgress({
+    required RiderStyle style,
+    required int level,
+    required int experience,
+    required double distanceMeters,
+    required int completedRides,
+    required int rideDurationSeconds,
+    required int weekendRides,
+    required RiderAppearance appearance,
+  }) async {}
+
+  @override
+  Future<CloudRiderProgress?> pullRiderProgress() async => null;
 }
 
 class _TestMotionSensorSource implements MotionSensorSource {

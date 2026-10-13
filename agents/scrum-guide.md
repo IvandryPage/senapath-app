@@ -59,7 +59,7 @@ Status yang perlu diverifikasi lagi sebelum planning:
 
 - Custom auth gateway email, secure session restore, dan refresh-token rotation tersedia di aplikasi; signing key Supabase, konfigurasi email, serta pengujian live pada project/perangkat nyata tetap harus diverifikasi sebelum dinyatakan siap.
 - Login biometrik memulihkan refresh session perangkat setelah autentikasi biometrik lokal; biometrik tidak menggantikan verifikasi JWT server dan tidak menyimpan password.
-- Sinkronisasi ringkasan sesi ke Supabase meminta consent dan memakai upsert idempoten; migrasi/RLS live belum diverifikasi dan raw GPS/telemetry belum tersinkron.
+- Sinkronisasi perjalanan ke Supabase mengirim metadata dan track GPS/telemetri mentah otomatis hanya setelah opsi persetujuan di Profil diaktifkan; penonaktifan menghentikan transfer selanjutnya tetapi tidak menghapus salinan cloud. Migrasi/RLS live dan perilaku integrasi belum diverifikasi.
 - Basemap OpenStreetMap online ditampilkan di Beranda/Jelajah dan pada preview/panduan GPX; pusat awal peta saat ini Yogyakarta. Tile perlu internet; geocoding, pencarian rute online, turn-by-turn, dan provider tile produksi belum tersedia/diputuskan.
 - Konversi waktu kini memakai database zona waktu IANA lokal yang dapat dicari, termasuk penanganan waktu DST hilang/berulang; konversi kurs tetap hanya referensi harian/manual, bukan kurs live.
 - Chat AI atau package/model lokal bukan bukti deployment LLM maupun AI ML yang tervalidasi.

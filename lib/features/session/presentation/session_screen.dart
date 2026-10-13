@@ -1238,10 +1238,10 @@ class _SessionScreenState extends State<SessionScreen>
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Hapus perjalanan dari ponsel?'),
+        title: const Text('Hapus perjalanan?'),
         content: const Text(
-          'Ringkasan dan titik lokasi perjalanan ini akan dihapus dari ponsel. '
-          'Salinan di akun online tidak ikut terhapus.',
+          'Ringkasan dan titik lokasi akan dihapus dari ponsel dan akun online. '
+          'Jika salinan online tidak dapat dihapus, perjalanan ini tetap disimpan di ponsel.',
         ),
         actions: [
           TextButton(
@@ -1250,7 +1250,7 @@ class _SessionScreenState extends State<SessionScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Hapus dari ponsel'),
+            child: const Text('Hapus perjalanan'),
           ),
         ],
       ),
@@ -1794,24 +1794,24 @@ class _SessionScreenState extends State<SessionScreen>
       return const ListTile(
         contentPadding: EdgeInsets.zero,
         leading: Icon(Icons.cloud_done_outlined),
-        title: Text('Ringkasan disimpan online'),
-        subtitle: Text('Titik GPS dan data lokasi rinci tidak ikut dikirim.'),
+        title: Text('Perjalanan disimpan online'),
+        subtitle: Text('Track GPS dan data sensor mentah ikut tersimpan.'),
       );
     }
 
     final cubit = context.read<RideSessionCubit>();
     final message = !autoSyncEnabled
         ? 'Aktifkan “Simpan perjalanan online otomatis” di Profil > Pengaturan. '
-              'Perjalanan tetap tersimpan di ponsel.'
+              'Track GPS dan sensor mentah tetap tersimpan di ponsel.'
         : !cubit.canSyncSessions
-        ? 'Akun online belum terhubung. Ringkasan tetap tersimpan di ponsel dan '
+        ? 'Akun online belum terhubung. Perjalanan tetap tersimpan di ponsel dan '
               'akan dicoba lagi otomatis.'
         : isSyncing || session.syncStatus == 'syncing'
-        ? 'Ringkasan sedang disimpan ke akun online.'
+        ? 'Perjalanan, track GPS, dan sensor mentah sedang disimpan ke akun online.'
         : session.syncStatus == 'failed'
-        ? 'Ringkasan belum tersimpan online. Data tetap aman di ponsel dan akan '
+        ? 'Perjalanan belum tersimpan online. Data tetap aman di ponsel dan akan '
               'dicoba lagi otomatis.'
-        : 'Menunggu untuk disimpan online. Titik GPS dan data lokasi rinci tidak ikut dikirim.';
+        : 'Menunggu untuk disimpan online. Track GPS dan sensor mentah ikut dikirim.';
 
     return ListTile(
       contentPadding: EdgeInsets.zero,

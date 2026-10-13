@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../routes/domain/saved_route.dart';
 import '../domain/logistics_models.dart';
+import 'amount_input_formatter.dart';
 import 'logistics_cubit.dart';
 
 class ResupplyCacheSheet extends StatefulWidget {
@@ -501,11 +502,11 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
   }
 
   String _formatMoney(double amount, BudgetCurrency currency) =>
-      NumberFormat.currency(
-        name: currency.code,
-        symbol: '${currency.code} ',
+      AmountInputFormatter.formatMoney(
+        amount,
+        currencyCode: currency.code,
         decimalDigits: currency.decimalDigits,
-      ).format(amount);
+      );
 }
 
 class _ResupplyItem {

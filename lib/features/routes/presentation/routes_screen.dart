@@ -158,35 +158,39 @@ class _RoutesScreenState extends State<RoutesScreen> {
                               constraints: BoxConstraints(
                                 maxWidth: constraints.maxWidth * 0.48,
                               ),
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Theme.of(context)
-                                      .colorScheme
-                                      .error,
-                                  foregroundColor: Theme.of(context)
-                                      .colorScheme
-                                      .onError,
-                                ),
-                                onPressed: !profileState.isLoaded
-                                    ? null
-                                    : profileState.contacts.isEmpty
-                                    ? () => context.push('/profile')
-                                    : () => _callEmergencyContact(
-                                        profileState.contacts.first,
-                                      ),
-                                icon: Icon(
-                                  profileState.contacts.isEmpty
-                                      ? Icons.person_add_alt_1
-                                      : Icons.call,
-                                ),
-                                label: Text(
-                                  !profileState.isLoaded
-                                      ? 'Memuat kontak…'
+                              child: Tooltip(
+                                message: 'Pilih telepon atau WhatsApp',
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .error,
+                                    foregroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .onError,
+                                  ),
+                                  onPressed: !profileState.isLoaded
+                                      ? null
                                       : profileState.contacts.isEmpty
-                                      ? 'Tambah kontak darurat'
-                                      : 'Telepon darurat',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                      ? () => context.push('/profile')
+                                      : () => _showEmergencyOptions(
+                                          profileState.contacts.first,
+                                          currentLocation,
+                                        ),
+                                  icon: Icon(
+                                    profileState.contacts.isEmpty
+                                        ? Icons.person_add_alt_1
+                                        : Icons.sos,
+                                  ),
+                                  label: Text(
+                                    !profileState.isLoaded
+                                        ? 'Memuat kontak…'
+                                        : profileState.contacts.isEmpty
+                                        ? 'Tambah kontak darurat'
+                                        : 'SOS darurat',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
                             ),
@@ -296,6 +300,68 @@ class _RoutesScreenState extends State<RoutesScreen> {
     final emergencyCubit = context.read<EmergencyCubit>();
     emergencyCubit.clearMessage();
     await emergencyCubit.callContact(contact);
+    _showEmergencyResult(emergencyCubit);
+  }
+
+  Future<void> _messageEmergencyContact(
+    EmergencyContact contact,
+    TelemetryLocation? lastLocation,
+  ) async {
+    final emergencyCubit = context.read<EmergencyCubit>();
+    emergencyCubit.clearMessage();
+    await emergencyCubit.openWhatsApp(contact, lastLocation: lastLocation);
+    _showEmergencyResult(emergencyCubit);
+  }
+
+  Future<void> _showEmergencyOptions(
+    EmergencyContact contact,
+    TelemetryLocation? lastLocation,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Pilih cara menghubungi',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text('${contact.name} · ${contact.phone}'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                unawaited(_callEmergencyContact(contact));
+              },
+              icon: const Icon(Icons.call),
+              label: const Text('Telepon biasa'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                unawaited(_messageEmergencyContact(contact, lastLocation));
+              },
+              icon: const Icon(Icons.chat_outlined),
+              label: const Text('Kirim pesan WhatsApp'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              lastLocation == null ? 'Lokasi perjalanan belum tersedia.' : 'Pesan WhatsApp akan menyertakan lokasi terakhir yang direkam.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  void _showEmergencyResult(EmergencyCubit emergencyCubit) {
     if (!mounted) return;
     final message = emergencyCubit.state.message;
     if (message == null) return;

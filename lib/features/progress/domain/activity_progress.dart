@@ -106,14 +106,15 @@ class ActivityProgressCalculator {
       ProgressPeriod.week => startsAt.add(const Duration(days: 7)),
       ProgressPeriod.month => DateTime(startsAt.year, startsAt.month + 1),
     };
-    final included = sessions
-        .where(
-          (session) =>
-              session.status == RideSessionStatus.completed &&
-              !session.startedAt.toLocal().isBefore(startsAt) &&
-              session.startedAt.toLocal().isBefore(endsAt),
-        )
-        .toList(growable: false);
+    final includedById = <String, RideSessionSnapshot>{};
+    for (final session in sessions) {
+      if (session.status == RideSessionStatus.completed &&
+          !session.startedAt.toLocal().isBefore(startsAt) &&
+          session.startedAt.toLocal().isBefore(endsAt)) {
+        includedById.putIfAbsent(session.id, () => session);
+      }
+    }
+    final included = includedById.values.toList(growable: false);
     return ActivityProgress(
       period: period,
       startsAt: startsAt,
