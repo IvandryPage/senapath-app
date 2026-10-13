@@ -93,7 +93,7 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
           isVerified: state.isVerified,
           error: gateway?.isConfigured == true
               ? 'Masuk ke akun online untuk menyinkronkan bukti.'
-              : 'Konfigurasi akun cloud belum tersedia.',
+              : 'Fitur akun online belum tersedia.',
         ),
       );
       return;
@@ -109,7 +109,9 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
       final blocks = await _repository.loadBlocks();
       final verified = await _repository.verify();
       if (!verified) {
-        throw StateError('Rantai lokal tidak valid. Perbaiki sebelum sinkron.');
+        throw StateError(
+          'Data bukti tidak cocok. Periksa sebelum menyimpan online.',
+        );
       }
       final result = await gateway.sync(blocks);
       if (!isClosed) {
@@ -128,9 +130,7 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
           RideLedgerState(
             blocks: state.blocks,
             isVerified: state.isVerified,
-            error: error is StateError
-                ? error.message
-                : 'Ledger tidak dapat disinkronkan. Periksa koneksi dan coba lagi.',
+            error: error is StateError ? error.message : 'Bukti tidak dapat disimpan online. Periksa koneksi dan coba lagi.',
           ),
         );
       }

@@ -52,7 +52,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Masuk untuk menyimpan sesi dan mengakses fitur akun Senapath.',
+              'Masuk untuk menyimpan perjalanan dan memakai fitur akun Senapath.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: SenapathColors.white.withValues(alpha: 0.92),
               ),
@@ -60,7 +60,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
             const SizedBox(height: 24),
           ] else
             const Text(
-              'Masuk dengan email dan password, atau gunakan biometrik untuk masuk kembali ke akun yang tersimpan di perangkat ini.',
+              'Masuk dengan email dan kata sandi. Kamu juga bisa memakai sidik jari atau wajah untuk masuk kembali di perangkat ini.',
             ),
           const SizedBox(height: 16),
           Container(
@@ -85,7 +85,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
               children: [
                 if (!state.isConfigured)
                   const _AccountNotice(
-                    text: 'Supabase belum dikonfigurasi. Fitur lokal tetap bisa digunakan.',
+                    text: 'Akun online belum tersedia. Fitur di ponsel tetap bisa digunakan.',
                     isError: true,
                   ),
                 SegmentedButton<bool>(
@@ -113,9 +113,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                                 .read<CloudAccountCubit>()
                                 .signInWithBiometrics,
                       icon: const Icon(Icons.fingerprint),
-                      label: const Text(
-                        'Masuk ke akun tersimpan dengan biometrik',
-                      ),
+                      label: const Text('Masuk dengan sidik jari atau wajah'),
                     ),
                   ),
                 const SizedBox(height: 20),
@@ -156,13 +154,13 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                             ? TextInputAction.next
                             : TextInputAction.done,
                         decoration: InputDecoration(
-                          labelText: 'Password',
+                          labelText: 'Kata sandi',
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             tooltip: _showPassword
-                                ? 'Sembunyikan password'
-                                : 'Tampilkan password',
+                                ? 'Sembunyikan kata sandi'
+                                : 'Tampilkan kata sandi',
                             onPressed: () =>
                                 setState(() => _showPassword = !_showPassword),
                             icon: Icon(
@@ -173,7 +171,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                           ),
                         ),
                         validator: (value) => value == null || value.length < 8
-                            ? 'Password minimal 8 karakter.'
+                            ? 'Kata sandi harus terdiri dari minimal 8 karakter.'
                             : null,
                         onFieldSubmitted: _isRegistering
                             ? null
@@ -189,13 +187,13 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                           autofillHints: const [AutofillHints.newPassword],
                           textInputAction: TextInputAction.done,
                           decoration: const InputDecoration(
-                            labelText: 'Ulangi password',
+                            labelText: 'Ulangi kata sandi',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.lock_outline),
                           ),
                           validator: (value) =>
                               value != _passwordController.text
-                              ? 'Password belum sama.'
+                              ? 'Kata sandi belum cocok.'
                               : null,
                           onFieldSubmitted: (_) => _submit(),
                         ),
@@ -269,7 +267,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
           Text(state.email ?? ''),
           const SizedBox(height: 12),
           const Text(
-            'Sesi cloud dipakai untuk layanan online. Data lokal tersimpan di perangkat dan tidak dihapus saat keluar dari akun.',
+            'Akun online dipakai untuk fitur yang memerlukan internet. Perjalanan di ponsel tetap tersimpan saat kamu keluar dari akun.',
           ),
           if (state.status != null) ...[
             const SizedBox(height: 16),

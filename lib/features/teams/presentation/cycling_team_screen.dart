@@ -53,7 +53,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
               children: [
                 Text(
-                  'Kelola tim dan lihat ringkasan perjalanan anggota yang dibagikan.',
+                  'Buat tim atau bergabung untuk melihat perjalanan yang dibagikan anggota.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 8),
@@ -165,7 +165,9 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         const SnackBar(
-          content: Text('Atur nama di Edit profil sebelum membuat atau bergabung dengan tim.'),
+          content: Text(
+            'Atur nama di Edit profil sebelum membuat atau bergabung dengan tim.',
+          ),
         ),
       );
     return null;
@@ -377,13 +379,13 @@ class _CyclingTeamDashboardScreenState
                     ),
                   const SizedBox(height: 24),
                   Text(
-                    'Bagikan sesi selesai',
+                    'Bagikan perjalanan selesai',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Pilih sesi yang ingin dibagikan ke tim. Lokasi GPS dan '
-                    'jejak rute tidak akan dibagikan.',
+                    'Pilih perjalanan yang ingin dibagikan. Titik lokasi dan '
+                    'rute tidak akan ikut dibagikan.',
                   ),
                   const SizedBox(height: 8),
                   if (ownMember == null)
@@ -419,11 +421,11 @@ class _CyclingTeamDashboardScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Bagikan ringkasan sesi?'),
+        title: const Text('Bagikan ringkasan perjalanan?'),
         content: const Text(
-          'Anggota tim dapat melihat waktu, durasi, jarak, elevasi, dan jumlah '
-          'sampel sesi ini. Titik GPS, lokasi, dan rute tidak dibagikan. '
-          'Sesi ini juga akan disinkronkan ke akun cloud milikmu.',
+          'Anggota tim dapat melihat waktu, durasi, jarak, dan elevasi perjalanan ini. '
+          'Titik lokasi dan rute tidak dibagikan. Ringkasan juga akan disimpan '
+          'ke akun online-mu.',
         ),
         actions: [
           TextButton(
@@ -432,7 +434,7 @@ class _CyclingTeamDashboardScreenState
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Setujui & bagikan'),
+            child: const Text('Setuju dan bagikan'),
           ),
         ],
       ),
@@ -446,7 +448,7 @@ class _CyclingTeamDashboardScreenState
     if (!mounted) return;
     final message =
         context.read<RideSessionCubit>().state.message ??
-        'Tidak dapat membagikan sesi.';
+        'Perjalanan belum bisa dibagikan.';
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
@@ -459,7 +461,7 @@ class _CyclingTeamDashboardScreenState
       builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Keluar dari tim?'),
         content: const Text(
-          'Ringkasan sesi yang pernah dibagikan akan berhenti terlihat '
+          'Ringkasan perjalanan yang pernah dibagikan tidak akan terlihat lagi '
           'oleh tim ini.',
         ),
         actions: [
@@ -505,7 +507,7 @@ class _TeamAccessRequired extends StatelessWidget {
           Text(
             configured
                 ? 'Masuk ke akun Senapath untuk membuat atau bergabung dengan tim.'
-                : 'Fitur tim memerlukan konfigurasi akun online.',
+                : 'Fitur tim belum tersedia saat ini.',
             textAlign: TextAlign.center,
           ),
           if (configured) ...[
@@ -535,9 +537,8 @@ class _PrivacyNotice extends StatelessWidget {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Data perjalanan hanya terlihat oleh tim jika anggota memilih '
-              'membagikan ringkasannya. Lokasi live dan koordinat GPS tidak '
-              'dibagikan.',
+              'Anggota hanya bisa melihat ringkasan perjalanan yang kamu pilih '
+              'untuk dibagikan. Lokasi langsung dan titik lokasi rinci tidak dibagikan.',
             ),
           ),
         ],
@@ -612,7 +613,7 @@ class _TeamSummaryCards extends StatelessWidget {
     runSpacing: 10,
     children: [
       _MetricCard(
-        label: 'Sesi dibagikan',
+        label: 'Perjalanan dibagikan',
         value: '${dashboard.sharedSessions.length}',
         icon: Icons.directions_bike_outlined,
       ),
@@ -727,7 +728,7 @@ class _MemberSummaryCard extends StatelessWidget {
                       ),
                       Text(member.isManager ? 'Ketua tim' : 'Anggota'),
                       Text(
-                        'Lv.${member.riderLevel} · ${member.riderStyle.label}',
+                        'Level ${member.riderLevel} · ${member.riderStyle.label}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w700,
@@ -739,7 +740,7 @@ class _MemberSummaryCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('${sessions.length} sesi'),
+                    Text('${sessions.length} perjalanan'),
                     Text(_formatDistance(distance, metric)),
                     if (duration > 0) Text('Aktif ${_durationLabel(duration)}'),
                   ],
@@ -816,7 +817,7 @@ class _ShareableSessions extends StatelessWidget {
     if (sessions.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
-        child: Text('Belum ada sesi selesai yang bisa dibagikan.'),
+        child: Text('Belum ada perjalanan selesai yang bisa dibagikan.'),
       );
     }
     return BlocBuilder<RideSessionCubit, RideSessionState>(
@@ -836,7 +837,7 @@ class _ShareableSessions extends StatelessWidget {
                     ? const Chip(label: Text('Dibagikan'))
                     : IconButton(
                         tooltip: canSync
-                            ? 'Bagikan ringkasan sesi ke tim'
+                            ? 'Bagikan ringkasan perjalanan ke tim'
                             : 'Masuk ke akun untuk membagikan',
                         onPressed: !canSync || state.syncingSessionId != null
                             ? null
@@ -852,10 +853,7 @@ class _ShareableSessions extends StatelessWidget {
 }
 
 class _TeamFormResult {
-  const _TeamFormResult({
-    required this.name,
-    required this.inviteCode,
-  });
+  const _TeamFormResult({required this.name, required this.inviteCode});
 
   final String name;
   final String inviteCode;

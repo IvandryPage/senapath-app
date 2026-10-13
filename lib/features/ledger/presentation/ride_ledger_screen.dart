@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../domain/ride_ledger_block.dart';
 import 'ride_ledger_cubit.dart';
 
 class RideLedgerScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class RideLedgerScreen extends StatefulWidget {
 
 class _RideLedgerScreenState extends State<RideLedgerScreen> {
   bool _loaded = false;
+  final Set<String> _visibleHashSessionIds = {};
 
   @override
   void didChangeDependencies() {
@@ -54,8 +56,8 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
                     Expanded(
                       child: Text(
                         state.isVerified == true
-                            ? 'Semua blok terverifikasi'
-                            : 'Rantai belum terverifikasi',
+                            ? 'Semua kode bukti cocok'
+                            : 'Kode bukti perlu diperiksa',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
@@ -64,13 +66,13 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Setiap sesi selesai menambahkan ringkasan jarak dan durasi ke rantai hash. '
-                  'Data lokasi mentah tidak dimasukkan.',
+                  'Hash adalah kode pemeriksaan yang dibuat dari jarak dan durasi perjalanan. '
+                  'Titik lokasi tidak disertakan.',
                 ),
                 const SizedBox(height: 12),
                 if (state.cloudBlockCount != null)
                   Text(
-                    'Database cloud: ${state.cloudBlockCount} blok tersimpan',
+                    'Salinan online: ${state.cloudBlockCount} bukti tersimpan',
                   ),
                 if (state.message case final message?) ...[
                   const SizedBox(height: 8),
@@ -79,7 +81,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
                 OutlinedButton.icon(
                   onPressed: () => context.read<RideLedgerCubit>().verify(),
                   icon: const Icon(Icons.fact_check_outlined),
-                  label: const Text('Verifikasi ulang'),
+                  label: const Text('Periksa bukti lagi'),
                 ),
                 const SizedBox(height: 8),
                 FilledButton.tonalIcon(
@@ -96,7 +98,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
                         )
                       : const Icon(Icons.cloud_upload_outlined),
                   label: Text(
-                    state.isSyncing ? 'Menyinkronkan…' : 'Sinkronkan bukti',
+                    state.isSyncing ? 'Menyimpan…' : 'Simpan salinan online',
                   ),
                 ),
               ],
@@ -104,42 +106,19 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Blok aktivitas (${state.blocks.length})',
+            'Bukti perjalanan (${state.blocks.length})',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           if (state.blocks.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                'Selesaikan sesi untuk membuat blok bukti pertama.',
+                'Selesaikan perjalanan untuk membuat bukti pertama.',
                 textAlign: TextAlign.center,
               ),
             ),
           for (final block in state.blocks.reversed)
-            SenapathCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Blok #${block.index + 1} · '
-                    '${(block.distanceMeters / 1000).toStringAsFixed(2)} km · '
-                    '${Duration(seconds: block.durationSeconds).inMinutes} menit',
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  SelectableText(
-                    'Hash: ${block.hash}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  SelectableText(
-                    'Sebelumnya: ${block.previousHash}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
+            _buildBlockCard(context, block),
           if (state.error != null)
             Text(
               state.error!,
@@ -147,10 +126,9 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
             ),
           const SizedBox(height: 8),
           const Text(
-            'Hash aktivitas yang disinkronkan tidak berisi GPS, nama, atau email. '
-            'Database cloud menyimpan rantai hash untuk sinkronisasi akun. Ini bukan '
-            'blockchain terdesentralisasi: operator database tetap mengelola data, '
-            'dan hash hanya membantu mendeteksi perubahan terhadap rantai yang tersimpan.',
+            'Hash yang disimpan online tidak memuat titik lokasi, nama, atau email. '
+            'Hash membantu mengetahui jika data bukti berubah. Salinannya disimpan '
+            'di akun online Senapath, bukan di blockchain publik.',
             style: TextStyle(fontStyle: FontStyle.italic),
           ),
         ],
@@ -158,15 +136,76 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     },
   );
 
+  Widget _buildBlockCard(BuildContext context, RideLedgerBlock block) {
+    final showHashes = _visibleHashSessionIds.contains(block.sessionId);
+    return SenapathCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Bukti #${block.index + 1} · '
+                  '${(block.distanceMeters / 1000).toStringAsFixed(2)} km · '
+                  '${Duration(seconds: block.durationSeconds).inMinutes} menit',
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                tooltip: showHashes ? 'Sembunyikan hash' : 'Tampilkan hash',
+                onPressed: () {
+                  setState(() {
+                    if (showHashes) {
+                      _visibleHashSessionIds.remove(block.sessionId);
+                    } else {
+                      _visibleHashSessionIds.add(block.sessionId);
+                    }
+                  });
+                },
+                icon: Icon(
+                  showHashes
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            'ID perjalanan: ${block.sessionId}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          if (showHashes) ...[
+            SelectableText(
+              'Hash: ${block.hash}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            SelectableText(
+              'Sebelumnya: ${block.previousHash}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ] else
+            Text(
+              'Hash disembunyikan',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmSync(BuildContext context) async {
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Sinkronkan hash bukti?'),
+        title: const Text('Simpan salinan bukti online?'),
         content: const Text(
-          'Hash, indeks blok, waktu selesai, jarak, dan durasi sesi akan disimpan '
-          'di database cloud akunmu. Koordinat GPS, nama, serta email tidak dikirim. '
-          'Ini sinkronisasi ledger cloud, bukan pencatatan pada blockchain publik.',
+          'Hash, waktu selesai, jarak, dan durasi akan disimpan di akun online-mu. '
+          'Titik lokasi, nama, dan email tidak dikirim. Bukti disimpan di akun online, '
+          'bukan di blockchain publik.',
         ),
         actions: [
           TextButton(
@@ -175,7 +214,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Setuju & sinkronkan'),
+            child: const Text('Ya, simpan'),
           ),
         ],
       ),

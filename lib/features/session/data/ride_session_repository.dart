@@ -233,6 +233,49 @@ class DriftRideSessionRepository implements RideSessionRepository {
     );
   }
 
+  Future<void> upsertCloudSession(
+    RideSessionSnapshot session,
+    List<TelemetryLocation> points,
+  ) async {
+    final endedAt = session.endedAt ?? session.startedAt;
+    await database.transaction(() async {
+      await database
+          .into(database.rideSessions)
+          .insertOnConflictUpdate(
+            RideSessionsCompanion.insert(
+              id: session.id,
+              title: Value(session.title),
+              activityType: Value(session.activityType.name),
+              source: Value(session.source),
+              startedAt: session.startedAt.toUtc(),
+              endedAt: Value(endedAt.toUtc()),
+              status: RideSessionStatus.completed.name,
+              syncStatus: const Value('synced'),
+              distanceMeters: Value(session.distanceMeters),
+              currentSpeedMetersPerSecond: Value(
+                session.currentSpeedMetersPerSecond,
+              ),
+              gpsAccuracyMeters: Value(session.gpsAccuracyMeters),
+            ),
+          );
+      await (database.delete(
+        database.telemetryPoints,
+      )..where((point) => point.sessionId.equals(session.id))).go();
+      for (final point in points) {
+        final encryptedPayload = await telemetryCodec.encode(point);
+        await database
+            .into(database.telemetryPoints)
+            .insert(
+              TelemetryPointsCompanion.insert(
+                sessionId: session.id,
+                recordedAt: point.recordedAt.toUtc(),
+                encryptedPayload: encryptedPayload,
+              ),
+            );
+      }
+    });
+  }
+
   @override
   Future<void> deleteCompletedSession(String sessionId) async {
     final row = await _getSession(sessionId);

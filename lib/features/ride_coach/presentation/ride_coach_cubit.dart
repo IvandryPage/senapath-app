@@ -70,7 +70,7 @@ class RideCoachCubit extends Cubit<RideCoachState> {
         emit(
           RideCoachState(
             recommendation: state.recommendation,
-            error: error is StateError ? error.message : 'Rekomendasi tidak tersedia. Periksa koneksi dan konfigurasi AI.',
+            error: error is StateError ? error.message : 'Saran belum tersedia. Periksa koneksi internet dan coba lagi.',
           ),
         );
       }
@@ -97,7 +97,7 @@ class RideCoachCubit extends Cubit<RideCoachState> {
           RideCoachState(
             error: error is StateError
                 ? error.message
-                : 'Pemeriksaan konfigurasi Gemini gagal.',
+                : 'Asisten belum siap. Coba lagi nanti.',
           ),
         );
       }

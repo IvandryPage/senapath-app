@@ -56,9 +56,7 @@ class AiChatCubit extends Cubit<AiChatState> {
     final message = content.trim();
     if (state.isSending || message.isEmpty) return;
     if (!isConfigured) {
-      emit(
-        state.copyWith(error: 'Chat AI belum dikonfigurasi untuk proyek ini.'),
-      );
+      emit(state.copyWith(error: 'Asisten belum tersedia. Coba lagi nanti.'));
       return;
     }
 
@@ -96,17 +94,15 @@ class AiChatCubit extends Cubit<AiChatState> {
     } catch (error) {
       if (isClosed || requestGeneration != _requestGeneration) return;
       final message = switch (error) {
-        StateError(:final message) => message.toString(),
-        FormatException(:final message) => message,
-        TimeoutException() =>
-          'Permintaan ke layanan AI melewati batas waktu. Coba lagi.',
-        _ => error.toString(),
+        TimeoutException() => 'Asisten belum menjawab. Coba lagi.',
+        FormatException() => 'Jawaban tidak dapat dibaca. Coba kirim ulang.',
+        _ => 'Asisten tidak dapat menjawab. Periksa koneksi internet dan coba lagi.',
       };
       emit(
         state.copyWith(
           isSending: false,
           error: message.isEmpty
-              ? 'AI tidak dapat menjawab. Periksa koneksi dan konfigurasi layanan.'
+              ? 'Asisten tidak dapat menjawab. Periksa koneksi internet dan coba lagi.'
               : message,
         ),
       );

@@ -47,15 +47,15 @@ class _NotificationSettingsScreenState
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Tetap terhubung dengan progres latihanmu.',
+            'Atur peringatan rute dan pengingat latihan.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
           SwitchListTile.adaptive(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            title: const Text('Progres GPX dan checkpoint'),
+            title: const Text('Peringatan kemajuan rute'),
             subtitle: const Text(
-              'Peringatan jarak, checkpoint dekat, dan checkpoint tercapai saat sesi aktif.',
+              'Dapatkan kabar saat mendekati atau melewati titik penting selama perjalanan.',
             ),
             value: settings.routeProgressEnabled,
             onChanged: state.isSaving
@@ -69,7 +69,7 @@ class _NotificationSettingsScreenState
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             title: const Text('Pengingat latihan mingguan'),
             subtitle: const Text(
-              'Dijadwalkan oleh perangkat dan tetap berfungsi saat aplikasi ditutup.',
+              'Pengingat dibuat di ponsel dan tetap berbunyi saat aplikasi ditutup.',
             ),
             value: settings.remindersEnabled,
             onChanged: state.isSaving
@@ -92,7 +92,7 @@ class _NotificationSettingsScreenState
                     ? null
                     : cubit.openNotificationSettings,
                 icon: const Icon(Icons.settings_outlined),
-                label: const Text('Buka pengaturan notifikasi perangkat'),
+                label: const Text('Buka pengaturan notifikasi'),
               ),
             ),
           ],
@@ -104,7 +104,7 @@ class _NotificationSettingsScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hari latihan',
+                    'Hari pengingat',
                     style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
@@ -119,20 +119,22 @@ class _NotificationSettingsScreenState
                           onSelected: state.isSaving
                               ? null
                               : (selected) {
-                            final days = {...settings.reminderWeekdays};
-                            if (selected) {
-                              days.add(day);
-                            } else {
-                              days.remove(day);
-                            }
-                            if (days.isNotEmpty) {
-                              unawaited(
-                                cubit.update(
-                                  settings.copyWith(reminderWeekdays: days),
-                                ),
-                              );
-                            }
-                          },
+                                  final days = {...settings.reminderWeekdays};
+                                  if (selected) {
+                                    days.add(day);
+                                  } else {
+                                    days.remove(day);
+                                  }
+                                  if (days.isNotEmpty) {
+                                    unawaited(
+                                      cubit.update(
+                                        settings.copyWith(
+                                          reminderWeekdays: days,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
                         ),
                     ],
                   ),
@@ -141,21 +143,21 @@ class _NotificationSettingsScreenState
                     onPressed: state.isSaving
                         ? null
                         : () async {
-                      final selected = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay(
-                          hour: settings.reminderHour,
-                          minute: settings.reminderMinute,
-                        ),
-                      );
-                      if (selected == null || !context.mounted) return;
-                      await cubit.update(
-                        settings.copyWith(
-                          reminderHour: selected.hour,
-                          reminderMinute: selected.minute,
-                        ),
-                          );
-                        },
+                            final selected = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay(
+                                hour: settings.reminderHour,
+                                minute: settings.reminderMinute,
+                              ),
+                            );
+                            if (selected == null || !context.mounted) return;
+                            await cubit.update(
+                              settings.copyWith(
+                                reminderHour: selected.hour,
+                                reminderMinute: selected.minute,
+                              ),
+                            );
+                          },
                     icon: const Icon(Icons.schedule),
                     label: Text(
                       'Waktu ${TimeOfDay(hour: settings.reminderHour, minute: settings.reminderMinute).format(context)}',
@@ -167,8 +169,7 @@ class _NotificationSettingsScreenState
           ],
           const SizedBox(height: 16),
           const Text(
-            'Pengingat latihan adalah notifikasi lokal terjadwal, bukan push dari server. '
-            'Peringatan rute berjalan selama sesi aktif dan memerlukan izin lokasi latar belakang perangkat.',
+            'Pengingat berasal dari ponsel, bukan pesan dari server. Peringatan rute hanya muncul saat perjalanan direkam dan memerlukan izin lokasi saat aplikasi berjalan di latar belakang.',
           ),
         ],
       );

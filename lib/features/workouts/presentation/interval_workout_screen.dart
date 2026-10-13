@@ -36,9 +36,9 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               Text(
-                'Buat rangkaian interval waktu atau jarak sesuai rencanamu. '
-                'Workout tersimpan di perangkat dan tidak memberi resep '
-                'intensitas.',
+                'Susun latihan bergantian berdasarkan waktu atau jarak. '
+                'Latihan disimpan di ponsel dan tidak menentukan tingkat '
+                'intensitas untukmu.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               if (state.error != null) ...[
@@ -54,14 +54,14 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
                     ? null
                     : () => _createWorkout(context),
                 icon: const Icon(Icons.add),
-                label: const Text('Buat workout'),
+                label: const Text('Buat latihan'),
               ),
               const SizedBox(height: 16),
               if (state.workouts.isEmpty)
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(18),
-                    child: Text('Belum ada workout interval tersimpan.'),
+                    child: Text('Belum ada latihan interval.'),
                   ),
                 ),
               for (final workout in state.workouts)
@@ -81,7 +81,7 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Hapus workout',
+                              tooltip: 'Hapus latihan',
                               onPressed: hasUnfinishedSession
                                   ? null
                                   : () => context
@@ -92,9 +92,11 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
                           ],
                         ),
                         const SizedBox(height: 6),
-                        for (var index = 0;
-                            index < workout.intervals.length;
-                            index++)
+                        for (
+                          var index = 0;
+                          index < workout.intervals.length;
+                          index++
+                        )
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 3),
                             child: Text(
@@ -114,7 +116,7 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
                                         .select(null);
                                   },
                                   icon: const Icon(Icons.check_circle_outline),
-                                  label: const Text('Workout dipilih · Hapus'),
+                                  label: const Text('Latihan dipilih · Hapus'),
                                 )
                               : FilledButton.tonalIcon(
                                   onPressed: hasUnfinishedSession
@@ -128,7 +130,9 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
                                           }
                                         },
                                   icon: const Icon(Icons.playlist_add_check),
-                                  label: const Text('Pilih untuk sesi berikutnya'),
+                                  label: const Text(
+                                    'Pilih untuk perjalanan berikutnya',
+                                  ),
                                 ),
                         ),
                       ],
@@ -179,7 +183,7 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Buat workout interval'),
+      title: const Text('Buat latihan interval'),
       content: SizedBox(
         width: 520,
         child: Form(
@@ -192,11 +196,9 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
                 TextFormField(
                   controller: _nameController,
                   maxLength: 60,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama workout',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Nama latihan'),
                   validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Masukkan nama workout.'
+                      ? 'Masukkan nama latihan.'
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -207,14 +209,15 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
                   child: TextButton.icon(
                     onPressed: _intervals.length >= 30
                         ? null
-                        : () => setState(() => _intervals.add(_IntervalDraft())),
+                        : () =>
+                              setState(() => _intervals.add(_IntervalDraft())),
                     icon: const Icon(Icons.add),
                     label: const Text('Tambah interval'),
                   ),
                 ),
                 const Divider(height: 24),
                 Text(
-                  'Cue saat interval berganti',
+                  'Pemberitahuan saat interval berganti',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 SwitchListTile(
@@ -248,10 +251,7 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Batal'),
         ),
-        FilledButton(
-          onPressed: _save,
-          child: const Text('Simpan workout'),
-        ),
+        FilledButton(onPressed: _save, child: const Text('Simpan latihan')),
       ],
     );
   }

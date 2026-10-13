@@ -138,8 +138,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
         emit(
           RouteGuidanceState(
             route: route,
-            error:
-                'GPS atau izin lokasi belum tersedia. Panduan tidak dimulai.',
+            error: 'Izin lokasi belum aktif. Panduan rute tidak dapat dimulai.',
           ),
         );
         return;
@@ -151,7 +150,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
         onError: (_) => emit(
           state.copyWith(
             isRunning: false,
-            error: 'Pembacaan GPS terputus. Periksa izin dan layanan lokasi.',
+            error: 'Lokasi tidak terbaca. Periksa izin dan pengaturan lokasi ponsel.',
           ),
         ),
       );
@@ -162,7 +161,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
       emit(
         RouteGuidanceState(
           route: route,
-          error: 'GPS tidak dapat dimulai. Periksa izin dan layanan lokasi.',
+          error: 'Panduan rute tidak dapat dimulai. Periksa pengaturan lokasi ponsel.',
         ),
       );
     }

@@ -122,7 +122,7 @@ class _SessionScreenState extends State<SessionScreen>
                 return Center(
                   child: state.isLoadingSummary
                       ? const CircularProgressIndicator()
-                      : const Text('Ringkasan sesi tidak tersedia.'),
+                      : const Text('Ringkasan perjalanan belum tersedia.'),
                 );
               }
               if (summary.session.id != sessionId) {
@@ -147,7 +147,7 @@ class _SessionScreenState extends State<SessionScreen>
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Text(
-                      'Sesi yang sudah selesai akan muncul di sini.',
+                      'Perjalanan yang selesai akan muncul di sini.',
                       textAlign: TextAlign.center,
                     ),
                   )
@@ -156,7 +156,7 @@ class _SessionScreenState extends State<SessionScreen>
                     onPressed: () =>
                         _exportAllSessions(context, state.completedSessions),
                     icon: const Icon(Icons.download_outlined),
-                    label: const Text('Ekspor semua sesi dan jejak GPS'),
+                    label: const Text('Ekspor perjalanan dan rute GPS'),
                   ),
                   const SizedBox(height: 12),
                   _buildHistory(context, state.completedSessions, unitSystem),
@@ -197,9 +197,8 @@ class _SessionScreenState extends State<SessionScreen>
                             ? widget.panelHeightFactor.clamp(0.2, 1.0)
                             : 1.0),
                     child: Material(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surface.withValues(alpha: 0.97),
+                      color: Theme.of(context).colorScheme.surface
+                          .withValues(alpha: 0.97),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(widget.showMap ? 4 : 0),
@@ -238,7 +237,7 @@ class _SessionScreenState extends State<SessionScreen>
                                   tilePadding: EdgeInsets.zero,
                                   childrenPadding: EdgeInsets.zero,
                                   title: const Text(
-                                    'Detail kesiapan & izin',
+                                    'Izin dan kesiapan perangkat',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -304,11 +303,14 @@ class _SessionScreenState extends State<SessionScreen>
                               context,
                               context.watch<ProfileCubit>().state.contacts,
                               context.watch<EmergencyCubit>().state,
+                              state.recordedLocations.isEmpty
+                                  ? null
+                                  : state.recordedLocations.last,
                             ),
                             const SizedBox(height: 18),
                             const Text(
-                              'Sesi dan titik lokasi tetap tersimpan '
-                              'terenkripsi di perangkat. Hanya ringkasan yang '
+                              'Perjalanan dan titik lokasinya tetap tersimpan '
+                              'dengan aman di ponsel. Hanya ringkasan yang '
                               'dikirim setelah kamu menyetujuinya.',
                               textAlign: TextAlign.center,
                             ),
@@ -330,6 +332,7 @@ class _SessionScreenState extends State<SessionScreen>
     BuildContext context,
     List<EmergencyContact> contacts,
     EmergencyState emergencyState,
+    TelemetryLocation? lastLocation,
   ) {
     final contact = contacts.isEmpty ? null : contacts.first;
     final isCountingDown = emergencyState.isCountingDown;
@@ -344,7 +347,7 @@ class _SessionScreenState extends State<SessionScreen>
                 Icon(Icons.sos, color: Theme.of(context).colorScheme.error),
                 const SizedBox(width: 8),
                 Text(
-                  'SOS darurat',
+                  'Pesan darurat',
                   style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
@@ -353,12 +356,11 @@ class _SessionScreenState extends State<SessionScreen>
             const SizedBox(height: 8),
             if (contact == null)
               const Text(
-                'Tambahkan minimal satu kontak darurat di Profil sebelum '
-                'menggunakan SOS.',
+                'Tambahkan kontak darurat di Profil sebelum memakai fitur ini.',
               )
             else if (isCountingDown) ...[
               Text(
-                'Potensi insiden. WhatsApp akan dibuka untuk ${contact.name} '
+                'WhatsApp akan dibuka untuk mengirim pesan ke ${contact.name} '
                 'setelah hitung mundur selesai.',
               ),
               const SizedBox(height: 12),
@@ -378,14 +380,14 @@ class _SessionScreenState extends State<SessionScreen>
                   onPressed: () =>
                       context.read<EmergencyCubit>().cancelCountdown(),
                   icon: const Icon(Icons.close),
-                  label: const Text('Batalkan SOS'),
+                  label: const Text('Batalkan'),
                 ),
               ),
             ] else ...[
               Text('Kontak tujuan: ${contact.name} · ${contact.phone}'),
               const SizedBox(height: 4),
               Text(
-                'SOS membuka WhatsApp dengan pesan dan lokasi terakhir. '
+                'Tombol darurat membuka WhatsApp dengan pesan dan lokasi terakhir. '
                 'Kamu tetap harus menekan Kirim.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -393,11 +395,13 @@ class _SessionScreenState extends State<SessionScreen>
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => context
-                      .read<EmergencyCubit>()
-                      .startCountdown(contact: contact),
+                  onPressed: () =>
+                      context.read<EmergencyCubit>().startCountdown(
+                        contact: contact,
+                        lastLocation: lastLocation,
+                      ),
                   icon: const Icon(Icons.warning_amber),
-                  label: const Text('Mulai hitung mundur SOS'),
+                  label: const Text('Mulai hitung mundur'),
                 ),
               ),
               if (emergencyState.message != null) ...[
@@ -427,8 +431,8 @@ class _SessionScreenState extends State<SessionScreen>
     final isRecording = session?.status == RideSessionStatus.recording;
     final statusLabel = switch (session?.status) {
       RideSessionStatus.recording => 'SEDANG MEREKAM',
-      RideSessionStatus.paused => 'SESI DIJEDA',
-      RideSessionStatus.completed => 'SESI SELESAI',
+      RideSessionStatus.paused => 'REKAMAN DIJEDA',
+      RideSessionStatus.completed => 'PERJALANAN SELESAI',
       null => 'SIAP BERSEPEDA',
     };
     final statusColor = isRecording
@@ -459,10 +463,10 @@ class _SessionScreenState extends State<SessionScreen>
             if (session == null)
               Text(
                 state.readiness?.gpsFixChecked != true
-                    ? 'GPS belum dicek'
+                    ? 'Lokasi belum diperiksa'
                     : state.readiness?.gpsFixAvailable == true
-                    ? 'GPS siap'
-                    : 'GPS belum mendapat fix',
+                    ? 'Lokasi siap'
+                    : 'Lokasi belum ditemukan',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -475,8 +479,8 @@ class _SessionScreenState extends State<SessionScreen>
             _buildWorkoutPicker(context),
             const SizedBox(height: 8),
             Text(
-              'Mulai rekam perjalananmu. Izin lokasi akan diminta saat '
-              'diperlukan.',
+              'Tekan “Mulai merekam” untuk memulai perjalanan. Aplikasi akan '
+              'meminta izin lokasi saat diperlukan.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
@@ -492,7 +496,7 @@ class _SessionScreenState extends State<SessionScreen>
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.play_arrow),
-              label: const Text('Mulai sesi'),
+              label: const Text('Mulai merekam'),
             ),
           ] else ...[
             const SizedBox(height: 14),
@@ -516,8 +520,8 @@ class _SessionScreenState extends State<SessionScreen>
                 Expanded(
                   child: _ReadinessPill(
                     label: gpsAccuracy == null
-                        ? 'GPS'
-                        : 'GPS ±${gpsAccuracy.toStringAsFixed(0)} m',
+                        ? 'Lokasi GPS'
+                        : 'Ketepatan ±${gpsAccuracy.toStringAsFixed(0)} m',
                     isReady:
                         state.readiness?.locationServicesEnabled == true &&
                         state.readiness?.gpsFixAvailable == true,
@@ -553,8 +557,8 @@ class _SessionScreenState extends State<SessionScreen>
                     : state.readiness?.locationServicesEnabled == false
                     ? 'Buka pengaturan lokasi'
                     : state.readiness?.locationPermissionGranted != true
-                    ? 'Izinkan lokasi & cek GPS'
-                    : 'Cek GPS sekarang',
+                    ? 'Izinkan dan periksa lokasi'
+                    : 'Periksa lokasi sekarang',
               ),
             ),
             const SizedBox(height: 8),
@@ -657,7 +661,7 @@ class _SessionScreenState extends State<SessionScreen>
               children: [
                 Expanded(
                   child: Text(
-                    'Performa sesi',
+                    'Ringkasan perjalanan',
                     style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
@@ -700,7 +704,7 @@ class _SessionScreenState extends State<SessionScreen>
               _SpeedGraph(values: chartSpeeds)
             else
               Text(
-                'Grafik akan muncul setelah ada beberapa sampel GPS.',
+                'Grafik akan muncul setelah lokasi terekam beberapa kali.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -740,10 +744,11 @@ class _SessionScreenState extends State<SessionScreen>
               Text(
                 switch (session?.status) {
                   null => 'Periksa perangkat sebelum merekam.',
-                  RideSessionStatus.recording => 'Tersimpan lokal. Perekaman saat layar mati belum didukung atau diverifikasi.',
+                  RideSessionStatus.recording => 'Rekaman tersimpan di ponsel. Perekaman saat layar mati belum dipastikan berfungsi.',
                   RideSessionStatus.paused =>
-                    'Sesi tersimpan lokal dan menunggu dilanjutkan.',
-                  RideSessionStatus.completed => 'Data sesi tersimpan lokal.',
+                    'Rekaman tersimpan di ponsel dan menunggu dilanjutkan.',
+                  RideSessionStatus.completed =>
+                    'Perjalanan tersimpan di ponsel.',
                 },
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -766,23 +771,23 @@ class _SessionScreenState extends State<SessionScreen>
     }
 
     final locationLabel = readiness.locationPermissionGranted
-        ? 'Izin lokasi diizinkan'
+        ? 'Akses lokasi aktif'
         : readiness.locationPermanentlyDenied
-        ? 'Izin lokasi ditolak permanen'
-        : 'Izin lokasi belum diberikan';
+        ? 'Akses lokasi diblokir di pengaturan'
+        : 'Akses lokasi belum diizinkan';
     final gpsLabel = !readiness.locationServicesEnabled
-        ? 'Layanan lokasi perangkat nonaktif'
+        ? 'Lokasi perangkat mati'
         : !readiness.gpsFixChecked
-        ? 'GPS belum dicek'
+        ? 'Lokasi belum diperiksa'
         : readiness.gpsFixAvailable
-        ? 'GPS siap · akurasi ±${readiness.gpsAccuracyMeters!.toStringAsFixed(0)} m'
-        : 'GPS belum mendapat fix';
+        ? 'Lokasi siap · ketepatan ±${readiness.gpsAccuracyMeters!.toStringAsFixed(0)} m'
+        : 'Lokasi GPS belum ditemukan';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Pemeriksaan pra-balapan',
+          'Periksa sebelum mulai',
           style: Theme.of(context).textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
@@ -794,8 +799,8 @@ class _SessionScreenState extends State<SessionScreen>
         if (readiness.locationPermissionGranted) ...[
           _ReadinessLine(
             label: readiness.backgroundLocationGranted
-                ? 'Lokasi latar belakang diizinkan'
-                : 'Layar terkunci: perekaman latar belakang belum diizinkan',
+                ? 'Akses lokasi tetap aktif saat aplikasi ditutup'
+                : 'Perekaman saat layar terkunci memerlukan izin tambahan',
             isReady: readiness.backgroundLocationGranted,
             isWarning: !readiness.backgroundLocationGranted,
           ),
@@ -902,7 +907,7 @@ class _SessionScreenState extends State<SessionScreen>
             onPressed: () =>
                 context.read<RideSessionCubit>().openLocationServiceSettings(),
             icon: const Icon(Icons.location_on_outlined),
-            label: const Text('Buka pengaturan lokasi perangkat'),
+            label: const Text('Aktifkan lokasi perangkat'),
           ),
         ],
         if (readiness.locationPermissionGranted &&
@@ -910,7 +915,7 @@ class _SessionScreenState extends State<SessionScreen>
           const SizedBox(height: 10),
           Text(
             'Sebagian metrik mungkin terbatas. Kamu tetap dapat mulai; '
-            'akurasi bergantung pada GPS dan sensor yang tersedia.',
+            'Ketepatan bergantung pada sinyal lokasi dan sensor di ponsel.',
             style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: Theme.of(context).colorScheme.tertiary),
           ),
@@ -982,7 +987,7 @@ class _SessionScreenState extends State<SessionScreen>
           children: [
             Expanded(
               child: _MetricValue(
-                label: 'Kecepatan GPS',
+                label: 'Kecepatan',
                 value: speed.toStringAsFixed(1),
                 unit: speedUnit,
               ),
@@ -991,8 +996,8 @@ class _SessionScreenState extends State<SessionScreen>
               child: _MetricValue(
                 label: 'Sumber posisi',
                 value: session.gpsAccuracyMeters == null
-                    ? 'Menunggu GPS'
-                    : 'GPS',
+                    ? 'Lokasi belum tersedia'
+                    : 'Ketepatan lokasi',
                 unit: session.gpsAccuracyMeters == null
                     ? ''
                     : '±${session.gpsAccuracyMeters!.toStringAsFixed(0)} m',
@@ -1020,7 +1025,7 @@ class _SessionScreenState extends State<SessionScreen>
             )
           : null,
       icon: Icons.play_arrow,
-      label: 'Mulai sesi',
+      label: 'Mulai merekam',
     );
   }
 
@@ -1031,8 +1036,8 @@ class _SessionScreenState extends State<SessionScreen>
       icon: const Icon(Icons.timer_outlined),
       label: Text(
         workout == null
-            ? 'Pilih workout interval (opsional)'
-            : 'Workout: ${workout.name}',
+            ? 'Pilih latihan interval (opsional)'
+            : 'Latihan: ${workout.name}',
       ),
     );
   }
@@ -1059,7 +1064,7 @@ class _SessionScreenState extends State<SessionScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Workout · ${progress.index + 1}/${progress.total}',
+                    'Latihan · ${progress.index + 1}/${progress.total}',
                     style: Theme.of(context).textTheme.labelMedium,
                   ),
                   Text(
@@ -1095,7 +1100,7 @@ class _SessionScreenState extends State<SessionScreen>
                   )
                 : null,
             icon: Icons.add,
-            label: 'Mulai sesi baru',
+            label: 'Mulai perjalanan baru',
           ),
           const SizedBox(height: 8),
           TextButton.icon(
@@ -1123,7 +1128,7 @@ class _SessionScreenState extends State<SessionScreen>
           ),
           const SizedBox(width: 12),
           IconButton.filledTonal(
-            tooltip: 'Akhiri sesi',
+            tooltip: 'Selesaikan perjalanan',
             onPressed: () => context.read<RideSessionCubit>().finish(),
             icon: const Icon(Icons.stop),
           ),
@@ -1142,7 +1147,7 @@ class _SessionScreenState extends State<SessionScreen>
         ),
         const SizedBox(width: 12),
         IconButton.filled(
-          tooltip: 'Akhiri sesi',
+          tooltip: 'Selesaikan perjalanan',
           onPressed: () => _confirmFinish(context),
           icon: const Icon(Icons.stop),
         ),
@@ -1188,7 +1193,7 @@ class _SessionScreenState extends State<SessionScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Riwayat sesi',
+          'Riwayat perjalanan',
           style: Theme.of(context).textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
@@ -1213,7 +1218,7 @@ class _SessionScreenState extends State<SessionScreen>
               children: [
                 IconButton(
                   tooltip:
-                      'Hapus ${session.title.isEmpty ? 'sesi' : session.title}',
+                      'Hapus ${session.title.isEmpty ? 'perjalanan' : session.title}',
                   onPressed: () => _confirmDeleteSession(context, session),
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -1233,10 +1238,10 @@ class _SessionScreenState extends State<SessionScreen>
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Hapus aktivitas lokal?'),
+        title: const Text('Hapus perjalanan dari ponsel?'),
         content: const Text(
-          'Ringkasan dan titik GPS sesi ini akan dihapus dari perangkat. '
-          'Salinan yang pernah disinkronkan ke cloud tidak ikut terhapus.',
+          'Ringkasan dan titik lokasi perjalanan ini akan dihapus dari ponsel. '
+          'Salinan di akun online tidak ikut terhapus.',
         ),
         actions: [
           TextButton(
@@ -1245,7 +1250,7 @@ class _SessionScreenState extends State<SessionScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Hapus dari perangkat'),
+            child: const Text('Hapus dari ponsel'),
           ),
         ],
       ),
@@ -1262,11 +1267,10 @@ class _SessionScreenState extends State<SessionScreen>
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Ekspor semua sesi?'),
+        title: const Text('Ekspor semua perjalanan?'),
         content: const Text(
-          'File JSON akan memuat ringkasan dan jejak lokasi GPS semua sesi '
-          'selesai di perangkat ini. Simpan dan bagikan file hanya kepada '
-          'orang yang kamu percaya.',
+          'File akan berisi ringkasan dan titik lokasi semua perjalanan yang '
+          'selesai di ponsel ini. Bagikan file hanya kepada orang yang kamu percaya.',
         ),
         actions: [
           TextButton(
@@ -1313,11 +1317,13 @@ class _SessionScreenState extends State<SessionScreen>
           ),
         ),
       );
-    } on Exception catch (error) {
+    } on Exception {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Ekspor aktivitas gagal: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('File perjalanan tidak dapat disimpan. Coba lagi.'),
+        ),
+      );
     }
   }
 
@@ -1405,7 +1411,9 @@ class _SessionScreenState extends State<SessionScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    session.title.isEmpty ? 'Ringkasan sesi' : session.title,
+                    session.title.isEmpty
+                        ? 'Ringkasan perjalanan'
+                        : session.title,
                     style: Theme.of(context).textTheme.headlineSmall
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
@@ -1484,7 +1492,7 @@ class _SessionScreenState extends State<SessionScreen>
           title: 'Jejak rute',
           trailing: trackPoints.isEmpty
               ? null
-              : '${trackPoints.length} titik GPS',
+              : '${trackPoints.length} titik lokasi',
         ),
         const SizedBox(height: 10),
         if (trackPoints.isEmpty)
@@ -1507,7 +1515,9 @@ class _SessionScreenState extends State<SessionScreen>
                     color: colors.onSurfaceVariant,
                   ),
                   const SizedBox(height: 8),
-                  const Text('Tidak ada jejak GPS untuk sesi ini.'),
+                  const Text(
+                    'Rute perjalanan ini belum memiliki titik lokasi.',
+                  ),
                 ],
               ),
             ),
@@ -1528,7 +1538,7 @@ class _SessionScreenState extends State<SessionScreen>
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Jejak peta perlu setidaknya dua titik GPS.',
+              'Peta perjalanan memerlukan setidaknya dua titik lokasi.',
               style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: colors.onSurfaceVariant),
             ),
@@ -1612,10 +1622,10 @@ class _SessionScreenState extends State<SessionScreen>
               tilePadding: const EdgeInsets.symmetric(horizontal: 16),
               childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               leading: const Icon(Icons.sensors_outlined),
-              title: const Text('Detail sensor'),
+              title: const Text('Data sensor gerak'),
               subtitle: Text(
-                '${summary.accelerometerSampleCount} akselerometer · '
-                '${summary.gyroscopeSampleCount} gyroscope',
+                '${summary.accelerometerSampleCount} data gerak · '
+                '${summary.gyroscopeSampleCount} data putaran',
               ),
               children: [
                 Column(
@@ -1666,8 +1676,8 @@ class _SessionScreenState extends State<SessionScreen>
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Sampel sensor disimpan bersama titik GPS. Angka sensor '
-                  'bersifat estimasi, bukan pengukuran daya atau sudut kemiringan.',
+                  'Data sensor disimpan bersama titik lokasi. Angka ini hanya '
+                  'perkiraan gerakan ponsel, bukan ukuran tenaga atau kemiringan sepeda.',
                   style: Theme.of(context).textTheme.bodySmall
                       ?.copyWith(color: colors.onSurfaceVariant),
                 ),
@@ -1676,21 +1686,17 @@ class _SessionScreenState extends State<SessionScreen>
           ),
         ],
         const SizedBox(height: 24),
-        _SessionSectionHeading(title: 'Sinkronisasi akun'),
+        _SessionSectionHeading(title: 'Penyimpanan online'),
         const SizedBox(height: 8),
         SenapathCard(
           margin: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              children: [
-                _buildSummarySync(context, summary),
-              ],
-            ),
+            child: Column(children: [_buildSummarySync(context, summary)]),
           ),
         ),
         const SizedBox(height: 24),
-        _SessionSectionHeading(title: 'Ekspor sesi'),
+        _SessionSectionHeading(title: 'Simpan atau bagikan data'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1699,12 +1705,12 @@ class _SessionScreenState extends State<SessionScreen>
             OutlinedButton.icon(
               onPressed: () => _exportSession(context, summary, asGpx: true),
               icon: const Icon(Icons.route_outlined),
-              label: const Text('Simpan rute GPX'),
+              label: const Text('Simpan rute (GPX)'),
             ),
             TextButton.icon(
               onPressed: () => _exportSession(context, summary, asGpx: false),
               icon: const Icon(Icons.data_object),
-              label: const Text('Ekspor data JSON'),
+              label: const Text('Simpan data (JSON)'),
             ),
           ],
         ),
@@ -1788,25 +1794,24 @@ class _SessionScreenState extends State<SessionScreen>
       return const ListTile(
         contentPadding: EdgeInsets.zero,
         leading: Icon(Icons.cloud_done_outlined),
-        title: Text('Ringkasan tersinkron'),
-        subtitle: Text('Tidak termasuk koordinat GPS atau titik telemetri.'),
+        title: Text('Ringkasan disimpan online'),
+        subtitle: Text('Titik GPS dan data lokasi rinci tidak ikut dikirim.'),
       );
     }
 
     final cubit = context.read<RideSessionCubit>();
     final message = !autoSyncEnabled
-        ? 'Aktifkan “Sinkronkan sesi otomatis” di Profil > Pengaturan untuk '
-              'mengirim ringkasan sesi. Data tetap tersimpan lokal.'
+        ? 'Aktifkan “Simpan perjalanan online otomatis” di Profil > Pengaturan. '
+              'Perjalanan tetap tersimpan di ponsel.'
         : !cubit.canSyncSessions
-        ? 'Menunggu koneksi akun online. Ringkasan tetap tersimpan lokal dan '
-              'akan dicoba kembali otomatis.'
+        ? 'Akun online belum terhubung. Ringkasan tetap tersimpan di ponsel dan '
+              'akan dicoba lagi otomatis.'
         : isSyncing || session.syncStatus == 'syncing'
-        ? 'Ringkasan sedang disinkronkan secara otomatis.'
+        ? 'Ringkasan sedang disimpan ke akun online.'
         : session.syncStatus == 'failed'
-        ? 'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal dan akan '
-              'dicoba kembali otomatis.'
-        : 'Ringkasan menunggu sinkronisasi otomatis. Koordinat GPS dan '
-              'telemetri mentah tidak dikirim.';
+        ? 'Ringkasan belum tersimpan online. Data tetap aman di ponsel dan akan '
+              'dicoba lagi otomatis.'
+        : 'Menunggu untuk disimpan online. Titik GPS dan data lokasi rinci tidak ikut dikirim.';
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
@@ -1818,20 +1823,20 @@ class _SessionScreenState extends State<SessionScreen>
           : const Icon(Icons.cloud_upload_outlined),
       title: Text(
         isSyncing || session.syncStatus == 'syncing'
-            ? 'Menyinkronkan otomatis'
+            ? 'Menyimpan online…'
             : session.syncStatus == 'failed'
-            ? 'Belum tersinkron'
-            : 'Tersimpan lokal',
+            ? 'Belum tersimpan online'
+            : 'Tersimpan di ponsel',
       ),
       subtitle: Text(message),
     );
   }
 
   String _syncStatusLabel(String status) => switch (status) {
-    'synced' => 'Tersinkron ke Supabase',
-    'syncing' => 'Sedang disinkronkan',
-    'failed' => 'Lokal · Sinkronisasi gagal',
-    _ => 'Tersimpan lokal · Belum disinkronkan',
+    'synced' => 'Disimpan online',
+    'syncing' => 'Sedang disimpan online',
+    'failed' => 'Tersimpan di ponsel · Belum online',
+    _ => 'Tersimpan di ponsel · Belum online',
   };
 
   String _activityTypeLabel(RideActivityType type) =>
@@ -1852,7 +1857,7 @@ class _SessionScreenState extends State<SessionScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Jejak GPX belum tersedia karena sesi ini tidak memiliki titik GPS.',
+              'Rute GPX belum tersedia karena perjalanan ini tidak memiliki titik lokasi.',
             ),
           ),
         );
@@ -1881,13 +1886,14 @@ class _SessionScreenState extends State<SessionScreen>
       if (!saved) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Berkas ${asGpx ? 'GPX' : 'JSON'} berhasil diekspor.'),
+          content: Text('File ${asGpx ? 'GPX' : 'JSON'} berhasil disimpan.'),
         ),
       );
-    } on Exception catch (error) {
+    } on Exception {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ekspor gagal: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File tidak dapat disimpan. Coba lagi.')),
+      );
     }
   }
 
@@ -1914,8 +1920,8 @@ class _SessionScreenState extends State<SessionScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => SenapathAlertDialog(
-        title: const Text('Akhiri sesi?'),
-        content: const Text('Data sesi akan disimpan di perangkat.'),
+        title: const Text('Selesaikan perjalanan?'),
+        content: const Text('Rekaman akan disimpan di ponsel.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1923,7 +1929,7 @@ class _SessionScreenState extends State<SessionScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Akhiri'),
+            child: const Text('Selesaikan'),
           ),
         ],
       ),

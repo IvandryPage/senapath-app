@@ -56,11 +56,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
       label: 'Makan / nasi bungkus',
       icon: Icons.restaurant_outlined,
     ),
-    _ResupplyItem(
-      id: 'coffee',
-      label: 'Kopi',
-      icon: Icons.coffee_outlined,
-    ),
+    _ResupplyItem(id: 'coffee', label: 'Kopi', icon: Icons.coffee_outlined),
     _ResupplyItem(id: 'tube', label: 'Ban dalam', icon: Icons.tire_repair),
     _ResupplyItem(
       id: 'patch-kit',
@@ -127,7 +123,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${widget.routeName} · titik resupply dari GPX',
+                          '${widget.routeName} · titik isi ulang dari rute',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colors.onSurfaceVariant),
                         ),
@@ -135,7 +131,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Tutup checkpoint',
+                    tooltip: 'Tutup',
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                   ),
@@ -150,7 +146,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
               DropdownButtonFormField<BudgetCurrency>(
                 initialValue: _localCurrency,
                 decoration: const InputDecoration(
-                  labelText: 'Mata uang harga lokal',
+                  labelText: 'Mata uang harga di wilayah ini',
                   prefixIcon: Icon(Icons.payments_outlined),
                 ),
                 items: [
@@ -169,9 +165,8 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
                     });
                     final selectedId = _selectedItemId;
                     if (selectedId != null) {
-                      final selectedItem = _items(state.data).firstWhere(
-                        (item) => item.id == selectedId,
-                      );
+                      final selectedItem = _items(state.data)
+                          .firstWhere((item) => item.id == selectedId);
                       _requestEstimate(context, selectedItem, state);
                     }
                   }
@@ -179,8 +174,8 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Mata uang pembanding: ${state.data.baseCurrency.code} '
-                '(bisa diubah di menu Logistik)',
+                'Mata uang akun: ${state.data.baseCurrency.code} '
+                '(bisa diubah di Logistik)',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
@@ -189,9 +184,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
                 maxLength: 100,
                 decoration: const InputDecoration(
                   labelText: 'Negara/kota (opsional)',
-                  helperText:
-                      'Dikirim ke layanan AI untuk memperkirakan harga; '
-                      'koordinat GPS tidak dikirim.',
+                  helperText: 'Nama wilayah ini dikirim untuk memperkirakan harga. Titik GPS tidak dikirim.',
                   prefixIcon: Icon(Icons.place_outlined),
                 ),
               ),
@@ -200,7 +193,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Barang resupply',
+                      'Barang yang dibutuhkan',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
@@ -230,10 +223,9 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
               ],
               const SizedBox(height: 8),
               Text(
-                'Estimasi AI non-real-time bersifat indikatif dan bukan harga '
-                'terverifikasi toko. Saat memilih barang, nama barang, mata uang, '
-                'dan wilayah opsional dikirim ke layanan AI; koordinat GPS '
-                'tidak dikirim.',
+                'Perkiraan AI bisa berbeda dari harga toko. Nama barang, mata uang, '
+                'dan wilayah yang kamu masukkan dikirim untuk membuat perkiraan. '
+                'Titik GPS tidak dikirim.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               if (state.data.eurRates[BudgetCurrency.idr] == null ||
@@ -331,10 +323,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    item.icon,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  Icon(item.icon, color: Theme.of(context).colorScheme.primary),
                   const Spacer(),
                   if (item.isCustom)
                     IconButton(
@@ -391,9 +380,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
     String selectedId,
     LogisticsState state,
   ) {
-    final item = _items(state.data).firstWhere(
-      (item) => item.id == selectedId,
-    );
+    final item = _items(state.data).firstWhere((item) => item.id == selectedId);
     final estimate = _estimateFor(item.id);
     if (estimate == null && !_isEstimating && _estimateError == null) {
       return const SizedBox.shrink();
@@ -453,13 +440,11 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
         ];
         _isEstimating = false;
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted || requestId != _estimateRequestId) return;
       setState(() {
         _isEstimating = false;
-        _estimateError = error is StateError
-            ? error.message
-            : 'Estimasi gagal: $error';
+        _estimateError = 'Perkiraan belum tersedia. Coba lagi nanti.';
       });
     }
   }

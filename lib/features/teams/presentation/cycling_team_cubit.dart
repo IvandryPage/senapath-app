@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/cycling_team_repository.dart';
 import '../domain/cycling_team.dart';
@@ -138,10 +137,7 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
       );
     } catch (error) {
       emit(
-        state.copyWith(
-          isSaving: false,
-          error: _message(error, 'Tidak dapat keluar dari tim.'),
-        ),
+        state.copyWith(error: _message(error, 'Tidak dapat keluar dari tim.')),
       );
     }
   }
@@ -162,7 +158,7 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
       emit(
         state.copyWith(
           isSaving: false,
-          error: _message(error, 'Ringkasan tidak dapat ditarik dari tim.'),
+          error: _message(error, 'Detail tim tidak dapat dimuat.'),
         ),
       );
     }
@@ -216,9 +212,5 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
   void clearMessage() =>
       emit(state.copyWith(clearMessage: true, clearError: true));
 
-  String _message(Object error, String fallback) {
-    if (error is PostgrestException) return error.message;
-    final message = error.toString().replaceFirst('Exception: ', '').trim();
-    return message.isEmpty ? fallback : message;
-  }
+  String _message(Object _, String fallback) => fallback;
 }

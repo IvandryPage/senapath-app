@@ -31,7 +31,7 @@ class DeviceUnlockScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Gunakan keamanan perangkat untuk membuka data latihan.',
+                    'Gunakan kunci layar ponsel untuk membuka data perjalanan.',
                     textAlign: TextAlign.center,
                   ),
                   if (state.isBusy || !state.isInitialized) ...[
@@ -47,7 +47,9 @@ class DeviceUnlockScreen extends StatelessWidget {
                               .read<DeviceAuthCubit>()
                               .authenticateWithBiometrics(),
                           icon: const Icon(Icons.fingerprint),
-                          label: const Text('Masuk dengan biometrik'),
+                          label: const Text(
+                            'Masuk dengan sidik jari atau wajah',
+                          ),
                         ),
                       ),
                     if (state.supportsDeviceCredentials) ...[
@@ -59,15 +61,17 @@ class DeviceUnlockScreen extends StatelessWidget {
                               .read<DeviceAuthCubit>()
                               .authenticateWithDeviceCredentials(),
                           icon: const Icon(Icons.password),
-                          label: const Text('Gunakan PIN atau sandi perangkat'),
+                          label: const Text(
+                            'Gunakan PIN atau kata sandi ponsel',
+                          ),
                         ),
                       ),
                     ],
                     if (!state.hasBiometrics &&
                         !state.supportsDeviceCredentials)
                       const Text(
-                        'Perangkat belum menyiapkan biometrik atau kunci layar. '
-                        'Atur keamanan perangkat untuk melanjutkan.',
+                        'Aktifkan sidik jari, pengenalan wajah, atau kunci layar '
+                        'di pengaturan ponsel untuk melanjutkan.',
                         textAlign: TextAlign.center,
                       ),
                   ],

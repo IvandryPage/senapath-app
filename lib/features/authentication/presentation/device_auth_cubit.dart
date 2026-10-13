@@ -44,7 +44,7 @@ class DeviceAuthCubit extends Cubit<DeviceAuthState> {
       emit(
         const DeviceAuthState(
           isInitialized: true,
-          message: 'Autentikasi perangkat tidak dapat diperiksa.',
+          message: 'Keamanan ponsel tidak dapat diperiksa.',
         ),
       );
     }
@@ -52,7 +52,7 @@ class DeviceAuthCubit extends Cubit<DeviceAuthState> {
 
   Future<void> authenticateWithBiometrics() async {
     if (!state.hasBiometrics) {
-      _emitFailure('Biometrik belum tersedia atau belum terdaftar.');
+      _emitFailure('Sidik jari atau wajah belum tersedia di ponsel.');
       return;
     }
     await _authenticate(biometricOnly: true);
@@ -81,7 +81,7 @@ class DeviceAuthCubit extends Cubit<DeviceAuthState> {
         biometricOnly: biometricOnly,
       );
       if (!authenticated) {
-        _emitFailure('Autentikasi dibatalkan atau tidak berhasil.');
+        _emitFailure('Pemeriksaan keamanan dibatalkan atau tidak berhasil.');
         return;
       }
 
@@ -95,7 +95,7 @@ class DeviceAuthCubit extends Cubit<DeviceAuthState> {
       );
     } catch (_) {
       _emitFailure(
-        'Autentikasi gagal. Coba lagi atau gunakan sandi perangkat.',
+        'Pemeriksaan keamanan gagal. Coba lagi atau gunakan kunci layar ponsel.',
       );
     }
   }

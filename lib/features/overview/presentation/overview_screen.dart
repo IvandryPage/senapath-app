@@ -83,8 +83,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
     if (coachCubit.state.isLoading) return;
     if (!coachCubit.isConfigured || !coachCubit.isSignedIn) {
       final message = !coachCubit.isConfigured
-          ? 'Layanan pelatih AI belum terhubung. Coba lagi nanti.'
-          : 'Masuk ke akun online untuk menggunakan pelatih AI.';
+          ? 'Pelatih AI belum tersedia. Coba lagi nanti.'
+          : 'Masuk ke akun online untuk memakai pelatih AI.';
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
@@ -95,12 +95,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
       final consent = await showDialog<bool>(
         context: context,
         builder: (context) => SenapathAlertDialog(
-          title: const Text('Aktifkan pelatih AI untuk sesi ini?'),
+          title: const Text('Gunakan pelatih AI selama perjalanan ini?'),
           content: const Text(
-            'Untuk memberi saran selama sesi ini, Senapath akan mengirim ringkasan '
-            'nama rute, progres dan jarak tersisa (jika tersedia), durasi, kecepatan, '
-            'serta checkpoint berikutnya. Persetujuan ini berlaku sampai sesi berakhir; '
-            'koordinat GPS mentah tidak dikirim.',
+            'Agar bisa memberi saran, Senapath akan mengirim nama rute, jarak yang '
+            'sudah ditempuh dan tersisa, durasi, kecepatan, serta titik rute berikutnya. '
+            'Data ini dikirim sampai perjalanan selesai. Titik GPS-mu tidak dikirim.',
           ),
           actions: [
             TextButton(
@@ -109,7 +108,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Setuju untuk sesi ini'),
+              child: const Text('Izinkan selama perjalanan ini'),
             ),
           ],
         ),
@@ -457,18 +456,18 @@ class _RideCoachPreview extends StatelessWidget {
                   ),
                   label: Text(
                     coachState.isLoading
-                        ? 'Memperbarui saran...'
+                        ? 'Memuat saran…'
                         : coachState.recommendation == null
                         ? hasSessionConsent
-                              ? 'Minta rekomendasi'
-                              : 'Aktifkan coach untuk sesi ini'
+                              ? 'Minta saran'
+                              : 'Izinkan pelatih untuk perjalanan ini'
                         : 'Minta saran lain',
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Saran diperbarui otomatis setiap jam saat sesi aktif. '
-                  'Ringkasan aktivitas dikirim, bukan koordinat GPS mentah.',
+                  'Saran diperbarui setiap jam selama perjalanan. Yang dikirim hanya '
+                  'ringkasannya, bukan titik GPS.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -507,7 +506,7 @@ class _RiderProgressPreview extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Rider level ${progress.level}',
+                        'Level pesepeda ${progress.level}',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w800),
                       ),
@@ -515,7 +514,7 @@ class _RiderProgressPreview extends StatelessWidget {
                       LinearProgressIndicator(value: progress.levelProgress),
                       const SizedBox(height: 4),
                       Text(
-                        '${progress.experience} XP · ${progress.style.label}',
+                        '${progress.experience} poin · ${progress.style.label}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

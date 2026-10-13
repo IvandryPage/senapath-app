@@ -24,6 +24,13 @@ abstract interface class CloudUserProfileRepository {
   Future<void> saveCloudProfile(UserProfile profile);
 }
 
+/// Optional capability for repositories that persist emergency contacts to the
+/// account cloud, keeping them in sync across signed-in devices.
+abstract interface class CloudContactsRepository {
+  Future<List<EmergencyContact>?> loadCloudContacts();
+  Future<void> saveCloudContacts(List<EmergencyContact> contacts);
+}
+
 class CloudProfileSyncException implements Exception {
   const CloudProfileSyncException(this.cause);
 
@@ -34,7 +41,10 @@ class CloudProfileSyncException implements Exception {
 }
 
 class SecureUserProfileRepository
-    implements UserProfileRepository, CloudUserProfileRepository {
+    implements
+        UserProfileRepository,
+        CloudUserProfileRepository,
+        CloudContactsRepository {
   SecureUserProfileRepository({
     required this.secureVault,
     required this.avatarStore,
@@ -45,6 +55,7 @@ class SecureUserProfileRepository
   static const _profileKey = 'senapath.user_profile';
   static const _profileAccountKey = 'senapath.user_profile.account_id';
   static const _contactsKey = 'senapath.emergency_contacts';
+  static const _contactsCloudKey = 'emergency_contacts_v1';
 
   final SecureVault secureVault;
   final EncryptedAvatarStore avatarStore;
@@ -141,6 +152,54 @@ class SecureUserProfileRepository
           'p_rider_style': profile.riderStyle.name,
         },
       );
+    } catch (error) {
+      throw CloudProfileSyncException(error);
+    }
+  }
+
+  @override
+  Future<List<EmergencyContact>?> loadCloudContacts() async {
+    final manager = sessionManager;
+    final client = cloudClient;
+    final userId = manager?.currentUserId;
+    if (manager == null || client == null || userId == null) return null;
+    try {
+      await manager.requireAccessToken();
+      final row = await client
+          .from('account_settings')
+          .select('value')
+          .eq('user_id', userId)
+          .eq('key', _contactsCloudKey)
+          .maybeSingle();
+      final value = row?['value'];
+      if (value == null) return null;
+      if (value is! List) {
+        throw const FormatException('Kontak darurat cloud tidak valid.');
+      }
+      return [
+        for (final entry in value)
+          if (entry is Map)
+            EmergencyContact.fromJson(Map<String, dynamic>.from(entry)),
+      ];
+    } catch (error) {
+      throw CloudProfileSyncException(error);
+    }
+  }
+
+  @override
+  Future<void> saveCloudContacts(List<EmergencyContact> contacts) async {
+    final manager = sessionManager;
+    final client = cloudClient;
+    final userId = manager?.currentUserId;
+    if (manager == null || client == null || userId == null) return;
+    try {
+      await manager.requireAccessToken();
+      await client.from('account_settings').upsert({
+        'user_id': userId,
+        'key': _contactsCloudKey,
+        'value': contacts.map((contact) => contact.toJson()).toList(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'user_id,key');
     } catch (error) {
       throw CloudProfileSyncException(error);
     }

@@ -58,11 +58,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               Text(
-                'Rekor sepanjang masa',
+                'Peringkat peserta',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               Text(
-                'Rekor durasi dan jarak terbaik yang dibagikan peserta',
+                'Bandingkan jarak terjauh dan waktu perjalanan terlama.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -109,7 +109,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 )
               else if (settings?.isOptedIn != true)
                 const Text(
-                  'Partisipasi belum aktif. Atur partisipasi di Profil > Pengaturan.',
+                  'Kamu belum ikut papan peringkat. Aktifkan keikutsertaan di Profil > Pengaturan.',
                 )
               else if (state.entries.isEmpty)
                 const Text('Belum ada rekor peserta untuk kategori ini.')
@@ -133,10 +133,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         ),
                       ),
                       title: Text(
-                        '${entry.displayName} · Lv.${entry.riderLevel}',
+                        '${entry.displayName} · Level ${entry.riderLevel}',
                       ),
                       subtitle: Text(
-                        '${entry.riderStyle.label} · ${entry.riderExperience} XP',
+                        '${entry.riderStyle.label} · ${entry.riderExperience} poin',
                       ),
                       trailing: Text(_formatScore(entry, state.category)),
                     ),
@@ -210,7 +210,7 @@ class _LeaderboardTopThree extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(
-                'Lv.${entry.riderLevel} · ${entry.riderStyle.label}',
+                'Level ${entry.riderLevel} · ${entry.riderStyle.label}',
               ),
               trailing: Text(
                 formatScore(entry, category),

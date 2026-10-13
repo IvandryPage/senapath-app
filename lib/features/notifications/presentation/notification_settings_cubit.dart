@@ -37,25 +37,24 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         if (settings.remindersEnabled) {
           try {
             await _schedule(settings);
-          } catch (error) {
+          } catch (_) {
             if (!isClosed) {
               emit(
                 NotificationSettingsState(
                   settings: settings,
-                  error:
-                      'Pengingat tersimpan, tetapi jadwal notifikasi gagal dipulihkan: $error',
+                  error: 'Pengingat tersimpan, tetapi jadwalnya tidak dapat dipulihkan. Periksa izin notifikasi.',
                 ),
               );
             }
           }
         }
       }
-    } catch (error) {
+    } catch (_) {
       if (!isClosed) {
         emit(
           NotificationSettingsState(
             settings: state.settings,
-            error: 'Pengaturan notifikasi tidak dapat dibuka: $error',
+            error: 'Pengaturan notifikasi tidak dapat dibuka. Coba lagi.',
           ),
         );
       }
@@ -88,7 +87,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         await _notifications.cancelWeeklyReminders();
       }
       if (!isClosed) emit(NotificationSettingsState(settings: settings));
-    } catch (error) {
+    } catch (_) {
       if (!isClosed) {
         String? rollbackError;
         try {
@@ -105,8 +104,9 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         emit(
           NotificationSettingsState(
             settings: previous,
-            error:
-                'Pengaturan notifikasi gagal disimpan: $error.$rollbackError',
+            error: rollbackError == null
+                ? 'Pengaturan notifikasi tidak dapat disimpan. Coba lagi.'
+                : 'Pengaturan tidak dapat disimpan dan setelan sebelumnya belum pulih sepenuhnya.',
           ),
         );
       }
@@ -124,12 +124,12 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
           ),
         );
       }
-    } catch (error) {
+    } catch (_) {
       if (!isClosed) {
         emit(
           NotificationSettingsState(
             settings: state.settings,
-            error: 'Pengaturan notifikasi perangkat tidak dapat dibuka: $error',
+            error: 'Pengaturan notifikasi ponsel tidak dapat dibuka. Coba dari menu Setelan.',
           ),
         );
       }

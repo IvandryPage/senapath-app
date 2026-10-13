@@ -9,6 +9,7 @@ import 'core/storage/app_database.dart';
 import 'core/storage/secure_vault.dart';
 import 'core/units/unit_settings_cubit.dart';
 import 'core/units/unit_settings_repository.dart';
+import 'features/account_sync/data/supabase_account_cloud_gateway.dart';
 import 'features/authentication/data/device_authenticator.dart';
 import 'features/authentication/data/biometric_sign_in_settings_repository.dart';
 import 'features/authentication/data/custom_auth_session_manager.dart';
@@ -25,6 +26,7 @@ import 'features/routes/presentation/routes_cubit.dart';
 import 'features/session/data/session_file_service.dart';
 import 'features/session/data/encrypted_telemetry_codec.dart';
 import 'features/session/data/readiness_checker.dart';
+import 'features/session/data/ride_session_cloud_sync.dart';
 import 'features/session/data/ride_session_repository.dart';
 import 'features/session/data/session_sync_coordinator.dart';
 import 'features/session/data/session_sync_settings_repository.dart';
@@ -78,6 +80,10 @@ Future<void> main() async {
     client: supabaseClient,
     secureVault: secureVault,
   );
+  final accountCloudGateway = SupabaseAccountCloudGateway(
+    supabaseClient,
+    authSessionManager,
+  );
   final database = AppDatabase();
   final notificationService = LocalRideNotificationService();
   final notificationSettingsRepository = NotificationSettingsRepository(
@@ -120,14 +126,16 @@ Future<void> main() async {
       ),
       unitSettingsCubit: UnitSettingsCubit(UnitSettingsRepository(database)),
       logisticsCubit: LogisticsCubit(
-        LogisticsRepository(database),
+        LogisticsRepository(database, cloud: accountCloudGateway),
         aiChatGateway: aiChatGateway,
       ),
       aiChatCubit: AiChatCubit(aiChatGateway),
       leaderboardCubit: LeaderboardCubit(
         SupabaseLeaderboardGateway(supabaseClient, authSessionManager),
       ),
-      activityGoalsCubit: ActivityGoalsCubit(ActivityGoalsRepository(database)),
+      activityGoalsCubit: ActivityGoalsCubit(
+        ActivityGoalsRepository(database, cloud: accountCloudGateway),
+      ),
       cyclingTeamCubit: CyclingTeamCubit(
         SupabaseCyclingTeamRepository(supabaseClient, authSessionManager),
       ),
@@ -140,6 +148,7 @@ Future<void> main() async {
           database,
           cloudClient: supabaseClient,
           sessionManager: authSessionManager,
+          cloudGateway: accountCloudGateway,
         ),
       ),
       rideLedgerCubit: RideLedgerCubit(
@@ -171,6 +180,10 @@ Future<void> main() async {
           ),
         ),
         syncSettingsRepository: SessionSyncSettingsRepository(database),
+        cloudSync: RideSessionCloudSync(
+          repository: sessionRepository,
+          gateway: accountCloudGateway,
+        ),
       ),
     ),
   );

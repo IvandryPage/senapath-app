@@ -42,8 +42,7 @@ class _LeaderboardSettingsSectionState
     BuildContext context,
   ) => BlocListener<LeaderboardCubit, LeaderboardState>(
     listenWhen: (previous, current) =>
-        previous.error != current.error ||
-        previous.message != current.message,
+        previous.error != current.error || previous.message != current.message,
     listener: (context, state) {
       final notice = state.error ?? state.message;
       if (notice != null) {
@@ -63,18 +62,18 @@ class _LeaderboardSettingsSectionState
             children: [
               SwitchListTile(
                 secondary: const Icon(Icons.emoji_events_outlined),
-                title: const Text('Partisipasi papan peringkat'),
+                title: const Text('Ikut papan peringkat'),
                 subtitle: Text(
                   optedIn
-                      ? 'Nama profil dan rekor gowes terbaik ditampilkan.'
-                      : 'Opsional. Aktifkan untuk membagikan rekor sepanjang masa.',
+                      ? 'Nama profil dan hasil terbaikmu akan terlihat oleh peserta lain.'
+                      : 'Pilihan. Aktifkan untuk membagikan hasil terbaikmu.',
                 ),
                 value: optedIn,
                 onChanged: busy
                     ? null
-                    : (enabled) => context
-                          .read<LeaderboardCubit>()
-                          .saveConsent(isOptedIn: enabled),
+                    : (enabled) => context.read<LeaderboardCubit>().saveConsent(
+                        isOptedIn: enabled,
+                      ),
               ),
               if (state.isLoading && settings == null)
                 const Padding(
@@ -86,8 +85,8 @@ class _LeaderboardSettingsSectionState
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Text(
                     settings?.displayName == null
-                        ? 'Nama leaderboard mengikuti nama yang kamu atur di profil.'
-                        : 'Nama yang akan ditampilkan: ${settings!.displayName}',
+                        ? 'Nama di papan peringkat mengikuti nama profilmu.'
+                        : 'Nama yang terlihat: ${settings!.displayName}',
                   ),
                 ),
                 const Padding(
@@ -95,8 +94,8 @@ class _LeaderboardSettingsSectionState
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
-                      'Dengan ikut serta, nama profil serta rekor durasi dan jarak terbaik akan tampil di papan peringkat. '
-                      'Menonaktifkan partisipasi akan menarik rekor dari papan peringkat.',
+                      'Jika ikut, nama profil serta jarak terjauh dan waktu terlama akan terlihat di papan peringkat. '
+                      'Kamu bisa berhenti kapan saja; hasilmu akan dihapus dari daftar.',
                     ),
                   ),
                 ),

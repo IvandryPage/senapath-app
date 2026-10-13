@@ -94,6 +94,7 @@ class SenapathApp extends StatelessWidget {
             unawaited(leaderboardCubit.load());
             unawaited(
               sessionCubit.initialize().then((_) async {
+                await sessionCubit.syncCloudSessions();
                 await riderGamificationCubit.load(
                   sessionCubit.state.completedSessions,
                 );

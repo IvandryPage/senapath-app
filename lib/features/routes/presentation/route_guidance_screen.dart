@@ -98,7 +98,7 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
               bottom: 12,
               child: _GuidanceControls(
                 distanceRemaining: state.distanceRemainingMeters == null
-                    ? 'Menunggu GPS'
+                    ? 'Menunggu lokasi'
                     : _formatDistance(
                         state.distanceRemainingMeters!,
                         unitSystem,
@@ -120,10 +120,10 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
   String _statusLabel(RouteGuidanceState state) {
     if (state.error != null) return state.error!;
     if (state.hasReachedEnd) return 'Rute selesai';
-    if (state.isStarting) return 'Memulai GPS…';
-    if (state.currentPosition == null) return 'Menunggu posisi GPS…';
+    if (state.isStarting) return 'Mencari lokasi…';
+    if (state.currentPosition == null) return 'Menunggu lokasi…';
     if (state.isOffRoute) return 'Periksa posisi terhadap jalur';
-    return 'Ikuti jalur GPX';
+    return 'Ikuti garis rute';
   }
 
   String? _warningLabel(RouteGuidanceState state) {
@@ -131,7 +131,7 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
       return 'Di luar jalur sekitar ${state.distanceToRouteMeters!.toStringAsFixed(0)} m. Berhenti di tempat aman untuk memeriksa rute.';
     }
     if (state.currentPosition != null && !state.hasAccurateFix) {
-      return 'GPS kurang akurat; posisi dan peringatan rute terbatas.';
+      return 'Sinyal lokasi lemah. Posisi dan peringatan rute mungkin kurang tepat.';
     }
     return state.error;
   }
@@ -245,7 +245,7 @@ class _GuidanceControls extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ikuti garis GPX. File ini tidak memuat instruksi belokan atau peta jalan.',
+            'File GPX hanya menunjukkan garis rute, tanpa petunjuk belokan atau peta jalan.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),

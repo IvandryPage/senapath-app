@@ -62,8 +62,8 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
         LeaderboardState(
           category: state.category,
           error: !_gateway.isConfigured
-              ? 'Akun online belum tersedia karena Supabase belum dikonfigurasi.'
-              : 'Masuk ke akun online untuk melihat leaderboard.',
+              ? 'Fitur akun online belum tersedia.'
+              : 'Masuk ke akun online untuk melihat papan peringkat.',
         ),
       );
       return;
@@ -84,7 +84,8 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Leaderboard gagal dimuat: $error',
+          error:
+              'Papan peringkat tidak dapat dimuat. Periksa koneksi internet.',
         ),
       );
     }
@@ -116,16 +117,18 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
           settings: settings,
           entries: entries,
           isSaving: false,
-          message: isOptedIn ? 'Partisipasi leaderboard diaktifkan.' : 'Partisipasi dinonaktifkan dan rekor Anda dihapus dari leaderboard.',
+          message: isOptedIn
+              ? 'Kamu sudah ikut papan peringkat.'
+              : 'Kamu berhenti ikut dan hasilmu dihapus dari papan peringkat.',
         ),
       );
       unawaited(_syncPersonalBest());
-    } catch (error) {
+    } catch (_) {
       if (isClosed || generation != _requestGeneration) return;
       emit(
         state.copyWith(
           isSaving: false,
-          error: 'Pengaturan leaderboard gagal disimpan: $error',
+          error: 'Pengaturan papan peringkat tidak dapat disimpan. Coba lagi.',
         ),
       );
     }

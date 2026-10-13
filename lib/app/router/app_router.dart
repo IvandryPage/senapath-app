@@ -188,21 +188,22 @@ class _AppShellState extends State<_AppShell> {
 
     final title = switch (widget.location) {
       '/' => 'Senapath',
-      '/assistant' => 'Chat AI',
-      '/feedback' => 'Saran & kesan',
+      '/assistant' => 'Asisten AI',
+      '/feedback' => 'Masukan',
       '/leaderboard' => 'Papan Peringkat',
-      '/progress' => 'Progres aktivitas',
+      '/progress' => 'Progres perjalanan',
       '/account' => 'Akun & keamanan',
       '/profile/settings' => 'Pengaturan',
       '/profile/notifications' => 'Notifikasi',
-      '/rider' => 'Karakter rider',
+      '/rider' => 'Profil pesepeda',
       '/rider/ledger' => 'Bukti perjalanan',
       '/profile/teams' => 'Tim',
       _ when widget.location.startsWith('/profile/teams/') => 'Detail tim',
-      '/profile/sessions' => 'Riwayat sesi',
-      _ when widget.location.startsWith('/profile/sessions/') => 'Detail sesi',
+      '/profile/sessions' => 'Riwayat perjalanan',
+      _ when widget.location.startsWith('/profile/sessions/') =>
+        'Detail perjalanan',
       '/profile/routes' => 'Rute tersimpan',
-      '/routes/workouts' => 'Workout interval',
+      '/routes/workouts' => 'Latihan interval',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };
     final isSubmenu = switch (widget.location) {

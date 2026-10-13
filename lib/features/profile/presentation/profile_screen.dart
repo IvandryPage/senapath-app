@@ -165,10 +165,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       final style = riderState.progress?.style;
                       if (style == null) return const SizedBox.shrink();
                       return Text(
-                        'Tipe pesepeda · ${style.label}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                        'Gaya bersepeda · ${style.label}',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
                       );
                     },
                   ),
@@ -554,18 +553,14 @@ class _ProfileProgressSection extends StatelessWidget {
               session.endedAt != null,
         )
         .toList(growable: false);
-    final longestDuration = completedSessions.fold<int>(
-      0,
-      (longest, session) {
-        final seconds = session.durationAt(session.endedAt!).inSeconds;
-        return seconds > longest ? seconds : longest;
-      },
-    );
+    final longestDuration = completedSessions.fold<int>(0, (longest, session) {
+      final seconds = session.durationAt(session.endedAt!).inSeconds;
+      return seconds > longest ? seconds : longest;
+    });
     final longestDistance = completedSessions.fold<double>(
       0,
-      (longest, session) => session.distanceMeters > longest
-          ? session.distanceMeters
-          : longest,
+      (longest, session) =>
+          session.distanceMeters > longest ? session.distanceMeters : longest,
     );
 
     return Column(
@@ -587,7 +582,7 @@ class _ProfileProgressSection extends StatelessWidget {
                 icon: Icons.route_outlined,
                 label: 'Jarak minggu ini',
                 value: _profileDistance(week.distanceMeters, metric),
-                helper: 'dari sesi selesai',
+                helper: 'dari perjalanan selesai',
               ),
             ),
             const SizedBox(width: 10),
@@ -597,7 +592,7 @@ class _ProfileProgressSection extends StatelessWidget {
                 background: Theme.of(context).colorScheme.secondaryContainer,
                 foreground: Theme.of(context).colorScheme.onSecondaryContainer,
                 icon: Icons.directions_bike_outlined,
-                label: 'Sesi',
+                label: 'Perjalanan',
                 value: '${week.completedSessions}',
                 helper: 'minggu ini',
               ),
@@ -732,7 +727,7 @@ class _ProfileGoalTile extends StatelessWidget {
     final progressValue = progress.progressFor(goal);
     final valueText = switch (goal.metric) {
       GoalMetric.completedSessions =>
-        '${current.toStringAsFixed(0)} / ${goal.target.toStringAsFixed(0)} sesi',
+        '${current.toStringAsFixed(0)} / ${goal.target.toStringAsFixed(0)} perjalanan',
       GoalMetric.distanceMeters =>
         '${_profileDistance(current, unitSystem == UnitSystem.metric)} / '
             '${_profileDistance(goal.target, unitSystem == UnitSystem.metric)}',
@@ -741,7 +736,7 @@ class _ProfileGoalTile extends StatelessWidget {
             '${(goal.target / 3600).toStringAsFixed(1)} jam',
     };
     final label = switch (goal.metric) {
-      GoalMetric.completedSessions => 'Target sesi',
+      GoalMetric.completedSessions => 'Target perjalanan',
       GoalMetric.distanceMeters => 'Target jarak',
       GoalMetric.activeSeconds => 'Target durasi',
     };
@@ -793,7 +788,7 @@ class _RecentSessionsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ProfileSectionTitle(
-          title: 'Sesi terbaru',
+          title: 'Perjalanan terbaru',
           actionLabel: 'Lihat semua',
           onAction: onSeeAll,
         ),
@@ -804,7 +799,7 @@ class _RecentSessionsSection extends StatelessWidget {
           SenapathCard(
             child: ListTile(
               leading: const Icon(Icons.directions_bike_outlined),
-              title: const Text('Belum ada sesi'),
+              title: const Text('Belum ada perjalanan'),
               subtitle: const Text('Mulai perjalanan pertamamu dari Jelajah.'),
               trailing: const Icon(Icons.chevron_right),
               onTap: onStartSession,
@@ -971,10 +966,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
               decoration: const InputDecoration(labelText: 'Tipe pesepeda'),
               items: [
                 for (final style in RiderStyle.values)
-                  DropdownMenuItem(
-                    value: style,
-                    child: Text(style.label),
-                  ),
+                  DropdownMenuItem(value: style, child: Text(style.label)),
               ],
               onChanged: (style) {
                 if (style != null) setState(() => _riderStyle = style);

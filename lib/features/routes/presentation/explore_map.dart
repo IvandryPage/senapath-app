@@ -118,7 +118,7 @@ class _ExploreMapState extends State<ExploreMap> {
     final hasTrack = widget.trackPoints.length >= 2;
 
     return Semantics(
-      label: 'Peta OpenStreetMap untuk eksplorasi dan sesi aktif',
+      label: 'Peta untuk melihat rute dan lokasi perjalanan',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.borderRadius),
         child: SizedBox(
@@ -298,7 +298,7 @@ class _ExploreMapState extends State<ExploreMap> {
                   left: 12,
                   child: _MapStatusBadge(
                     icon: Icons.cloud_off,
-                    label: 'Peta online tidak tersedia',
+                    label: 'Peta tidak bisa dimuat. Periksa internet.',
                     isError: true,
                   ),
                 ),
@@ -307,7 +307,7 @@ class _ExploreMapState extends State<ExploreMap> {
                   top: 10,
                   right: 10,
                   child: IconButton(
-                    tooltip: 'Tampilkan lokasi saya',
+                    tooltip: 'Tunjukkan lokasi saya',
                     onPressed: _isLocating ? null : _showCurrentLocation,
                     icon: _isLocating
                         ? const SizedBox.square(
@@ -359,8 +359,8 @@ class _ExploreMapState extends State<ExploreMap> {
                           const SizedBox(width: 10),
                           const Expanded(
                             child: Text(
-                              'Jelajahi area sekitar, atau mulai sesi untuk '
-                              'merekam jejak GPS dan memilih rute.',
+                              'Jelajahi area sekitar atau mulai merekam '
+                              'perjalanan dan pilih rute.',
                               maxLines: 2,
                             ),
                           ),
@@ -401,7 +401,7 @@ class _ExploreMapState extends State<ExploreMap> {
                           ? Geolocator.openLocationSettings
                           : Geolocator.openAppSettings,
                       icon: const Icon(Icons.settings_outlined),
-                      label: const Text('Pengaturan lokasi'),
+                      label: const Text('Atur lokasi'),
                     ),
                   ),
                 ),
@@ -477,8 +477,8 @@ class _ExploreMapState extends State<ExploreMap> {
       if (!mounted) return;
       setState(
         () => _locationMessage =
-            'Belum mendapat fix GPS setelah 15 detik. Coba lagi di luar '
-            'ruangan dengan pandangan langit terbuka.',
+            'Lokasi belum ditemukan setelah 15 detik. Coba lagi di luar ruangan '
+            'dengan pandangan langit terbuka.',
       );
     } on LocationServiceDisabledException {
       if (!mounted) return;

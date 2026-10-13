@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../data/readiness_checker.dart';
+import '../data/ride_session_cloud_sync.dart';
 import '../data/ride_session_repository.dart';
 import '../data/session_sync_coordinator.dart';
 import '../data/session_sync_settings_repository.dart';
@@ -143,6 +144,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     this.motionSensorSource,
     this.syncCoordinator,
     this.syncSettingsRepository,
+    this.cloudSync,
     this.notificationService,
     this.notificationSettingsRepository,
     this.ledgerRepository,
@@ -158,6 +160,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   final MotionSensorSource? motionSensorSource;
   final SessionSyncCoordinator? syncCoordinator;
   final SessionSyncSettingsRepository? syncSettingsRepository;
+  final RideSessionCloudSync? cloudSync;
   final RideNotificationService? notificationService;
   final NotificationSettingsRepository? notificationSettingsRepository;
   final RideLedgerRepository? ledgerRepository;
@@ -200,6 +203,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       syncCoordinator?.gateway.isConfigured == true &&
       syncCoordinator?.gateway.isSignedIn == true;
 
+  bool get canCloudSync => cloudSync?.canSync == true;
+
   Future<void> initialize() async {
     if (state.isInitialized || state.isLoading) return;
     emit(state.copyWith(isLoading: true, clearMessage: true));
@@ -221,7 +226,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
             session.id,
           );
         } catch (_) {
-          locationMessage = 'Jejak sesi lokal tidak dapat dibuka.';
+          locationMessage =
+              'Rute perjalanan yang tersimpan di ponsel tidak dapat dibuka.';
         }
       }
       IntervalWorkout? workout;
@@ -248,7 +254,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
             }
           }
         } catch (_) {
-          locationMessage ??= 'Progres workout lokal tidak dapat dipulihkan.';
+          locationMessage ??=
+              'Kemajuan latihan sebelumnya tidak dapat dipulihkan.';
         }
       }
       emit(
@@ -278,7 +285,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         state.copyWith(
           isInitialized: true,
           isLoading: false,
-          message: 'Kesiapan perangkat atau sesi lokal tidak dapat diperiksa.',
+          message:
+              'Izin perangkat atau rekaman perjalanan tidak dapat diperiksa.',
         ),
       );
     }
@@ -340,7 +348,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   Future<void> start({RouteRecord? route, IntervalWorkout? workout}) async {
     if (state.session != null &&
         state.session!.status != RideSessionStatus.completed) {
-      _setMessage('Selesaikan atau lanjutkan sesi yang sedang tersimpan.');
+      _setMessage('Selesaikan atau lanjutkan rekaman yang masih berjalan.');
       return;
     }
     late ReadinessReport startReadiness;
@@ -380,8 +388,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           await intervalWorkoutRepository!.saveCheckpoint(checkpoint);
           _workoutCheckpoint = checkpoint;
         } catch (_) {
-          workoutStartMessage =
-              'Workout tidak tersimpan; sesi tetap berjalan tanpa workout.';
+          workoutStartMessage = 'Latihan tidak tersimpan; perjalanan tetap direkam tanpa latihan.';
         }
       }
       _activeRoute = route;
@@ -406,8 +413,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           message:
               workoutStartMessage ??
               (!startReadiness.backgroundLocationGranted
-                  ? 'Perjalanan ini hanya bisa terus direkam di latar belakang '
-                        'jika izin lokasi “Sepanjang waktu” aktif.'
+                  ? 'Agar perjalanan tetap direkam saat layar mati, izinkan akses lokasi “Sepanjang waktu”.'
                   : null),
           clearMessage:
               workoutStartMessage == null &&
@@ -421,7 +427,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       _startTicker();
       await _updateWorkoutProgress();
     } catch (_) {
-      _setMessage('Sesi tidak dapat dimulai. Data sebelumnya tetap tersimpan.');
+      _setMessage(
+        'Perjalanan tidak dapat dimulai. Rekaman lama tetap tersimpan.',
+      );
     }
   }
 
@@ -503,12 +511,13 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       try {
         await ledgerRepository?.appendSession(completed);
       } catch (_) {
-        ledgerMessage = 'Sesi selesai, tetapi bukti aktivitas belum tercatat di rantai lokal.';
+        ledgerMessage =
+            'Perjalanan selesai, tetapi kode buktinya belum dibuat.';
       }
       if (workoutCleanupMessage) {
         ledgerMessage = ledgerMessage == null
-            ? 'Sesi selesai, tetapi progres workout lokal belum dibersihkan.'
-            : '$ledgerMessage Progres workout lokal juga belum dibersihkan.';
+            ? 'Perjalanan selesai, tetapi kemajuan latihan belum dibersihkan.'
+            : '$ledgerMessage Kemajuan latihan juga belum dibersihkan.';
       }
       emit(
         state.copyWith(
@@ -524,9 +533,15 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       );
       _activeRoute = null;
       _routeProgressCalculator = null;
-      if (state.autoSyncEnabled) unawaited(_syncCompletedSession(completed.id));
+      if (canCloudSync) {
+        unawaited(_pushCloudSession(completed.id));
+      } else if (state.autoSyncEnabled) {
+        unawaited(_syncCompletedSession(completed.id));
+      }
     } catch (_) {
-      _setMessage('Sesi belum dapat diakhiri. Data lokal tetap tersedia.');
+      _setMessage(
+        'Perjalanan belum dapat diselesaikan. Data di ponsel tetap aman.',
+      );
     }
   }
 
@@ -551,7 +566,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       emit(
         state.copyWith(
           isLoadingSummary: false,
-          message: 'Ringkasan lokal tidak dapat dibuka.',
+          message: 'Ringkasan perjalanan yang tersimpan di ponsel tidak dapat dibuka.',
         ),
       );
     }
@@ -576,6 +591,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           ? state.summary!.copyWith(session: updated)
           : state.summary;
       emit(state.copyWith(completedSessions: history, summary: summary));
+      if (canCloudSync) unawaited(_pushCloudSession(sessionId));
     } catch (_) {
       _setMessage('Nama atau jenis aktivitas tidak dapat disimpan.');
     }
@@ -588,15 +604,25 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           .where((session) => session.id != sessionId)
           .toList(growable: false);
       final clearSummary = state.summary?.session.id == sessionId;
+      final sync = cloudSync;
+      var cloudMessage = '';
+      if (sync != null && canCloudSync) {
+        try {
+          await sync.deleteSession(sessionId);
+          cloudMessage = ' Salinan online juga dihapus.';
+        } catch (_) {
+          cloudMessage = ' Salinan online belum dapat dihapus.';
+        }
+      }
       emit(
         state.copyWith(
           completedSessions: history,
           clearSummary: clearSummary,
-          message: 'Aktivitas lokal dihapus. Salinan cloud, jika ada, tidak ikut dihapus.',
+          message: 'Perjalanan dihapus dari ponsel.$cloudMessage',
         ),
       );
     } catch (_) {
-      _setMessage('Aktivitas lokal tidak dapat dihapus.');
+      _setMessage('Perjalanan di ponsel tidak dapat dihapus.');
     }
   }
 
@@ -607,7 +633,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   }) async {
     final coordinator = syncCoordinator;
     if (coordinator == null) {
-      _setMessage('Sinkronisasi Supabase belum dikonfigurasi.');
+      _setMessage('Fitur akun online belum tersedia.');
       return;
     }
     if (state.syncingSessionId != null) return;
@@ -639,8 +665,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           summaryLocations: summaryLocations,
           clearSyncingSession: true,
           message: shareWithTeamId == null
-              ? 'Ringkasan sesi tersinkron ke akun Supabase.'
-              : 'Ringkasan sesi dibagikan ke tim.',
+              ? 'Ringkasan perjalanan tersimpan di akun online.'
+              : 'Ringkasan perjalanan dibagikan ke tim.',
         ),
       );
     } catch (_) {
@@ -661,7 +687,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           summary: summary,
           summaryLocations: summaryLocations,
           clearSyncingSession: true,
-          message: 'Sinkronisasi gagal. Ringkasan tetap tersimpan lokal; coba lagi saat online.',
+          message: 'Ringkasan belum bisa disimpan ke akun online. Data tetap aman di ponsel; coba lagi saat internet tersedia.',
         ),
       );
     }
@@ -686,7 +712,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       emit(state.copyWith(autoSyncEnabled: enabled));
       if (enabled) _startAutoSyncRetry();
     } catch (_) {
-      _setMessage('Pengaturan sinkronisasi otomatis tidak dapat dimuat.');
+      _setMessage('Pengaturan penyimpanan otomatis tidak dapat dibuka.');
     }
   }
 
@@ -711,7 +737,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       emit(
         state.copyWith(
           isSavingAutoSync: false,
-          message: 'Pengaturan sinkronisasi otomatis tidak dapat disimpan.',
+          message: 'Pengaturan penyimpanan otomatis tidak dapat disimpan.',
         ),
       );
     }
@@ -722,8 +748,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     final pendingSessions = state.completedSessions
         .where(
           (session) =>
-              session.syncStatus == 'pending' ||
-              session.syncStatus == 'failed',
+              session.syncStatus == 'pending' || session.syncStatus == 'failed',
         )
         .toList(growable: false);
     for (final session in pendingSessions) {
@@ -739,6 +764,67 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       (_) => unawaited(syncPendingSessions()),
     );
     unawaited(syncPendingSessions());
+  }
+
+  /// Pulls every ride from the account cloud, merges it into local storage, and
+  /// pushes any locally recorded rides that are not yet in the cloud.
+  Future<void> syncCloudSessions() async {
+    final sync = cloudSync;
+    if (sync == null || !canCloudSync || isClosed) return;
+    try {
+      await sync.pullSessions(shouldContinue: () => !isClosed);
+    } catch (_) {
+      // Offline or transient failure: local history remains authoritative.
+    }
+    await _reloadCompletedSessions();
+    await _pushPendingCloudSessions();
+  }
+
+  Future<void> _pushPendingCloudSessions() async {
+    final sync = cloudSync;
+    if (sync == null || !canCloudSync || isClosed) return;
+    final pending = state.completedSessions
+        .where((session) => session.syncStatus != 'synced')
+        .toList(growable: false);
+    var changed = false;
+    for (final session in pending) {
+      if (isClosed || !canCloudSync) break;
+      try {
+        final pushed = await sync.pushSession(
+          session.id,
+          shouldContinue: () => !isClosed,
+        );
+        if (pushed) changed = true;
+      } catch (_) {
+        // Keep the ride pending for the next attempt.
+      }
+    }
+    if (changed) await _reloadCompletedSessions();
+  }
+
+  Future<void> _pushCloudSession(String sessionId) async {
+    final sync = cloudSync;
+    if (sync == null || !canCloudSync || isClosed) return;
+    try {
+      await sync.pushSession(sessionId, shouldContinue: () => !isClosed);
+      await _reloadCompletedSessions();
+    } catch (_) {
+      if (!isClosed) {
+        _setMessage(
+          'Sesi tersimpan lokal; sinkronisasi cloud gagal dan akan dicoba lagi.',
+        );
+      }
+    }
+  }
+
+  Future<void> _reloadCompletedSessions() async {
+    try {
+      final history = await repository.loadCompletedSessions();
+      if (isClosed) return;
+      emit(state.copyWith(completedSessions: history));
+    } catch (_) {
+      // Ignore reload failures; the in-memory history stays usable.
+    }
   }
 
   Future<void> _syncCompletedSession(String sessionId) async {

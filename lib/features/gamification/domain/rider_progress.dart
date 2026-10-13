@@ -12,10 +12,10 @@ enum RiderStyle {
   );
 
   String get label => switch (this) {
-    RiderStyle.sprinter => 'Sprinter',
-    RiderStyle.climber => 'Climber',
-    RiderStyle.explorer => 'Explorer',
-    RiderStyle.ace => 'Ace / All-rounder',
+    RiderStyle.sprinter => 'Pengejar kecepatan',
+    RiderStyle.climber => 'Penakluk tanjakan',
+    RiderStyle.explorer => 'Penjelajah rute',
+    RiderStyle.ace => 'Serba bisa',
   };
 
   String get description => switch (this) {
@@ -140,22 +140,22 @@ class RiderProgress {
           10 => 'Rutin Gowes',
           25 => 'Peloton Kecil',
           50 => 'Pecinta Gowes',
-          _ => 'Century of Rides',
+          _ => '100 Perjalanan',
         },
-        description: 'Selesaikan $target sesi bersepeda.',
+        description: 'Selesaikan $target perjalanan bersepeda.',
         icon: RiderAchievementIcon.consistency,
         progress: completedRides,
         target: target,
-        unit: 'sesi',
+        unit: 'perjalanan',
       ),
     for (final target in const [10, 25, 50, 100, 250, 500, 1000])
       RiderAchievement(
         title: switch (target) {
           10 => 'Pemula Jarak',
-          25 => 'Quarter Century',
-          50 => 'Half Century',
-          100 => 'Centurion',
-          250 => 'Randonneur',
+          25 => '25 Kilometer',
+          50 => '50 Kilometer',
+          100 => '100 Kilometer',
+          250 => '250 Kilometer',
           500 => 'Penjelajah Jarak Jauh',
           _ => 'Seribu Kilometer',
         },
@@ -169,7 +169,7 @@ class RiderProgress {
       RiderAchievement(
         title: 'Level $target · ${RiderRank.forLevel(target).title}',
         description:
-            'Capai level $target dan raih title ${RiderRank.forLevel(target).title}.',
+            'Capai level $target untuk meraih peringkat ${RiderRank.forLevel(target).title}.',
         icon: RiderAchievementIcon.rank,
         progress: level,
         target: target,
@@ -180,7 +180,7 @@ class RiderProgress {
           5 => 'Waktu di Sadel',
           10 => 'Setengah Hari Gowes',
           25 => 'Pengayuh Tangguh',
-          50 => 'Endurance Rider',
+          50 => 'Tahan Gowes',
           _ => 'Ribuan Menit di Sadel',
         },
         description: 'Kumpulkan $target jam waktu gowes.',
@@ -192,11 +192,11 @@ class RiderProgress {
     for (final target in const [25, 50, 100])
       RiderAchievement(
         title: switch (target) {
-          25 => 'Long Ride',
-          50 => 'Metric Half Century',
-          _ => 'Metric Century',
+          25 => 'Perjalanan Jauh',
+          50 => '50 km Sekali Jalan',
+          _ => '100 km Sekali Jalan',
         },
-        description: 'Selesaikan satu sesi sejauh $target km atau lebih.',
+        description: 'Selesaikan satu perjalanan sejauh $target km atau lebih.',
         icon: RiderAchievementIcon.longRide,
         progress: (longestRideMeters / 1000).floor(),
         target: target,
@@ -204,12 +204,13 @@ class RiderProgress {
       ),
     for (final target in const [5, 20])
       RiderAchievement(
-        title: target == 5 ? 'Weekend Warrior' : 'Raja Akhir Pekan',
-        description: 'Selesaikan $target sesi pada hari Sabtu atau Minggu.',
+        title: target == 5 ? 'Gowes Akhir Pekan' : 'Raja Akhir Pekan',
+        description:
+            'Selesaikan $target perjalanan pada hari Sabtu atau Minggu.',
         icon: RiderAchievementIcon.weekend,
         progress: weekendRides,
         target: target,
-        unit: 'sesi',
+        unit: 'perjalanan',
       ),
   ];
 
@@ -224,9 +225,7 @@ class RiderProgress {
     var weekendRides = 0;
     for (final session in sessions) {
       distanceMeters += session.distanceMeters;
-      final duration = session.durationAt(
-        session.endedAt ?? session.startedAt,
-      );
+      final duration = session.durationAt(session.endedAt ?? session.startedAt);
       final activeMinutes = duration.inMinutes;
       rideDurationSeconds += duration.inSeconds;
       if (session.distanceMeters > longestRideMeters) {
@@ -257,11 +256,11 @@ class RiderProgress {
 }
 
 enum RiderRank {
-  rookie(minLevel: 1, maxLevel: 10, title: 'Rookie'),
-  clubRider(minLevel: 11, maxLevel: 30, title: 'Club Rider'),
-  granFondo(minLevel: 31, maxLevel: 60, title: 'Gran Fondo'),
-  eliteRider(minLevel: 61, maxLevel: 100, title: 'Elite Rider'),
-  proRider(minLevel: 101, maxLevel: null, title: 'Pro Rider');
+  rookie(minLevel: 1, maxLevel: 10, title: 'Pemula'),
+  clubRider(minLevel: 11, maxLevel: 30, title: 'Anggota klub'),
+  granFondo(minLevel: 31, maxLevel: 60, title: 'Pesepeda jarak jauh'),
+  eliteRider(minLevel: 61, maxLevel: 100, title: 'Pesepeda elite'),
+  proRider(minLevel: 101, maxLevel: null, title: 'Pesepeda profesional');
 
   const RiderRank({
     required this.minLevel,

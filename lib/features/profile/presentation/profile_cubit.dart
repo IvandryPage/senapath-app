@@ -54,6 +54,11 @@ class ProfileCubit extends Cubit<ProfileState> {
     return _repository as CloudUserProfileRepository;
   }
 
+  CloudContactsRepository? get _cloudContactsRepository {
+    if (_repository is! CloudContactsRepository) return null;
+    return _repository as CloudContactsRepository;
+  }
+
   Future<void> reloadProfile() async {
     emit(state.copyWith(isLoaded: false, clearMessage: true));
     await load();
@@ -64,13 +69,30 @@ class ProfileCubit extends Cubit<ProfileState> {
     final generation = ++_loadGeneration;
     try {
       var profile = await _repository.loadProfile();
-      final contacts = await _repository.loadContacts();
+      var contacts = await _repository.loadContacts();
       Uint8List? avatar;
       String? message;
       try {
         avatar = await _repository.loadAvatar();
       } catch (_) {
         message = 'Foto profil tidak dapat dibuka.';
+      }
+
+      final cloudContactsRepository = _cloudContactsRepository;
+      if (cloudContactsRepository != null &&
+          _cloudRepository?.isCloudSignedIn == true) {
+        try {
+          final cloudContacts = await cloudContactsRepository
+              .loadCloudContacts();
+          if (cloudContacts != null && cloudContacts.isNotEmpty) {
+            contacts = cloudContacts;
+            await _repository.saveContacts(cloudContacts);
+          } else if (contacts.isNotEmpty) {
+            await cloudContactsRepository.saveCloudContacts(contacts);
+          }
+        } on CloudProfileSyncException {
+          message = 'Kontak darurat di ponsel ditampilkan, tetapi belum diperbarui di akun online.';
+        }
       }
 
       final cloudRepository = _cloudRepository;
@@ -92,9 +114,8 @@ class ProfileCubit extends Cubit<ProfileState> {
           } else if (profile.displayName.trim().isNotEmpty) {
             await cloudRepository.saveCloudProfile(profile);
           }
-        } on CloudProfileSyncException catch (error) {
-          message =
-              'Profil lokal ditampilkan, tetapi sinkronisasi akun online gagal: $error';
+        } on CloudProfileSyncException {
+          message = 'Profil di ponsel ditampilkan, tetapi belum diperbarui di akun online.';
         }
       }
 
@@ -113,7 +134,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(
         state.copyWith(
           isLoaded: true,
-          message: 'Data profil lokal tidak dapat dibuka.',
+          message: 'Data profil di ponsel tidak dapat dibuka.',
         ),
       );
     }
@@ -148,9 +169,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
     final cloudRepository = _cloudRepository;
     final shouldSyncCloud = cloudRepository?.isCloudSignedIn == true;
-    emit(
-      state.copyWith(profile: updated, isSaving: shouldSyncCloud),
-    );
+    emit(state.copyWith(profile: updated, isSaving: shouldSyncCloud));
     if (shouldSyncCloud) {
       try {
         await cloudRepository!.saveCloudProfile(updated);
@@ -158,21 +177,20 @@ class ProfileCubit extends Cubit<ProfileState> {
           state.copyWith(
             profile: updated,
             isSaving: false,
-            message: 'Profil tersimpan dan tersinkron ke akun online.',
+            message: 'Profil berhasil disimpan ke akun online.',
           ),
         );
-      } on CloudProfileSyncException catch (error) {
+      } on CloudProfileSyncException {
         emit(
           state.copyWith(
             profile: updated,
             isSaving: false,
-            message:
-                'Profil tersimpan di perangkat, tetapi sinkronisasi akun online gagal: $error',
+            message: 'Profil tersimpan di ponsel, tetapi belum diperbarui di akun online.',
           ),
         );
       }
     } else {
-      emit(state.copyWith(message: 'Profil disimpan di perangkat.'));
+      emit(state.copyWith(message: 'Profil disimpan di ponsel.'));
     }
     return true;
   }
@@ -192,11 +210,12 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
     await _save(
       () => _repository.saveContacts(updated),
-      successMessage: 'Kontak disimpan di perangkat.',
+      successMessage: 'Kontak disimpan di ponsel.',
     );
-    if (state.message == 'Kontak disimpan di perangkat.') {
+    if (state.message == 'Kontak disimpan di ponsel.') {
       emit(state.copyWith(contacts: List.unmodifiable(updated)));
     }
+    await _syncContactsCloud(updated);
   }
 
   Future<void> removeContact(String contactId) async {
@@ -205,11 +224,12 @@ class ProfileCubit extends Cubit<ProfileState> {
         .toList(growable: false);
     await _save(
       () => _repository.saveContacts(updated),
-      successMessage: 'Kontak dihapus dari perangkat.',
+      successMessage: 'Kontak dihapus dari ponsel.',
     );
-    if (state.message == 'Kontak dihapus dari perangkat.') {
+    if (state.message == 'Kontak dihapus dari ponsel.') {
       emit(state.copyWith(contacts: updated));
     }
+    await _syncContactsCloud(updated);
   }
 
   Future<void> saveAvatar(Uint8List imageBytes) async {
@@ -224,6 +244,25 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 
+  Future<void> _syncContactsCloud(List<EmergencyContact> contacts) async {
+    final cloudContactsRepository = _cloudContactsRepository;
+    if (cloudContactsRepository == null ||
+        _cloudRepository?.isCloudSignedIn != true) {
+      return;
+    }
+    try {
+      await cloudContactsRepository.saveCloudContacts(contacts);
+    } on CloudProfileSyncException {
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            message: 'Kontak tersimpan di ponsel, tetapi belum diperbarui di akun online.',
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _save(
     Future<void> Function() operation, {
     required String successMessage,
@@ -236,7 +275,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(
         state.copyWith(
           isSaving: false,
-          message: 'Perubahan tidak dapat disimpan di perangkat.',
+          message: 'Perubahan tidak dapat disimpan di ponsel.',
         ),
       );
     }

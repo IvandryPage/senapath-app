@@ -159,8 +159,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       if (!state.isSignedIn) {
         emit(
           state.copyWith(
-            error:
-                'Masuk ke akun terlebih dahulu untuk mengaktifkan biometrik.',
+            error: 'Masuk terlebih dahulu untuk menyalakan masuk dengan sidik jari atau wajah.',
             clearStatus: true,
           ),
         );
@@ -170,7 +169,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       if (authenticator == null || !await _hasEnrolledBiometrics()) {
         emit(
           state.copyWith(
-            error: 'Daftarkan biometrik di perangkat terlebih dahulu.',
+            error: 'Siapkan sidik jari atau wajah di pengaturan ponsel terlebih dahulu.',
             clearStatus: true,
           ),
         );
@@ -179,7 +178,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       if (!await _gateway.hasRememberedSession) {
         emit(
           state.copyWith(
-            error: 'Sesi akun tidak tersimpan dengan aman di perangkat ini.',
+            error: 'Akun ini belum tersimpan di ponsel. Masuk kembali untuk melanjutkan.',
             clearStatus: true,
           ),
         );
@@ -190,7 +189,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     if (settings == null) {
       emit(
         state.copyWith(
-          error: 'Preferensi login biometrik tidak dapat disimpan.',
+          error: 'Pengaturan masuk dengan sidik jari atau wajah tidak dapat disimpan.',
           clearStatus: true,
         ),
       );
@@ -206,8 +205,8 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           biometricSignInEnabled: enabled,
           canUseBiometrics: enabled || state.canUseBiometrics,
           status: enabled
-              ? 'Login biometrik akan digunakan saat membuka aplikasi berikutnya.'
-              : 'Login biometrik dinonaktifkan. Sesi akun tetap tersimpan.',
+              ? 'Sidik jari atau wajah akan diminta saat aplikasi dibuka lagi.'
+              : 'Masuk dengan sidik jari atau wajah dimatikan. Akun tetap tersimpan.',
         ),
       );
     } catch (error) {
@@ -215,7 +214,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       emit(
         state.copyWith(
           isLoading: false,
-          error: _messageFor(error, 'Preferensi biometrik gagal disimpan.'),
+          error: _messageFor(error, 'Pengaturan masuk tidak dapat disimpan.'),
         ),
       );
     }
@@ -235,8 +234,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     if (!_gateway.isConfigured) {
       emit(
         state.copyWith(
-          error:
-              'Akun online belum tersedia karena Supabase belum dikonfigurasi.',
+          error: 'Fitur akun online belum tersedia.',
           clearStatus: true,
         ),
       );
@@ -286,8 +284,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     if (!_gateway.isConfigured) {
       emit(
         state.copyWith(
-          error:
-              'Akun online belum tersedia karena Supabase belum dikonfigurasi.',
+          error: 'Fitur akun online belum tersedia.',
           clearStatus: true,
         ),
       );
@@ -311,7 +308,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           isLoading: false,
           error: _messageFor(
             error,
-            'Tidak dapat masuk. Periksa email, password, dan koneksi internet.',
+            'Tidak dapat masuk. Periksa email, kata sandi, dan koneksi internet.',
           ),
         ),
       );
@@ -324,7 +321,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     if (authenticator == null || !state.canUseBiometrics) {
       emit(
         state.copyWith(
-          error: 'Login biometrik belum tersedia. Masuk dengan email dan password terlebih dahulu.',
+          error: 'Masuk dengan sidik jari atau wajah belum tersedia. Masuk dengan email terlebih dahulu.',
           clearStatus: true,
         ),
       );
@@ -339,7 +336,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
         emit(
           state.copyWith(
             isLoading: false,
-            error: 'Autentikasi biometrik dibatalkan atau tidak berhasil.',
+            error: 'Masuk dengan sidik jari atau wajah dibatalkan atau tidak berhasil.',
           ),
         );
         return;
@@ -349,7 +346,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
         state.copyWith(
           email: _gateway.currentEmail,
           isLoading: false,
-          status: 'Berhasil masuk ke akun online dengan biometrik.',
+          status: 'Berhasil masuk dengan sidik jari atau wajah.',
         ),
       );
     } catch (error) {
@@ -358,7 +355,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           isLoading: false,
           error: _messageFor(
             error,
-            'Login biometrik gagal. Masuk dengan email dan password.',
+            'Masuk dengan sidik jari atau wajah gagal. Coba masuk dengan email dan kata sandi.',
           ),
         ),
       );
@@ -375,8 +372,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           clearEmail: true,
           isLoading: false,
           canUseBiometrics: false,
-          status:
-              'Berhasil keluar dari akun online. Data lokal tetap tersimpan.',
+          status: 'Berhasil keluar dari akun online. Perjalanan di ponsel tetap tersimpan.',
         ),
       );
     } catch (error) {
@@ -394,8 +390,12 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
 
   String? _validate(String email, String password) {
     if (!_isValidEmail(email)) return 'Masukkan alamat email yang valid.';
-    if (password.length < 8) return 'Password harus berisi minimal 8 karakter.';
-    if (password.length > 128) return 'Password maksimal 128 karakter.';
+    if (password.length < 8) {
+      return 'Kata sandi harus terdiri dari minimal 8 karakter.';
+    }
+    if (password.length > 128) {
+      return 'Kata sandi maksimal 128 karakter.';
+    }
     return null;
   }
 

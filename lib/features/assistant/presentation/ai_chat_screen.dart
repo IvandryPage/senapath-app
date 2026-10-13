@@ -62,7 +62,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
           children: [
             if (!chatState.isConfigured)
               const _ChatNotice(
-                text: 'Chat belum terhubung. Pastikan Supabase project, rider-assistant function, dan GEMINI_API_KEY sudah dikonfigurasi.',
+                text: 'Asisten belum tersedia. Coba lagi nanti.',
                 isWarning: true,
               ),
             Expanded(
@@ -110,7 +110,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
-                'AI dapat keliru. Bukan pengganti panduan keselamatan atau saran medis.',
+                'Jawaban AI bisa keliru. Utamakan keselamatan dan jangan gunakan sebagai saran medis.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelSmall
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
@@ -154,12 +154,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Konteks untuk AI',
+                    'Info untuk asisten',
                     style: Theme.of(sheetContext).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Pilih hanya informasi yang ingin Anda bagikan ke Gemini.',
+                    'Pilih informasi perjalanan yang boleh kamu bagikan untuk membantu asisten menjawab.',
                     style: Theme.of(sheetContext).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 12),
@@ -174,9 +174,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     routes.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.only(bottom: 12),
-                            child: Text(
-                              'Belum ada rute lokal untuk disertakan.',
-                            ),
+                            child: Text('Belum ada rute tersimpan di ponsel.'),
                           )
                         : DropdownButtonFormField<String>(
                             initialValue:
@@ -261,10 +259,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
     final message = _messageController.text;
     final cubit = context.read<AiChatCubit>();
-    await cubit.sendMessage(
-      content: message,
-      context: contextData,
-    );
+    await cubit.sendMessage(content: message, context: contextData);
     if (!mounted) return;
     if (cubit.state.error == null) _messageController.clear();
     setState(() {});
@@ -279,7 +274,7 @@ class _WelcomeView extends StatelessWidget {
 
   static const _prompts = [
     'Bantu susun strategi untuk tanjakan panjang',
-    'Apa yang perlu disiapkan sebelum ride jarak jauh?',
+    'Apa yang perlu disiapkan sebelum perjalanan jauh?',
     'Bagaimana membagi tenaga saat latihan?',
   ];
 
@@ -312,7 +307,7 @@ class _WelcomeView extends StatelessWidget {
             Text(
               isConfigured
                   ? 'Tanya seputar latihan, persiapan, dan strategi bersepeda.'
-                  : 'Chat akan aktif setelah backend Supabase dan Gemini siap.',
+                  : 'Asisten belum tersedia. Coba lagi nanti.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -411,9 +406,7 @@ class _MessageBubble extends StatelessWidget {
                               data: message.content,
                               selectable: true,
                               imageBuilder: (uri, title, alt) => Text(
-                                alt?.isNotEmpty == true
-                                    ? alt!
-                                    : uri.toString(),
+                                alt?.isNotEmpty == true ? alt! : uri.toString(),
                               ),
                               styleSheet: MarkdownStyleSheet.fromTheme(theme)
                                   .copyWith(
@@ -601,11 +594,10 @@ class _Composer extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Pesan${hasContext ? ' dan konteks pilihan' : ''} dikirim '
-                    'ke Gemini untuk dijawab. Hindari info sensitif.',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                    'Pesan${hasContext ? ' dan info pilihan' : ''} dikirim '
+                    'ke asisten untuk dijawab. Jangan kirim informasi pribadi.',
+                    style: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(color: colors.onSurfaceVariant),
                   ),
                 ),
               ],

@@ -129,13 +129,13 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Pit stop & resupply',
+            'Istirahat dan isi ulang',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 6),
           Text(
-            'Pilih rute GPX di Jelajah, lalu ketuk checkpoint pada peta untuk '
-            'melihat estimasi air, snack, kopi, dan ban dalam.',
+            'Pilih file rute di Jelajah, lalu ketuk titik pada peta untuk '
+            'melihat perkiraan kebutuhan air, camilan, kopi, dan ban dalam.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 14),
@@ -170,7 +170,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Pilih mata uang dasar untuk konversi dan estimasi.',
+                        'Pilih mata uang yang dipakai untuk menghitung biaya.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -180,7 +180,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Ambil kurs referensi',
+                      tooltip: 'Perbarui nilai tukar',
                       onPressed: () =>
                           context.read<LogisticsCubit>().refreshRates(),
                       icon: const Icon(Icons.sync),
@@ -197,10 +197,10 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
             const SizedBox(height: 16),
             Text(
               data.rateUpdatedAt == null
-                  ? 'Kurs belum tersedia. Ambil kurs referensi atau atur manual.'
+                  ? 'Nilai tukar belum tersedia. Coba perbarui atau masukkan sendiri.'
                   : data.rateSource == 'Frankfurter'
-                  ? 'Kurs referensi harian · Frankfurter · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}'
-                  : 'Kurs manual · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())} · bukan real-time',
+                  ? 'Nilai tukar harian · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}'
+                  : 'Nilai tukar yang kamu masukkan · diperbarui ${_formatDateTime(data.rateUpdatedAt!.toLocal())}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (state.isRefreshingRates) ...[

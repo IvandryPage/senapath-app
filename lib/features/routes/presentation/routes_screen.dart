@@ -16,6 +16,7 @@ import '../../emergency/presentation/emergency_cubit.dart';
 import '../../logistics/presentation/logistics_cubit.dart';
 import '../../logistics/presentation/resupply_cache_sheet.dart';
 import '../../profile/presentation/profile_cubit.dart';
+import '../../profile/domain/user_profile.dart';
 import '../domain/gps_movement_bearing.dart';
 import '../domain/saved_route.dart';
 import 'routes_cubit.dart';
@@ -52,6 +53,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
   Future<void> _initializeScreen() async {
     final sessionCubit = context.read<RideSessionCubit>();
     final routesCubit = context.read<RoutesCubit>();
+    unawaited(context.read<ProfileCubit>().load());
     await Future.wait([sessionCubit.initialize(), routesCubit.load()]);
     if (mounted) sessionCubit.setActiveRoute(routesCubit.state.sessionRoute);
   }
@@ -87,6 +89,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                 final workoutState = context
                     .watch<IntervalWorkoutCubit>()
                     .state;
+                final profileState = context.watch<ProfileCubit>().state;
                 final trackPoints = [
                   for (final location in sessionState.recordedLocations)
                     LatLng(location.latitude, location.longitude),
@@ -147,6 +150,47 @@ class _RoutesScreenState extends State<RoutesScreen> {
                               unitSystem: unitSystem,
                             ),
                           ),
+                        if (hasActiveSession)
+                          Positioned(
+                            left: 16,
+                            bottom: 16,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: constraints.maxWidth * 0.48,
+                              ),
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .error,
+                                  foregroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .onError,
+                                ),
+                                onPressed: !profileState.isLoaded
+                                    ? null
+                                    : profileState.contacts.isEmpty
+                                    ? () => context.push('/profile')
+                                    : () => _callEmergencyContact(
+                                        profileState.contacts.first,
+                                      ),
+                                icon: Icon(
+                                  profileState.contacts.isEmpty
+                                      ? Icons.person_add_alt_1
+                                      : Icons.call,
+                                ),
+                                label: Text(
+                                  !profileState.isLoaded
+                                      ? 'Memuat kontak…'
+                                      : profileState.contacts.isEmpty
+                                      ? 'Tambah kontak darurat'
+                                      : 'Telepon darurat',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ),
                         Positioned(
                           top: 12,
                           left: 16,
@@ -160,7 +204,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                         ? null
                                         : _openGpxPicker,
                                     icon: const Icon(Icons.search),
-                                    label: const Text('Cari rute GPX'),
+                                    label: const Text('Pilih file rute'),
                                   )
                                 : _SelectedRouteControl(
                                     route: activeRoute,
@@ -178,16 +222,16 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           bottom: 16,
                           child: hasActiveSession
                               ? FloatingActionButton.extended(
-                                  tooltip: 'Detail sesi',
+                                  tooltip: 'Detail perjalanan',
                                   onPressed: () => _openSessionDetails(context),
                                   icon: const Icon(
                                     Icons.monitor_heart_outlined,
                                   ),
-                                  label: const Text('Detail sesi'),
+                                  label: const Text('Detail perjalanan'),
                                 )
                               : FloatingActionButton.extended(
                                   key: const Key('start-session-button'),
-                                  tooltip: 'Mulai sesi',
+                                  tooltip: 'Mulai merekam',
                                   onPressed: sessionState.isCheckingReadiness
                                       ? null
                                       : () => context
@@ -198,7 +242,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                                   workoutState.selectedWorkout,
                                             ),
                                   icon: const Icon(Icons.play_arrow),
-                                  label: const Text('Mulai sesi'),
+                                  label: const Text('Mulai merekam'),
                                 ),
                         ),
                         if (!hasActiveSession)
@@ -216,8 +260,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                 icon: const Icon(Icons.timer_outlined),
                                 label: Text(
                                   workoutState.selectedWorkout == null
-                                      ? 'Workout'
-                                      : 'Workout dipilih',
+                                      ? 'Latihan'
+                                      : 'Latihan dipilih',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -248,6 +292,19 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
+  Future<void> _callEmergencyContact(EmergencyContact contact) async {
+    final emergencyCubit = context.read<EmergencyCubit>();
+    emergencyCubit.clearMessage();
+    await emergencyCubit.callContact(contact);
+    if (!mounted) return;
+    final message = emergencyCubit.state.message;
+    if (message == null) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+    emergencyCubit.clearMessage();
+  }
+
   void _showResupplyCache(RouteRecord route, RouteCheckpoint checkpoint) {
     unawaited(context.read<LogisticsCubit>().load());
     showModalBottomSheet<void>(
@@ -274,7 +331,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
               BlocProvider.value(value: context.read<EmergencyCubit>()),
             ],
             child: Scaffold(
-              appBar: AppBar(title: const Text('Detail sesi')),
+              appBar: AppBar(title: const Text('Detail perjalanan')),
               body: SessionScreen(
                 showMap: false,
                 showHistory: false,
@@ -316,12 +373,12 @@ class _SelectedRouteControl extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Ganti GPX',
+            tooltip: 'Ganti rute',
             onPressed: onChange,
             icon: const Icon(Icons.swap_horiz),
           ),
           IconButton(
-            tooltip: 'Hapus GPX dari peta',
+            tooltip: 'Hapus rute dari peta',
             onPressed: onRemove,
             icon: const Icon(Icons.close),
           ),
@@ -377,7 +434,7 @@ class _GpxRoutePickerState extends State<_GpxRoutePicker> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Pilih rute GPX',
+                'Pilih rute tersimpan',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -406,7 +463,7 @@ class _GpxRoutePickerState extends State<_GpxRoutePicker> {
                     ? null
                     : context.read<RoutesCubit>().importGpx,
                 icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('Impor GPX'),
+                label: const Text('Impor file rute'),
               ),
               if (state.isLoading) const LinearProgressIndicator(),
               if (state.message != null)
@@ -425,8 +482,8 @@ class _GpxRoutePickerState extends State<_GpxRoutePicker> {
                     ? Center(
                         child: Text(
                           state.query.isEmpty
-                              ? 'Belum ada rute GPX yang siap ditampilkan.'
-                              : 'Tidak ada rute GPX dengan nama “${state.query}”.',
+                              ? 'Belum ada rute. Impor file GPX untuk menambahkan rute.'
+                              : 'Tidak ada rute bernama “${state.query}”.',
                           textAlign: TextAlign.center,
                         ),
                       )
@@ -440,7 +497,7 @@ class _GpxRoutePickerState extends State<_GpxRoutePicker> {
                               leading: const Icon(Icons.route_outlined),
                               title: Text(route.name),
                               subtitle: Text(
-                                '${route.points.length} titik · ${route.source}',
+                                '${route.points.length} titik rute',
                               ),
                               trailing: const Icon(Icons.map_outlined),
                               onTap: () {
@@ -558,13 +615,12 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
           children: [
             Text(
-              'Perpustakaan rute',
+              'Rute tersimpan',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 6),
             const Text(
-              'Cari dan kelola rute GPX. Pilih rute untuk langsung '
-              'menampilkannya di peta Jelajah.',
+              'Cari rute yang kamu simpan atau impor file GPX. Pilih rute untuk melihatnya di peta.',
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -574,7 +630,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                     ? null
                     : context.read<RoutesCubit>().importGpx,
                 icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('Impor berkas GPX'),
+                label: const Text('Impor file GPX'),
               ),
             ),
             const SizedBox(height: 12),
@@ -583,7 +639,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
               onChanged: context.read<RoutesCubit>().search,
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                hintText: 'Cari nama rute GPX',
+                hintText: 'Cari nama rute',
                 suffixIcon: state.query.isEmpty
                     ? null
                     : IconButton(
@@ -607,8 +663,8 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     state.query.isEmpty
-                        ? 'Belum ada rute GPX. Impor berkas dari perangkat.'
-                        : 'Tidak ada rute GPX dengan nama “${state.query}”.',
+                        ? 'Belum ada rute. Impor file GPX dari ponsel.'
+                        : 'Tidak ada rute bernama “${state.query}”.',
                   ),
                 ),
               )
@@ -637,8 +693,11 @@ class _RouteTile extends StatelessWidget {
         ? 'Elevasi tidak tersedia'
         : '+${_formatElevation(route.elevationGainMeters!, unitSystem)}';
     final poi = route.poiSummary.isEmpty
-        ? 'POI belum tersedia'
+        ? 'Belum ada titik penting'
         : route.poiSummary;
+    final availabilityLabel = route.availability == 'offline'
+        ? 'Tersimpan di ponsel'
+        : 'Perlu internet';
     final description = route.description;
 
     return SenapathCard(
@@ -649,7 +708,7 @@ class _RouteTile extends StatelessWidget {
         subtitle: Text(
           '$distance · $elevation\n'
           '${description.isEmpty ? '' : '$description\n'}'
-          '$poi\nSumber: ${route.source}',
+          '$poi\n$availabilityLabel',
         ),
         isThreeLine: true,
         trailing: Row(
@@ -657,13 +716,13 @@ class _RouteTile extends StatelessWidget {
           children: [
             route.availability == 'offline'
                 ? const Tooltip(
-                    message: 'Tersedia offline',
+                    message: 'Bisa dibuka tanpa internet',
                     child: Icon(Icons.cloud_off_outlined),
                   )
                 : const Icon(Icons.cloud_done_outlined),
             if (route.source == 'GPX lokal')
               IconButton(
-                tooltip: 'Hapus rute GPX ${route.name}',
+                tooltip: 'Hapus rute ${route.name}',
                 onPressed: () => _confirmDelete(context),
                 icon: const Icon(Icons.delete_outline),
               ),
@@ -679,7 +738,7 @@ class _RouteTile extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
-        title: const Text('Hapus rute GPX?'),
+        title: const Text('Hapus rute?'),
         content: Text(
           '“${route.name}” akan dihapus dari rute tersimpan. Tindakan ini '
           'tidak dapat dibatalkan.',
@@ -713,7 +772,7 @@ class _RouteTile extends StatelessWidget {
         ? 'Elevasi tidak tersedia'
         : '+${_formatElevation(route.elevationGainMeters!, context.read<UnitSettingsCubit>().state.unitSystem)}';
     final poi = route.poiSummary.isEmpty
-        ? 'POI belum tersedia'
+        ? 'Belum ada titik penting'
         : route.poiSummary;
     final router = GoRouter.maybeOf(context);
     showModalBottomSheet<void>(
@@ -730,10 +789,10 @@ class _RouteTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 route.points.isEmpty
-                    ? 'Geometri belum tersimpan untuk rute ini.'
+                    ? 'Garis rute belum tersimpan.'
                     : route.source == 'GPX lokal'
-                    ? 'Jejak GPX lokal · ${route.points.length} titik · tersedia offline'
-                    : 'Rute online · ${route.points.length} titik · perlu koneksi',
+                    ? 'File rute di ponsel · ${route.points.length} titik · bisa dipakai tanpa internet'
+                    : 'Rute online · ${route.points.length} titik · perlu internet',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
@@ -823,8 +882,8 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
 
     return Semantics(
       label:
-          'Peta OpenStreetMap dengan ${widget.source == 'GPX lokal' ? 'jejak' : 'jalur'} ${widget.source} ${widget.points.length} titik'
-          '${position == null ? '' : ' dan posisi GPS'}',
+          'Peta rute dengan ${widget.points.length} titik'
+          '${position == null ? '' : ' dan lokasi saat ini'}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.height == null ? 0 : 20),
         child: SizedBox(
@@ -932,7 +991,7 @@ class _RouteMapPreviewState extends State<RouteMapPreview> {
                         vertical: 8,
                       ),
                       child: Text(
-                        'Basemap tidak tersedia. Jejak GPX tetap ditampilkan.',
+                        'Peta jalan tidak tersedia. Garis rute tetap ditampilkan.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/senapath_design.dart';
 import '../domain/rider_progress.dart';
@@ -65,7 +66,7 @@ class RiderScreen extends StatelessWidget {
                                 ),
                           ),
                           Text(
-                            'Level ${progress.level}',
+                            'Level pesepeda ${progress.level}',
                             style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   color: SenapathColors.white,
@@ -97,13 +98,25 @@ class RiderScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   '${progress.experience % RiderProgress.experiencePerLevel} / '
-                  '${RiderProgress.experiencePerLevel} XP · '
-                  '${progress.experienceToNextLevel} XP ke level berikutnya',
+                  '${RiderProgress.experiencePerLevel} poin · '
+                  '${progress.experienceToNextLevel} poin lagi ke level berikutnya',
                   style: TextStyle(
                     color: SenapathColors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SenapathCard(
+            margin: EdgeInsets.zero,
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              leading: const Icon(Icons.verified_user_outlined),
+              title: const Text('Bukti perjalanan'),
+              subtitle: const Text('Lihat kode bukti dan periksa datanya.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/rider/ledger'),
             ),
           ),
           const SizedBox(height: 18),

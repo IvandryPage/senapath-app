@@ -57,7 +57,9 @@ class RoutesCubit extends Cubit<RoutesState> {
       }
     } catch (_) {
       emit(
-        state.copyWith(message: 'Rute GPX terakhir tidak dapat dipulihkan.'),
+        state.copyWith(
+          message: 'Rute terakhir yang dipilih tidak dapat dibuka.',
+        ),
       );
     }
   }
@@ -71,7 +73,7 @@ class RoutesCubit extends Cubit<RoutesState> {
       emit(
         state.copyWith(
           isLoading: false,
-          message: 'Rute lokal tidak dapat dibuka.',
+          message: 'Daftar rute di ponsel tidak dapat dibuka.',
         ),
       );
     }
@@ -82,7 +84,7 @@ class RoutesCubit extends Cubit<RoutesState> {
       final imported = await fileExchange.importGpx();
       if (imported == null) return;
       await repository.saveImportedRoute(
-        name: imported.name ?? 'Rute GPX impor',
+        name: imported.name ?? 'Rute dari file',
         description: imported.description ?? '',
         checkpoints: imported.checkpoints,
         points: [
@@ -98,7 +100,11 @@ class RoutesCubit extends Cubit<RoutesState> {
     } on FormatException catch (error) {
       emit(state.copyWith(message: error.message));
     } catch (_) {
-      emit(state.copyWith(message: 'GPX tidak dapat diimpor.'));
+      emit(
+        state.copyWith(
+          message: 'File rute tidak dapat dibuka. Pastikan file GPX valid.',
+        ),
+      );
     }
   }
 
@@ -109,11 +115,11 @@ class RoutesCubit extends Cubit<RoutesState> {
       emit(
         state.copyWith(
           clearSessionRoute: state.sessionRoute?.id == routeId,
-          message: 'Rute GPX berhasil dihapus.',
+          message: 'Rute berhasil dihapus.',
         ),
       );
     } catch (error) {
-      emit(state.copyWith(message: 'Rute GPX tidak dapat dihapus: $error'));
+      emit(state.copyWith(message: 'Rute tidak dapat dihapus. Coba lagi.'));
     }
   }
 

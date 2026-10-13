@@ -61,12 +61,12 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           children: [
             Text(
-              'PROGRES BERDASARKAN SESI SELESAI',
+              'RINGKASAN PERJALANAN YANG SELESAI',
               style: Theme.of(context).textTheme.labelLarge,
             ),
             const SizedBox(height: 4),
             Text(
-              'Angka hanya berasal dari aktivitas lokal yang tercatat pada periode ini.',
+              'Angka dihitung dari perjalanan yang tersimpan di ponsel selama periode ini.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -286,9 +286,7 @@ class _PeriodDistanceChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final bucketCount = progress.period == ProgressPeriod.week ? 7 : 5;
     final values = List<double>.filled(bucketCount, 0);
-    final sessionsById = {
-      for (final session in sessions) session.id: session,
-    };
+    final sessionsById = {for (final session in sessions) session.id: session};
     for (final id in progress.sessionIds) {
       final session = sessionsById[id];
       if (session == null) continue;
@@ -708,9 +706,10 @@ String _goalLabel(GoalMetric metric) => switch (metric) {
 String _formatGoalValue(double value, GoalMetric metric, UnitSystem unit) =>
     switch (metric) {
       GoalMetric.completedSessions => '${value.toStringAsFixed(0)} sesi',
-      GoalMetric.distanceMeters => unit == UnitSystem.metric
-          ? '${(value / 1000).toStringAsFixed(1)} km'
-          : '${(value / 1609.344).toStringAsFixed(1)} mi',
+      GoalMetric.distanceMeters =>
+        unit == UnitSystem.metric
+            ? '${(value / 1000).toStringAsFixed(1)} km'
+            : '${(value / 1609.344).toStringAsFixed(1)} mi',
       GoalMetric.activeSeconds => '${(value / 3600).toStringAsFixed(1)} jam',
     };
 

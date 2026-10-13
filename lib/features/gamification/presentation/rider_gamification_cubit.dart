@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../account_sync/data/account_cloud_gateway.dart';
 import '../../session/domain/ride_session.dart';
 import '../data/rider_profile_repository.dart';
 import '../domain/rider_progress.dart';
@@ -52,13 +54,13 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     } catch (_) {
       try {
         style = await _repository.loadLocalStyle();
-        syncError = 'Gaya rider cloud tidak dapat dimuat; memakai setelan lokal.';
+        syncError = 'Gaya pesepeda tidak dapat dimuat dari akun online. Menampilkan setelan di ponsel.';
       } catch (_) {
         if (!isClosed) {
           emit(
             RiderGamificationState(
               progress: state.progress,
-              error: 'Progres rider tidak dapat dibuka.',
+              error: 'Progres pesepeda tidak dapat dibuka.',
             ),
           );
         }
@@ -73,9 +75,20 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     try {
       appearance = await _repository.loadAppearance();
     } catch (_) {
-      syncError = 'Tampilan rider tersimpan tidak dapat dimuat.';
+      syncError = 'Tampilan pesepeda yang tersimpan tidak dapat dimuat.';
     }
-    final progress = RiderProgress.fromSessions(_sessions, style: style);
+    var progress = RiderProgress.fromSessions(_sessions, style: style);
+    try {
+      final cloud = await _repository.loadCloudProgress();
+      if (cloud != null) {
+        style = cloud.style;
+        appearance = cloud.appearance ?? appearance;
+        await _repository.saveStyle(style);
+        progress = _mergeCloudProgress(progress, cloud);
+      }
+    } catch (_) {
+      syncError = 'Progres pesepeda dari akun online tidak dapat dimuat; memakai data di ponsel.';
+    }
     if (!isClosed) {
       emit(
         RiderGamificationState(
@@ -86,22 +99,38 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
       );
     }
     try {
-      await _repository.saveCloudProfile(
-        style: style,
-        level: progress.level,
-        experience: progress.experience,
-      );
+      await _repository.saveCloudProgress(progress, appearance);
     } catch (_) {
       if (!isClosed) {
         emit(
           RiderGamificationState(
             progress: progress,
             appearance: appearance,
-            error: 'Progres rider tersimpan lokal; sinkronisasi cloud gagal.',
+            error: 'Progres pesepeda tersimpan di ponsel, tetapi belum tersimpan di akun online.',
           ),
         );
       }
     }
+  }
+
+  RiderProgress _mergeCloudProgress(
+    RiderProgress local,
+    CloudRiderProgress cloud,
+  ) {
+    final experience = math.max(local.experience, cloud.experience);
+    return RiderProgress(
+      experience: experience,
+      level: experience ~/ RiderProgress.experiencePerLevel + 1,
+      distanceMeters: math.max(local.distanceMeters, cloud.distanceMeters),
+      completedRides: math.max(local.completedRides, cloud.completedRides),
+      style: cloud.style,
+      rideDurationSeconds: math.max(
+        local.rideDurationSeconds,
+        cloud.rideDurationSeconds,
+      ),
+      longestRideMeters: local.longestRideMeters,
+      weekendRides: math.max(local.weekendRides, cloud.weekendRides),
+    );
   }
 
   void updateSessions(List<RideSessionSnapshot> sessions) {
@@ -135,8 +164,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
           emit(
             RiderGamificationState(
               appearance: state.appearance,
-              error:
-                  'Tipe pesepeda tersimpan di profil, tetapi rider tidak dapat diperbarui.',
+              error: 'Tipe pesepeda tersimpan di profil, tetapi rider tidak dapat diperbarui.',
             ),
           );
         }
@@ -162,6 +190,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
           ),
         );
       }
+      unawaited(_syncProfile(updated));
     } catch (_) {
       if (!isClosed) {
         emit(
@@ -188,8 +217,11 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     try {
       await _repository.saveAppearance(appearance);
       if (!isClosed) {
-        emit(RiderGamificationState(progress: progress, appearance: appearance));
+        emit(
+          RiderGamificationState(progress: progress, appearance: appearance),
+        );
       }
+      unawaited(_syncProfile(progress));
     } catch (_) {
       if (!isClosed) {
         emit(
@@ -205,11 +237,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
 
   Future<void> _syncProfile(RiderProgress progress) async {
     try {
-      await _repository.saveCloudProfile(
-        style: progress.style,
-        level: progress.level,
-        experience: progress.experience,
-      );
+      await _repository.saveCloudProgress(progress, state.appearance);
     } catch (_) {
       if (!isClosed) {
         emit(

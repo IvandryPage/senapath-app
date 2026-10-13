@@ -60,17 +60,26 @@ class EmergencyCubit extends Cubit<EmergencyState> {
   int _remainingMilliseconds = 0;
 
   Future<bool> callContact(EmergencyContact contact) async {
-    final opened = await _actions.call(contact);
-    _setMessage(
-      opened
-          ? 'Dialer dibuka. Panggilan belum dimulai.'
-          : 'Aplikasi telepon tidak dapat dibuka untuk nomor ini.',
-      status: opened
-          ? EmergencyFlowStatus.handedOff
-          : EmergencyFlowStatus.failed,
-      contactName: contact.name,
-    );
-    return opened;
+    try {
+      final opened = await _actions.call(contact);
+      _setMessage(
+        opened
+            ? 'Aplikasi telepon terbuka untuk ${contact.name}. Tekan Panggil untuk menelepon.'
+            : 'Aplikasi telepon tidak dapat dibuka untuk nomor ini.',
+        status: opened
+            ? EmergencyFlowStatus.handedOff
+            : EmergencyFlowStatus.failed,
+        contactName: contact.name,
+      );
+      return opened;
+    } catch (_) {
+      _setMessage(
+        'Aplikasi telepon tidak dapat dibuka. Coba lagi atau gunakan WhatsApp.',
+        status: EmergencyFlowStatus.failed,
+        contactName: contact.name,
+      );
+      return false;
+    }
   }
 
   Future<bool> openWhatsApp(
@@ -162,7 +171,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
       final opened = await _actions.openWhatsApp(contact, message);
       _setMessage(
         opened
-            ? 'WhatsApp dibuka untuk ${contact.name}. Periksa pesan lalu tekan Kirim; pesan belum terkirim.'
+            ? 'WhatsApp terbuka untuk ${contact.name}. Periksa pesan dan lokasi, lalu tekan Kirim.'
             : 'WhatsApp tidak dapat dibuka. Gunakan tombol telepon pada kontak darurat.',
         status: opened
             ? EmergencyFlowStatus.handedOff
@@ -172,7 +181,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
       return opened;
     } catch (_) {
       _setMessage(
-        'WhatsApp tidak dapat dibuka. Pesan SOS belum terkirim.',
+        'WhatsApp tidak dapat dibuka. Pesan darurat belum terkirim.',
         status: EmergencyFlowStatus.failed,
         contactName: contact.name,
       );
@@ -181,11 +190,16 @@ class EmergencyCubit extends Cubit<EmergencyState> {
   }
 
   String _buildSosMessage(TelemetryLocation? location) {
-    final locationLine = location == null
-        ? 'Lokasi terakhir tidak tersedia.'
-        : 'Lokasi terakhir: https://maps.google.com/?q='
-              '${location.latitude},${location.longitude}';
-    return 'SOS Senapath: Saya mungkin membutuhkan bantuan. $locationLine';
+    final locationText = location == null
+        ? 'Lokasi terakhir saya belum tersedia.'
+        : 'Lokasi terakhir saya: https://maps.google.com/?q='
+              '${location.latitude.toStringAsFixed(6)},'
+              '${location.longitude.toStringAsFixed(6)}';
+    return [
+      'DARURAT: Saya mengalami keadaan darurat saat bersepeda dan membutuhkan pertolongan.',
+      locationText,
+      'Tolong hubungi saya secepatnya atau kirim bantuan ke lokasi ini.',
+    ].join('\n');
   }
 
   int get _secondsRemaining =>

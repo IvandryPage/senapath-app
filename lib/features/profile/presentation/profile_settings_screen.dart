@@ -44,8 +44,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       _sectionHeading(
         context,
         icon: Icons.tune,
-        title: 'Preferensi',
-        subtitle: 'Sesuaikan tampilan dan satuan aktivitas.',
+        title: 'Pengaturan umum',
+        subtitle: 'Atur tampilan dan satuan jarak.',
       ),
       const SizedBox(height: 12),
       _unitSettings(),
@@ -61,7 +61,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           leading: const Icon(Icons.notifications_active_outlined),
           title: const Text('Notifikasi latihan'),
           subtitle: const Text(
-            'Progres GPX, checkpoint, dan jadwal pengingat.',
+            'Kemajuan rute, titik penting, dan jadwal pengingat.',
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/profile/notifications'),
@@ -81,7 +81,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         context,
         icon: Icons.storage_outlined,
         title: 'Penyimpanan',
-        subtitle: 'Kelola data lokal dan cache peta.',
+        subtitle: 'Kelola data di ponsel dan peta tersimpan.',
       ),
       const SizedBox(height: 12),
       _storageSettings(),
@@ -128,7 +128,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Berlaku pada peta, sesi, ringkasan, dan riwayat.',
+              'Berlaku pada peta, rekaman, ringkasan, dan riwayat.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 14),
@@ -141,7 +141,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ),
                 ButtonSegment(
                   value: UnitSystem.imperial,
-                  label: Text('Imperial'),
+                  label: Text('Mil & kaki'),
                   icon: Icon(Icons.square_foot),
                 ),
               ],
@@ -178,13 +178,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             children: [
               SwitchListTile(
                 secondary: const Icon(Icons.fingerprint),
-                title: const Text('Login biometrik'),
+                title: const Text('Masuk dengan sidik jari atau wajah'),
                 subtitle: Text(
                   state.canUseBiometrics
                       ? state.biometricSignInEnabled
-                            ? 'Diminta saat membuka aplikasi berikutnya.'
-                            : 'Nonaktif. Login akun dipulihkan tanpa prompt.'
-                      : 'Masuk dan daftarkan sidik jari atau wajah di perangkat untuk mengaktifkan.',
+                            ? 'Aplikasi akan meminta sidik jari atau wajah saat dibuka lagi.'
+                            : 'Nonaktif. Kamu perlu masuk dengan email dan kata sandi.'
+                      : 'Masuk ke akun dan aktifkan sidik jari atau wajah di pengaturan perangkat.',
                 ),
                 value: state.biometricSignInEnabled,
                 onChanged: state.isLoading || !state.isSignedIn
@@ -214,37 +214,37 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
       );
 
-  Widget _sessionSyncSettings() =>
-      BlocBuilder<RideSessionCubit, RideSessionState>(
-        builder: (context, state) => SenapathCard(
-          child: SwitchListTile(
-            title: const Text('Sinkronkan sesi otomatis'),
-            subtitle: const Text(
-              'Setelah sesi selesai, sinkronkan waktu, durasi, jarak, jumlah '
-              'sampel, elevasi, dan jumlah sampel sensor ke akun Supabase. '
-              'Koordinat GPS, rute, dan telemetri mentah tidak dikirim. '
-              'Sesi tetap tersimpan di perangkat jika sinkronisasi gagal.',
-            ),
-            value: state.autoSyncEnabled,
-            onChanged: state.isSavingAutoSync
-                ? null
-                : context.read<RideSessionCubit>().setAutoSyncEnabled,
-            secondary: state.isSavingAutoSync
-                ? const SizedBox.square(
-                    dimension: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.cloud_sync_outlined),
-          ),
+  Widget
+  _sessionSyncSettings() => BlocBuilder<RideSessionCubit, RideSessionState>(
+    builder: (context, state) => SenapathCard(
+      child: SwitchListTile(
+        title: const Text('Simpan perjalanan online otomatis'),
+        subtitle: const Text(
+          'Setelah perjalanan selesai, ringkasan waktu, jarak, elevasi, dan '
+          'data sensor dikirim ke akun online. Titik GPS, rute, dan data '
+          'sensor mentah tidak ikut dikirim. Perjalanan tetap tersimpan di '
+          'ponsel jika pengiriman gagal.',
         ),
-      );
+        value: state.autoSyncEnabled,
+        onChanged: state.isSavingAutoSync
+            ? null
+            : context.read<RideSessionCubit>().setAutoSyncEnabled,
+        secondary: state.isSavingAutoSync
+            ? const SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.cloud_sync_outlined),
+      ),
+    ),
+  );
 
   Widget _storageSettings() => SenapathCard(
     child: Column(
       children: [
         ListTile(
           leading: const Icon(Icons.storage_outlined),
-          title: const Text('Database lokal'),
+          title: const Text('Data di ponsel'),
           subtitle: Text(
             _loadingStorage
                 ? 'Menghitung…'
@@ -255,7 +255,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
         ListTile(
           leading: const Icon(Icons.map_outlined),
-          title: const Text('Cache peta'),
+          title: const Text('Peta tersimpan'),
           subtitle: Text(
             _loadingStorage
                 ? 'Menghitung…'
@@ -264,7 +264,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 : _formatBytes(_usage!.mapCacheBytes),
           ),
           trailing: IconButton(
-            tooltip: 'Hapus cache peta',
+            tooltip: 'Hapus peta tersimpan',
             onPressed:
                 _usage == null || _usage!.mapCacheBytes == 0 || _clearingCache
                 ? null
@@ -323,10 +323,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => SenapathAlertDialog(
-        title: const Text('Hapus cache peta?'),
+        title: const Text('Hapus peta tersimpan?'),
         content: const Text(
-          'Tindakan ini hanya menghapus cache peta, bukan database, '
-          'rute GPX, atau sesi latihan.',
+          'Hanya data peta yang diunduh yang akan dihapus. Perjalanan dan rute tersimpan tetap aman.',
         ),
         actions: [
           TextButton(
@@ -335,7 +334,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus cache'),
+            child: const Text('Hapus peta'),
           ),
         ],
       ),
@@ -346,9 +345,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     try {
       await _storageManager.clearMapCache();
       await _loadStorageUsage();
-      if (mounted) _showMessage('Cache peta berhasil dihapus.');
+      if (mounted) _showMessage('Peta tersimpan berhasil dihapus.');
     } catch (error) {
-      if (mounted) _showMessage('Cache peta tidak dapat dihapus: $error');
+      if (mounted) _showMessage('Peta tersimpan tidak dapat dihapus: $error');
     } finally {
       if (mounted) setState(() => _clearingCache = false);
     }
