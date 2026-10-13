@@ -65,7 +65,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
                       child: OutlinedButton.icon(
                         onPressed: state.isSaving ? null : _joinTeam,
                         icon: const Icon(Icons.group_add_outlined),
-                        label: const Text('Gabung tim'),
+                        label: const Text('Gabung pakai kode'),
                       ),
                     ),
                     const SizedBox(width: 12),

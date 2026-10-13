@@ -125,12 +125,22 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     }
     final memberships = await client
         .from('cycling_team_members')
-        .select(
-          'user_id, display_name, role, joined_at, '
-          'rider_profiles!left(rider_style, rider_level, experience)',
-        )
+        .select('user_id, display_name, role, joined_at')
         .eq('team_id', teamId)
         .order('joined_at');
+    final memberIds = memberships
+        .map((row) => row['user_id']! as String)
+        .toSet()
+        .toList(growable: false);
+    final profileRows = memberIds.isEmpty
+        ? <Map<String, dynamic>>[]
+        : await client
+              .from('rider_profiles')
+              .select('user_id, rider_style, rider_level, experience')
+              .inFilter('user_id', memberIds);
+    final profilesByUserId = {
+      for (final row in profileRows) row['user_id']! as String: row,
+    };
     final shares = await client
         .from('team_shared_ride_summaries')
         .select('user_id, session_id, shared_at')
@@ -182,9 +192,12 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
       }
     }
 
-    final ownMembership = memberships.firstWhere(
-      (row) => row['user_id'] == _sessionManager.currentUserId,
-    );
+    final ownMembership = memberships
+        .where((row) => row['user_id'] == _sessionManager.currentUserId)
+        .firstOrNull;
+    if (ownMembership == null) {
+      throw StateError('Kamu bukan anggota tim ini atau akses sudah dicabut.');
+    }
     final team = teamRows.single;
     final role = ownMembership['role']! as String;
     final inviteCode = role == 'manager'
@@ -209,14 +222,16 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
             role: row['role']! as String,
             joinedAt: DateTime.parse(row['joined_at']! as String).toUtc(),
             riderStyle: RiderStyle.fromName(
-              (row['rider_profiles'] as Map?)?['rider_style'],
+              profilesByUserId[row['user_id']! as String]?['rider_style'],
             ),
             riderLevel:
-                ((row['rider_profiles'] as Map?)?['rider_level'] as num?)
+                (profilesByUserId[row['user_id']! as String]?['rider_level']
+                        as num?)
                     ?.toInt() ??
                 1,
             experience:
-                ((row['rider_profiles'] as Map?)?['experience'] as num?)
+                (profilesByUserId[row['user_id']! as String]?['experience']
+                        as num?)
                     ?.toInt() ??
                 0,
           ),

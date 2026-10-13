@@ -88,6 +88,32 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('signed-in riders can join a team with an invite code', (
+    tester,
+  ) async {
+    final cubit = CyclingTeamCubit(_AvailableTeamRepository());
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BlocProvider.value(
+            value: cubit,
+            child: const CyclingTeamScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gabung pakai kode'), findsOneWidget);
+    expect(find.text('Buat tim'), findsOneWidget);
+    expect(
+      find.textContaining('Kamu belum tergabung dalam tim.'),
+      findsOneWidget,
+    );
+  });
 }
 
 class _UnconfiguredTeamRepository implements CyclingTeamRepository {
@@ -125,4 +151,15 @@ class _UnconfiguredTeamRepository implements CyclingTeamRepository {
   @override
   Future<void> setMemberRole(String teamId, String userId, String role) =>
       throw UnimplementedError();
+}
+
+class _AvailableTeamRepository extends _UnconfiguredTeamRepository {
+  @override
+  bool get isConfigured => true;
+
+  @override
+  bool get isSignedIn => true;
+
+  @override
+  String? get currentUserId => 'rider-1';
 }
