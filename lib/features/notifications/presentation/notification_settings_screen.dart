@@ -83,6 +83,19 @@ class _NotificationSettingsScreenState
               padding: EdgeInsets.symmetric(horizontal: 12),
               child: LinearProgressIndicator(),
             ),
+          if (state.requiresSettings) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: OutlinedButton.icon(
+                onPressed: state.isSaving
+                    ? null
+                    : cubit.openNotificationSettings,
+                icon: const Icon(Icons.settings_outlined),
+                label: const Text('Buka pengaturan notifikasi perangkat'),
+              ),
+            ),
+          ],
           if (settings.remindersEnabled) ...[
             const SizedBox(height: 8),
             SenapathCard(

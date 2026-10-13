@@ -429,6 +429,16 @@ class _RideCoachPreview extends StatelessWidget {
               if (coachState.error != null) ...[
                 const SizedBox(height: 12),
                 Text(coachState.error!, style: TextStyle(color: colors.error)),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: coachState.isLoading
+                        ? null
+                        : context.read<RideCoachCubit>().diagnoseConfiguration,
+                    icon: const Icon(Icons.build_outlined),
+                    label: const Text('Periksa konfigurasi AI'),
+                  ),
+                ),
               ],
               if (coachState.notice != null) ...[
                 const SizedBox(height: 12),
@@ -659,7 +669,7 @@ class _LeaderboardPreview extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Papan peringkat mingguan',
+                              'Rekor gowes',
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     color: SenapathColors.white,
@@ -687,7 +697,7 @@ class _LeaderboardPreview extends StatelessWidget {
                   else if (!optedIn)
                     _LeaderboardInvitation(
                       message: state.error == null
-                          ? 'Peringkat ini opsional. Atur partisipasi untuk menampilkan alias dan skor sesi.'
+                          ? 'Peringkat ini opsional. Setujui partisipasi untuk menampilkan nama profil dan rekor terbaik.'
                           : 'Masuk ke akun online untuk mengatur partisipasi papan peringkat.',
                       onOpen: onOpen,
                       actionLabel: state.error == null
@@ -703,15 +713,15 @@ class _LeaderboardPreview extends StatelessWidget {
                     Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: TextButton.icon(
-                        onPressed: () => context.read<LeaderboardCubit>().load(),
+                        onPressed: () =>
+                            context.read<LeaderboardCubit>().load(),
                         icon: const Icon(Icons.refresh),
                         label: const Text('Coba lagi'),
                       ),
                     ),
-                  ]
-                  else if (state.entries.isEmpty)
+                  ] else if (state.entries.isEmpty)
                     _LeaderboardInvitation(
-                      message: 'Belum ada skor dikirim untuk kategori ini minggu ini.',
+                      message: 'Belum ada rekor peserta untuk kategori ini.',
                       onOpen: onOpen,
                       actionLabel: 'Buka papan peringkat',
                     )
@@ -720,7 +730,7 @@ class _LeaderboardPreview extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            '3 teratas minggu ini',
+                            '3 rekor teratas',
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
@@ -736,8 +746,8 @@ class _LeaderboardPreview extends StatelessWidget {
                           ),
                           child: Text(
                             state.category == LeaderboardCategory.distance
-                                ? 'Jarak'
-                                : 'Durasi aktif',
+                                ? 'Jarak terjauh'
+                                : 'Durasi terlama',
                             style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(
                                   color: colors.onPrimaryContainer,
@@ -748,7 +758,10 @@ class _LeaderboardPreview extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    _LeaderboardWinner(entry: topEntries.first, category: state.category),
+                    _LeaderboardWinner(
+                      entry: topEntries.first,
+                      category: state.category,
+                    ),
                     if (topEntries.length > 1) ...[
                       const SizedBox(height: 10),
                       Row(
@@ -861,21 +874,19 @@ class _LeaderboardWinner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '1 · ${entry.alias}',
+                  '1 · ${entry.displayName}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Lv.${entry.riderLevel} · ${entry.riderStyle.label}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
               ],
             ),
@@ -883,9 +894,8 @@ class _LeaderboardWinner extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             _leaderboardScoreText(entry, category),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -931,12 +941,11 @@ class _LeaderboardRunnerUp extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    entry.alias,
+                    entry.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   Text(
                     _leaderboardScoreText(entry, category),

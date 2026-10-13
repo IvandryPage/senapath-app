@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/leaderboard_gateway.dart';
 import '../domain/leaderboard_models.dart';
+import '../../session/domain/ride_session.dart';
 
 class LeaderboardState {
   const LeaderboardState({
@@ -48,6 +51,9 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
 
   final LeaderboardGateway _gateway;
   int _requestGeneration = 0;
+  int _longestDurationSeconds = 0;
+  double _longestDistanceMeters = 0;
+  bool _isSyncingRecords = false;
 
   Future<void> load() async {
     final generation = ++_requestGeneration;
@@ -72,12 +78,13 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
       emit(
         state.copyWith(settings: settings, entries: entries, isLoading: false),
       );
-    } catch (_) {
+      unawaited(_syncPersonalBest());
+    } catch (error) {
       if (isClosed || generation != _requestGeneration) return;
       emit(
         state.copyWith(
           isLoading: false,
-          error: 'Leaderboard gagal dimuat. Periksa koneksi dan coba lagi.',
+          error: 'Leaderboard gagal dimuat: $error',
         ),
       );
     }
@@ -89,23 +96,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     await load();
   }
 
-  Future<void> saveConsent({
-    required String alias,
-    required bool isOptedIn,
-  }) async {
-    final cleanedAlias = alias.trim();
-    if (isOptedIn &&
-        (cleanedAlias.length < 3 ||
-            cleanedAlias.length > 24 ||
-            !RegExp(r'^[A-Za-z0-9 _-]+$').hasMatch(cleanedAlias))) {
-      emit(
-        state.copyWith(
-          error: 'Alias harus 3–24 karakter: huruf, angka, spasi, - atau _.',
-          clearMessage: true,
-        ),
-      );
-      return;
-    }
+  Future<void> saveConsent({required bool isOptedIn}) async {
     if (!_gateway.isConfigured || !_gateway.isSignedIn) {
       await load();
       return;
@@ -114,7 +105,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     final generation = ++_requestGeneration;
     emit(state.copyWith(isSaving: true, clearError: true, clearMessage: true));
     try {
-      await _gateway.saveConsent(alias: cleanedAlias, isOptedIn: isOptedIn);
+      await _gateway.saveConsent(isOptedIn: isOptedIn);
       final settings = await _gateway.loadSettings();
       final entries = settings.isOptedIn
           ? await _gateway.loadEntries(state.category)
@@ -125,53 +116,84 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
           settings: settings,
           entries: entries,
           isSaving: false,
-          message: isOptedIn
-              ? 'Partisipasi leaderboard diaktifkan.'
-              : 'Partisipasi dinonaktifkan dan skor Anda dihapus.',
+          message: isOptedIn ? 'Partisipasi leaderboard diaktifkan.' : 'Partisipasi dinonaktifkan dan rekor Anda dihapus dari leaderboard.',
         ),
       );
-    } catch (_) {
+      unawaited(_syncPersonalBest());
+    } catch (error) {
       if (isClosed || generation != _requestGeneration) return;
       emit(
         state.copyWith(
           isSaving: false,
-          error: 'Pengaturan leaderboard gagal disimpan.',
+          error: 'Pengaturan leaderboard gagal disimpan: $error',
         ),
       );
     }
   }
 
-  Future<void> submitSession(String sessionId) async {
-    if (state.settings?.isOptedIn != true) {
-      emit(
-        state.copyWith(
-          error: 'Aktifkan partisipasi leaderboard sebelum mengirim sesi.',
-          clearMessage: true,
-        ),
-      );
+  void updateLocalRecords(List<RideSessionSnapshot> sessions) {
+    var longestDuration = 0;
+    var longestDistance = 0.0;
+    for (final session in sessions) {
+      if (session.status != RideSessionStatus.completed ||
+          session.endedAt == null) {
+        continue;
+      }
+      final durationSeconds = session.durationAt(session.endedAt!).inSeconds;
+      if (durationSeconds > longestDuration && durationSeconds <= 172800) {
+        longestDuration = durationSeconds;
+      }
+      if (session.distanceMeters > longestDistance &&
+          session.distanceMeters < 1000000) {
+        longestDistance = session.distanceMeters;
+      }
+    }
+    _longestDurationSeconds = longestDuration;
+    _longestDistanceMeters = longestDistance;
+    unawaited(_syncPersonalBest());
+  }
+
+  Future<void> _syncPersonalBest() async {
+    if (_isSyncingRecords ||
+        !_gateway.isConfigured ||
+        !_gateway.isSignedIn ||
+        (_longestDurationSeconds < 1 && _longestDistanceMeters <= 0)) {
       return;
     }
-    final generation = ++_requestGeneration;
-    emit(state.copyWith(isSaving: true, clearError: true, clearMessage: true));
+    _isSyncingRecords = true;
+    final syncedDuration = _longestDurationSeconds;
+    final syncedDistance = _longestDistanceMeters;
     try {
-      await _gateway.submitSession(sessionId);
-      final entries = await _gateway.loadEntries(state.category);
-      if (isClosed || generation != _requestGeneration) return;
-      emit(
-        state.copyWith(
-          entries: entries,
-          isSaving: false,
-          message: 'Ringkasan sesi ditambahkan ke leaderboard minggu UTC ini.',
-        ),
+      await _gateway.recordPersonalBest(
+        durationSeconds: syncedDuration,
+        distanceMeters: syncedDistance,
       );
+      if (state.settings?.isOptedIn == true) {
+        final entries = await _gateway.loadEntries(state.category);
+        if (isClosed || state.settings?.isOptedIn != true) return;
+        emit(
+          state.copyWith(
+            entries: entries,
+            clearError: true,
+            message: 'Rekor pribadi tersinkron ke leaderboard.',
+          ),
+        );
+      }
     } catch (_) {
-      if (isClosed || generation != _requestGeneration) return;
-      emit(
-        state.copyWith(
-          isSaving: false,
-          error: 'Sesi tidak dapat dikirim. Sinkronkan ringkasan sesi dahulu.',
-        ),
-      );
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            error: 'Rekor profil belum tersinkron ke akun online. Coba muat ulang saat online.',
+            clearMessage: true,
+          ),
+        );
+      }
+    } finally {
+      _isSyncingRecords = false;
+      if (_longestDurationSeconds > syncedDuration ||
+          _longestDistanceMeters > syncedDistance) {
+        unawaited(_syncPersonalBest());
+      }
     }
   }
 

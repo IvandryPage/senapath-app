@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../../session/presentation/session_cubit.dart';
 import 'leaderboard_cubit.dart';
 
 class LeaderboardSettingsSection extends StatefulWidget {
@@ -16,7 +17,6 @@ class LeaderboardSettingsSection extends StatefulWidget {
 
 class _LeaderboardSettingsSectionState
     extends State<LeaderboardSettingsSection> {
-  final _aliasController = TextEditingController();
   bool _loaded = false;
 
   @override
@@ -24,13 +24,17 @@ class _LeaderboardSettingsSectionState
     super.didChangeDependencies();
     if (_loaded) return;
     _loaded = true;
-    unawaited(context.read<LeaderboardCubit>().load());
+    unawaited(_loadLeaderboardAndRecords());
   }
 
-  @override
-  void dispose() {
-    _aliasController.dispose();
-    super.dispose();
+  Future<void> _loadLeaderboardAndRecords() async {
+    final sessionCubit = context.read<RideSessionCubit>();
+    await sessionCubit.initialize();
+    if (!mounted) return;
+    context.read<LeaderboardCubit>().updateLocalRecords(
+      sessionCubit.state.completedSessions,
+    );
+    await context.read<LeaderboardCubit>().load();
   }
 
   @override
@@ -38,14 +42,9 @@ class _LeaderboardSettingsSectionState
     BuildContext context,
   ) => BlocListener<LeaderboardCubit, LeaderboardState>(
     listenWhen: (previous, current) =>
-        previous.settings != current.settings ||
         previous.error != current.error ||
         previous.message != current.message,
     listener: (context, state) {
-      if (state.settings != null &&
-          _aliasController.text != (state.settings!.alias ?? '')) {
-        _aliasController.text = state.settings!.alias ?? '';
-      }
       final notice = state.error ?? state.message;
       if (notice != null) {
         ScaffoldMessenger.of(context)
@@ -67,30 +66,15 @@ class _LeaderboardSettingsSectionState
                 title: const Text('Partisipasi papan peringkat'),
                 subtitle: Text(
                   optedIn
-                      ? 'Alias dan nilai sesi terbaik ditampilkan. Lokasi, rute, email, dan GPS mentah tidak dibagikan.'
-                      : 'Opsional. Aktifkan untuk ikut peringkat mingguan.',
+                      ? 'Nama profil dan rekor gowes terbaik ditampilkan.'
+                      : 'Opsional. Aktifkan untuk membagikan rekor sepanjang masa.',
                 ),
                 value: optedIn,
                 onChanged: busy
                     ? null
-                    : (enabled) {
-                        if (enabled && _aliasController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Isi alias publik terlebih dahulu.',
-                                ),
-                              ),
-                            );
-                          return;
-                        }
-                        context.read<LeaderboardCubit>().saveConsent(
-                          alias: enabled ? _aliasController.text : '',
-                          isOptedIn: enabled,
-                        );
-                      },
+                    : (enabled) => context
+                          .read<LeaderboardCubit>()
+                          .saveConsent(isOptedIn: enabled),
               ),
               if (state.isLoading && settings == null)
                 const Padding(
@@ -99,48 +83,20 @@ class _LeaderboardSettingsSectionState
                 )
               else ...[
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: TextField(
-                    controller: _aliasController,
-                    maxLength: 24,
-                    enabled: !busy,
-                    decoration: const InputDecoration(
-                      labelText: 'Alias publik',
-                      helperText: '3–24 karakter; gunakan nama samaran.',
-                    ),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Text(
+                    settings?.displayName == null
+                        ? 'Nama leaderboard mengikuti nama yang kamu atur di profil.'
+                        : 'Nama yang akan ditampilkan: ${settings!.displayName}',
                   ),
                 ),
-                if (optedIn)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: busy
-                            ? null
-                            : () =>
-                                  context.read<LeaderboardCubit>().saveConsent(
-                                    alias: _aliasController.text,
-                                    isOptedIn: true,
-                                  ),
-                        child: state.isSaving
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Simpan alias'),
-                      ),
-                    ),
-                  ),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
-                      'Gunakan alias samaran. Hanya alias dan nilai kategori yang terlihat di papan peringkat. '
-                      'Menonaktifkan partisipasi akan menghapus skor Anda.',
+                      'Dengan ikut serta, nama profil serta rekor durasi dan jarak terbaik akan tampil di papan peringkat. '
+                      'Menonaktifkan partisipasi akan menarik rekor dari papan peringkat.',
                     ),
                   ),
                 ),

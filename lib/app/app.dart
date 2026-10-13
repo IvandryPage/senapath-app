@@ -91,6 +91,7 @@ class SenapathApp extends StatelessWidget {
           riderGamificationCubit.clearForAccountChange();
           unawaited(profileCubit.reloadProfile());
           if (state.isSignedIn) {
+            unawaited(leaderboardCubit.load());
             unawaited(
               sessionCubit.initialize().then((_) async {
                 await riderGamificationCubit.load(
@@ -101,11 +102,17 @@ class SenapathApp extends StatelessWidget {
             );
           }
         },
-        child: MaterialApp.router(
-          title: 'Senapath',
-          theme: AppTheme.light,
-          themeMode: ThemeMode.light,
-          routerConfig: appRouter,
+        child: BlocListener<RideSessionCubit, RideSessionState>(
+          listenWhen: (previous, current) =>
+              !identical(previous.completedSessions, current.completedSessions),
+          listener: (context, state) =>
+              leaderboardCubit.updateLocalRecords(state.completedSessions),
+          child: MaterialApp.router(
+            title: 'Senapath',
+            theme: AppTheme.light,
+            themeMode: ThemeMode.light,
+            routerConfig: appRouter,
+          ),
         ),
       ),
     );

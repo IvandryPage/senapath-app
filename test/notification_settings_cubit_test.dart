@@ -31,6 +31,7 @@ void main() {
 
     expect(cubit.state.settings.remindersEnabled, isFalse);
     expect(cubit.state.error, contains('Izin notifikasi'));
+    expect(cubit.state.requiresSettings, isTrue);
     expect((await repository.load()).remindersEnabled, isFalse);
     expect(notifications.scheduledWeekdays, isEmpty);
   });

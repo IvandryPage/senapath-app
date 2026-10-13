@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/active_navigation_branch.dart';
 import '../../features/overview/presentation/overview_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/profile_settings_screen.dart';
@@ -229,7 +230,13 @@ class _AppShellState extends State<_AppShell> {
               ]
             : null,
       ),
-      body: SafeArea(top: false, child: widget.navigationShell),
+      body: SafeArea(
+        top: false,
+        child: ActiveNavigationBranch(
+          index: widget.navigationShell.currentIndex,
+          child: widget.navigationShell,
+        ),
+      ),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,

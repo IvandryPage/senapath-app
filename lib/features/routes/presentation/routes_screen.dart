@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/widgets/active_navigation_branch.dart';
 import '../../../core/widgets/feature_state_view.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../logistics/presentation/logistics_cubit.dart';
@@ -33,11 +34,19 @@ class RoutesScreen extends StatefulWidget {
 
 class _RoutesScreenState extends State<RoutesScreen> {
   bool _northUpLocked = false;
+  bool _isExploreBranchActive = true;
 
   @override
   void initState() {
     super.initState();
     unawaited(_initializeScreen());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _isExploreBranchActive =
+        ActiveNavigationBranch.of(context)?.isActive(1) ?? true;
   }
 
   Future<void> _initializeScreen() async {
@@ -108,6 +117,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                           routes: activeRoute == null
                               ? const []
                               : [activeRoute],
+                          autoLocate: _isExploreBranchActive,
                           height: constraints.maxHeight,
                           trackPoints: trackPoints,
                           currentLocation: currentLocation == null

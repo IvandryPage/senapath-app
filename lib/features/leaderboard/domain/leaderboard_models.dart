@@ -3,16 +3,19 @@ import '../../gamification/domain/rider_progress.dart';
 enum LeaderboardCategory { duration, distance }
 
 class LeaderboardSettings {
-  const LeaderboardSettings({required this.isOptedIn, required this.alias});
+  const LeaderboardSettings({
+    required this.isOptedIn,
+    required this.displayName,
+  });
 
   final bool isOptedIn;
-  final String? alias;
+  final String? displayName;
 }
 
 class LeaderboardEntry {
   const LeaderboardEntry({
     required this.rank,
-    required this.alias,
+    required this.displayName,
     required this.score,
     this.riderLevel = 1,
     this.riderStyle = RiderStyle.explorer,
@@ -20,7 +23,7 @@ class LeaderboardEntry {
   });
 
   final int rank;
-  final String alias;
+  final String displayName;
   final double score;
   final int riderLevel;
   final RiderStyle riderStyle;

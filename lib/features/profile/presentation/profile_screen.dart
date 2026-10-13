@@ -547,6 +547,26 @@ class _ProfileProgressSection extends StatelessWidget {
         .take(2)
         .toList(growable: false);
     final metric = unit == UnitSystem.metric;
+    final completedSessions = sessions
+        .where(
+          (session) =>
+              session.status == RideSessionStatus.completed &&
+              session.endedAt != null,
+        )
+        .toList(growable: false);
+    final longestDuration = completedSessions.fold<int>(
+      0,
+      (longest, session) {
+        final seconds = session.durationAt(session.endedAt!).inSeconds;
+        return seconds > longest ? seconds : longest;
+      },
+    );
+    final longestDistance = completedSessions.fold<double>(
+      0,
+      (longest, session) => session.distanceMeters > longest
+          ? session.distanceMeters
+          : longest,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,6 +600,32 @@ class _ProfileProgressSection extends StatelessWidget {
                 label: 'Sesi',
                 value: '${week.completedSessions}',
                 helper: 'minggu ini',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _ProfileBentoTile(
+                background: Theme.of(context).colorScheme.tertiaryContainer,
+                foreground: Theme.of(context).colorScheme.onTertiaryContainer,
+                icon: Icons.timer_outlined,
+                label: 'Durasi terlama',
+                value: _profileDuration(longestDuration),
+                helper: 'rekor pribadi',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ProfileBentoTile(
+                background: Theme.of(context).colorScheme.secondaryContainer,
+                foreground: Theme.of(context).colorScheme.onSecondaryContainer,
+                icon: Icons.route_outlined,
+                label: 'Jarak terjauh',
+                value: _profileDistance(longestDistance, metric),
+                helper: 'rekor pribadi',
               ),
             ),
           ],
@@ -833,6 +879,12 @@ class _ProfileSectionTitle extends StatelessWidget {
 String _profileDistance(double meters, bool metric) => metric
     ? '${(meters / 1000).toStringAsFixed(1)} km'
     : '${(meters / 1609.344).toStringAsFixed(1)} mi';
+
+String _profileDuration(int seconds) {
+  final hours = seconds ~/ 3600;
+  final minutes = seconds % 3600 ~/ 60;
+  return hours > 0 ? '${hours}j ${minutes}m' : '${minutes}m ${seconds % 60}d';
+}
 
 class _ProfileEditor extends StatefulWidget {
   const _ProfileEditor({

@@ -15,7 +15,6 @@ import '../../routes/presentation/routes_cubit.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../profile/domain/user_profile.dart';
 import '../../profile/presentation/profile_cubit.dart';
-import '../../leaderboard/presentation/leaderboard_cubit.dart';
 import '../../workouts/domain/interval_workout.dart';
 import '../../workouts/presentation/interval_workout_cubit.dart';
 import '../data/readiness_checker.dart';
@@ -1677,7 +1676,7 @@ class _SessionScreenState extends State<SessionScreen>
           ),
         ],
         const SizedBox(height: 24),
-        _SessionSectionHeading(title: 'Akun & tantangan'),
+        _SessionSectionHeading(title: 'Sinkronisasi akun'),
         const SizedBox(height: 8),
         SenapathCard(
           margin: EdgeInsets.zero,
@@ -1686,8 +1685,6 @@ class _SessionScreenState extends State<SessionScreen>
             child: Column(
               children: [
                 _buildSummarySync(context, summary),
-                const Divider(height: 16),
-                _LeaderboardSessionActions(summary: summary),
               ],
             ),
           ),
@@ -1947,19 +1944,6 @@ class _SessionScreenState extends State<SessionScreen>
   }
 }
 
-bool _isInCurrentUtcWeek(DateTime date) {
-  DateTime mondayOfUtcWeek(DateTime value) {
-    final utcDate = value.toUtc();
-    return DateTime.utc(
-      utcDate.year,
-      utcDate.month,
-      utcDate.day,
-    ).subtract(Duration(days: utcDate.weekday - DateTime.monday));
-  }
-
-  return mondayOfUtcWeek(date) == mondayOfUtcWeek(DateTime.now().toUtc());
-}
-
 class _ActivityMetadataDialog extends StatefulWidget {
   const _ActivityMetadataDialog({
     required this.initialName,
@@ -2050,140 +2034,6 @@ String _activityTypeLabelForDialog(RideActivityType type) => switch (type) {
   RideActivityType.training => 'Latihan',
   RideActivityType.race => 'Balapan',
 };
-
-class _LeaderboardSessionActions extends StatefulWidget {
-  const _LeaderboardSessionActions({required this.summary});
-
-  final RideSessionSummary summary;
-
-  @override
-  State<_LeaderboardSessionActions> createState() =>
-      _LeaderboardSessionActionsState();
-}
-
-class _LeaderboardSessionActionsState
-    extends State<_LeaderboardSessionActions> {
-  bool _loaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_loaded) return;
-    _loaded = true;
-    final cubit = context.read<LeaderboardCubit>();
-    if (cubit.state.settings == null && !cubit.state.isLoading) {
-      unawaited(cubit.load());
-    }
-  }
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) => BlocConsumer<LeaderboardCubit, LeaderboardState>(
-    listenWhen: (previous, current) =>
-        previous.error != current.error || previous.message != current.message,
-    listener: (context, state) {
-      final notice = state.error ?? state.message;
-      if (notice != null) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(notice)));
-      }
-    },
-    builder: (context, state) {
-      final cubit = context.read<LeaderboardCubit>();
-      final hasCompletedSession =
-          widget.summary.session.status == RideSessionStatus.completed;
-      final isSynced = widget.summary.session.syncStatus == 'synced';
-      final isOptedIn = state.settings?.isOptedIn == true;
-      final session = widget.summary.session;
-      final sessionEnd = session.endedAt ?? session.startedAt;
-      final durationSeconds = session.durationAt(sessionEnd).inSeconds;
-      final hasValidLeaderboardValues =
-          durationSeconds >= 1 &&
-          durationSeconds <= 172800 &&
-          session.distanceMeters > 0 &&
-          session.distanceMeters < 1000000;
-      final isInCurrentLeaderboardWeek = _isInCurrentUtcWeek(sessionEnd);
-      final canSubmit =
-          hasCompletedSession &&
-          isSynced &&
-          isOptedIn &&
-          hasValidLeaderboardValues &&
-          !state.isSaving;
-      final settingsUnavailable = state.settings == null && state.error != null;
-      final unavailableReason = state.isLoading && state.settings == null
-          ? 'Memeriksa partisipasi papan peringkat…'
-          : settingsUnavailable
-          ? state.error
-          : !isOptedIn
-          ? 'Sinkronisasi otomatis dan partisipasi papan peringkat adalah '
-                'pengaturan terpisah. Aktifkan partisipasi untuk mengirim skor.'
-          : !hasCompletedSession
-          ? 'Hanya sesi yang sudah selesai yang bisa dikirim.'
-          : !isSynced
-          ? 'Skor bisa dikirim setelah ringkasan sesi tersinkron ke akun.'
-          : !hasValidLeaderboardValues
-          ? 'Sesi perlu berdurasi 1 detik–48 jam dan memiliki jarak lebih '
-                'dari 0 km serta kurang dari 1.000 km.'
-          : !isInCurrentLeaderboardWeek
-          ? 'Sesi ini masuk ke peringkat minggu UTC saat selesai. '
-                'Halaman papan peringkat hanya menampilkan minggu berjalan, '
-                'jadi skornya tidak akan terlihat di daftar saat ini.'
-          : null;
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: canSubmit
-                    ? () => cubit.submitSession(widget.summary.session.id)
-                    : null,
-                icon: state.isSaving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_outlined),
-                label: const Text('Kirim skor'),
-              ),
-              if (settingsUnavailable)
-                OutlinedButton.icon(
-                  onPressed: state.isLoading ? null : cubit.load,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Coba lagi'),
-                )
-              else if (!isOptedIn)
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/profile/settings'),
-                  icon: const Icon(Icons.settings_outlined),
-                  label: const Text('Aktifkan di Pengaturan'),
-                )
-              else
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/leaderboard'),
-                  icon: const Icon(Icons.leaderboard_outlined),
-                  label: const Text('Lihat peringkat'),
-                ),
-            ],
-          ),
-          if (unavailableReason != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                unavailableReason,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-        ],
-      );
-    },
-  );
-}
 
 class _ReadinessLine extends StatelessWidget {
   const _ReadinessLine({

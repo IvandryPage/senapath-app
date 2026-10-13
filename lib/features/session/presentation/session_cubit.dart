@@ -893,9 +893,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           );
         }
       }
-    } catch (_) {
+    } catch (error) {
       _routeNotificationsEnabled = false;
-      _setMessage('Pengaturan notifikasi rute tidak dapat dibaca.');
+      _setMessage('Pengaturan notifikasi rute tidak dapat dibaca: $error');
     }
   }
 
@@ -957,10 +957,10 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           );
         }
       }
-    } catch (_) {
+    } catch (error) {
       _routeNotificationsFailed = true;
       if (!isClosed) {
-        _setMessage('Notifikasi progres rute tidak dapat ditampilkan.');
+        _setMessage('Notifikasi progres rute tidak dapat ditampilkan: $error');
       }
     }
   }

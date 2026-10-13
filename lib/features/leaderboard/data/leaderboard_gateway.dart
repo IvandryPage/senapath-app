@@ -6,6 +6,9 @@ abstract interface class LeaderboardGateway {
 
   Future<LeaderboardSettings> loadSettings();
   Future<List<LeaderboardEntry>> loadEntries(LeaderboardCategory category);
-  Future<void> saveConsent({required String alias, required bool isOptedIn});
-  Future<void> submitSession(String sessionId);
+  Future<void> saveConsent({required bool isOptedIn});
+  Future<void> recordPersonalBest({
+    required int durationSeconds,
+    required double distanceMeters,
+  });
 }

@@ -633,7 +633,7 @@ class _TestLeaderboardGateway implements LeaderboardGateway {
 
   @override
   Future<LeaderboardSettings> loadSettings() async =>
-      const LeaderboardSettings(isOptedIn: false, alias: null);
+      const LeaderboardSettings(isOptedIn: false, displayName: null);
 
   @override
   Future<List<LeaderboardEntry>> loadEntries(
@@ -641,13 +641,13 @@ class _TestLeaderboardGateway implements LeaderboardGateway {
   ) async => const [];
 
   @override
-  Future<void> saveConsent({
-    required String alias,
-    required bool isOptedIn,
-  }) async {}
+  Future<void> saveConsent({required bool isOptedIn}) async {}
 
   @override
-  Future<void> submitSession(String sessionId) async {}
+  Future<void> recordPersonalBest({
+    required int durationSeconds,
+    required double distanceMeters,
+  }) async {}
 }
 
 class _TestReadinessChecker implements ReadinessChecker {

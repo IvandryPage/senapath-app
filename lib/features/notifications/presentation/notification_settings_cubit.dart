@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../data/notification_settings_repository.dart';
 import '../data/ride_notification_service.dart';
@@ -9,12 +10,14 @@ class NotificationSettingsState {
     this.isLoading = false,
     this.isSaving = false,
     this.error,
+    this.requiresSettings = false,
   });
 
   final RideNotificationSettings settings;
   final bool isLoading;
   final bool isSaving;
   final String? error;
+  final bool requiresSettings;
 }
 
 class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
@@ -34,24 +37,25 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         if (settings.remindersEnabled) {
           try {
             await _schedule(settings);
-          } catch (_) {
+          } catch (error) {
             if (!isClosed) {
               emit(
                 NotificationSettingsState(
                   settings: settings,
-                  error: 'Pengingat tersimpan, tetapi jadwal notifikasi gagal dipulihkan.',
+                  error:
+                      'Pengingat tersimpan, tetapi jadwal notifikasi gagal dipulihkan: $error',
                 ),
               );
             }
           }
         }
       }
-    } catch (_) {
+    } catch (error) {
       if (!isClosed) {
         emit(
           NotificationSettingsState(
             settings: state.settings,
-            error: 'Pengaturan notifikasi tidak dapat dibuka.',
+            error: 'Pengaturan notifikasi tidak dapat dibuka: $error',
           ),
         );
       }
@@ -71,6 +75,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
             NotificationSettingsState(
               settings: previous,
               error: 'Izin notifikasi belum diberikan.',
+              requiresSettings: true,
             ),
           );
         }
@@ -83,7 +88,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         await _notifications.cancelWeeklyReminders();
       }
       if (!isClosed) emit(NotificationSettingsState(settings: settings));
-    } catch (_) {
+    } catch (error) {
       if (!isClosed) {
         String? rollbackError;
         try {
@@ -97,10 +102,36 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
           rollbackError =
               ' Setelan sebelumnya tidak dapat dipulihkan sepenuhnya.';
         }
-        emit(NotificationSettingsState(
-          settings: previous,
-          error: 'Pengaturan notifikasi gagal disimpan.$rollbackError',
-        ));
+        emit(
+          NotificationSettingsState(
+            settings: previous,
+            error:
+                'Pengaturan notifikasi gagal disimpan: $error.$rollbackError',
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> openNotificationSettings() async {
+    try {
+      final opened = await openAppSettings();
+      if (!opened && !isClosed) {
+        emit(
+          NotificationSettingsState(
+            settings: state.settings,
+            error: 'Pengaturan notifikasi perangkat tidak dapat dibuka.',
+          ),
+        );
+      }
+    } catch (error) {
+      if (!isClosed) {
+        emit(
+          NotificationSettingsState(
+            settings: state.settings,
+            error: 'Pengaturan notifikasi perangkat tidak dapat dibuka: $error',
+          ),
+        );
       }
     }
   }
@@ -142,12 +173,12 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
             : recommendation,
         payload: 'ride-coach',
       );
-    } catch (_) {
+    } catch (error) {
       if (!isClosed) {
         emit(
           NotificationSettingsState(
             settings: state.settings,
-            error: 'Rekomendasi tidak dapat dikirim ke notifikasi.',
+            error: 'Rekomendasi tidak dapat dikirim ke notifikasi: $error',
           ),
         );
       }

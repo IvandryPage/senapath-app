@@ -34,7 +34,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     final row = _singleRow(response);
     return LeaderboardSettings(
       isOptedIn: row['is_opted_in'] == true,
-      alias: row['public_alias'] as String?,
+      displayName: row['display_name'] as String?,
     );
   }
 
@@ -57,7 +57,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
           final row = Map<String, Object?>.from(raw);
           return LeaderboardEntry(
             rank: (row['place'] as num).toInt(),
-            alias: row['public_alias'] as String,
+            displayName: row['display_name'] as String,
             score: (row['score'] as num).toDouble(),
             riderLevel: (row['rider_level'] as num?)?.toInt() ?? 1,
             riderStyle: RiderStyle.fromName(row['rider_style']),
@@ -69,20 +69,25 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
 
   @override
   Future<void> saveConsent({
-    required String alias,
     required bool isOptedIn,
   }) async {
     await (await _requiredClient).rpc(
       'set_leaderboard_consent',
-      params: {'p_public_alias': alias, 'p_is_opted_in': isOptedIn},
+      params: {'p_is_opted_in': isOptedIn},
     );
   }
 
   @override
-  Future<void> submitSession(String sessionId) async {
+  Future<void> recordPersonalBest({
+    required int durationSeconds,
+    required double distanceMeters,
+  }) async {
     await (await _requiredClient).rpc(
-      'submit_leaderboard_ride',
-      params: {'p_session_id': sessionId},
+      'record_my_leaderboard_ride',
+      params: {
+        'p_duration_seconds': durationSeconds,
+        'p_distance_meters': distanceMeters,
+      },
     );
   }
 

@@ -29,9 +29,7 @@ void main() {
       const RouteFileExchange(SessionFileService()),
     );
     final chatCubit = AiChatCubit(
-      _FakeAiChatGateway(
-        reply: '## Strategi\n\n- Jaga ritme\n- Minum teratur',
-      ),
+      _FakeAiChatGateway(reply: '## Strategi\n\n- Jaga ritme\n- Minum teratur'),
     );
     addTearDown(routesCubit.close);
     addTearDown(chatCubit.close);
@@ -66,6 +64,48 @@ void main() {
     expect(find.text('Minum teratur'), findsOneWidget);
     expect(find.byTooltip('Salin jawaban'), findsOneWidget);
     expect(find.textContaining('dikirim ke Gemini'), findsOneWidget);
+  });
+
+  testWidgets('renders the complete long AI answer in the scrollable chat', (
+    tester,
+  ) async {
+    final reply = '${'Bagian jawaban yang lengkap. ' * 400}AKHIR JAWABAN';
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final routesCubit = RoutesCubit(
+      SavedRouteRepository(
+        database,
+        geometryCodec: EncryptedTelemetryCodec(
+          secureVault: _MemorySecureVault(),
+        ),
+      ),
+      const RouteFileExchange(SessionFileService()),
+    );
+    final chatCubit = AiChatCubit(_FakeAiChatGateway(reply: reply));
+    addTearDown(routesCubit.close);
+    addTearDown(chatCubit.close);
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: routesCubit),
+          BlocProvider.value(value: chatCubit),
+        ],
+        child: const MaterialApp(home: Scaffold(body: AiChatScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await chatCubit.sendMessage(content: 'Jelaskan dengan rinci');
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const Key('ai-chat-messages')),
+      const Offset(0, -10000),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('AKHIR JAWABAN'), findsOneWidget);
+    expect(chatCubit.state.messages.last.content, reply);
   });
 }
 

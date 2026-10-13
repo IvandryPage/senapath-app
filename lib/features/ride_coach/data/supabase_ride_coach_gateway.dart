@@ -23,10 +23,15 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     if (!isSignedIn) {
       throw StateError('Masuk ke akun online untuk memeriksa layanan AI.');
     }
-    final response = await _sessionManager.invokeAuthenticatedFunction(
-      'rider-coach',
-      body: {'action': 'diagnose'},
-    );
+    late final FunctionResponse response;
+    try {
+      response = await _sessionManager.invokeAuthenticatedFunction(
+        'rider-coach',
+        body: {'action': 'diagnose'},
+      );
+    } on FunctionException catch (error) {
+      throw StateError(_functionErrorMessage(error));
+    }
     final data = response.data;
     if (response.status < 200 || response.status >= 300) {
       final message = data is Map ? data['error'] : null;
@@ -57,10 +62,15 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     if (_sessionManager.currentUserId == null) {
       throw StateError('Masuk ke akun sebelum meminta rekomendasi AI.');
     }
-    final response = await _sessionManager.invokeAuthenticatedFunction(
-      'rider-coach',
-      body: {'consent': consent, 'ride': rideContext},
-    );
+    late final FunctionResponse response;
+    try {
+      response = await _sessionManager.invokeAuthenticatedFunction(
+        'rider-coach',
+        body: {'consent': consent, 'ride': rideContext},
+      );
+    } on FunctionException catch (error) {
+      throw StateError(_functionErrorMessage(error));
+    }
     if (response.status < 200 || response.status >= 300) {
       final data = response.data;
       final message = data is Map ? data['error'] : null;
@@ -76,5 +86,20 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
       throw const FormatException('Respons rekomendasi AI tidak valid.');
     }
     return recommendation.trim();
+  }
+
+  String _functionErrorMessage(FunctionException error) {
+    final details = error.details;
+    final message = details is Map ? details['error'] : null;
+    if (message is String && message.trim().isNotEmpty) {
+      return message.trim();
+    }
+    return switch (error.status) {
+      401 || 403 => 'Sesi akun tidak valid. Silakan masuk kembali.',
+      429 => 'Batas penggunaan rekomendasi AI tercapai. Coba lagi nanti.',
+      503 =>
+        'Layanan AI belum siap. Periksa konfigurasi Edge Function dan secrets Supabase.',
+      _ => 'Edge Function rider-coach gagal (HTTP ${error.status}). Periksa log Supabase Functions.',
+    };
   }
 }

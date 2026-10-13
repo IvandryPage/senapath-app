@@ -17,6 +17,7 @@ class ExploreMap extends StatefulWidget {
     this.trackPoints = const [],
     this.currentLocation,
     this.followLocation = false,
+    this.autoLocate = false,
     this.movementBearingDegrees,
     this.northUpLocked = false,
     this.onToggleNorthUp,
@@ -32,6 +33,7 @@ class ExploreMap extends StatefulWidget {
   final List<LatLng> trackPoints;
   final LatLng? currentLocation;
   final bool followLocation;
+  final bool autoLocate;
   final double? movementBearingDegrees;
   final bool northUpLocked;
   final VoidCallback? onToggleNorthUp;
@@ -58,6 +60,16 @@ class _ExploreMapState extends State<ExploreMap> {
   int _mapKey = 0;
   String? _locationMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoLocate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showCurrentLocation());
+      });
+    }
+  }
+
   List<List<LatLng>> get _routeLines => [
     for (final route in widget.routes)
       if (route.points.length >= 2)
@@ -82,6 +94,11 @@ class _ExploreMapState extends State<ExploreMap> {
         widget.followLocation) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _followCurrentLocation();
+      });
+    }
+    if (!oldWidget.autoLocate && widget.autoLocate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showCurrentLocation());
       });
     }
     if (oldWidget.movementBearingDegrees != widget.movementBearingDegrees) {
@@ -131,6 +148,9 @@ class _ExploreMapState extends State<ExploreMap> {
                   onMapReady: () {
                     _mapReady = true;
                     _fitRoutes();
+                    if (widget.autoLocate && _currentLocation != null) {
+                      _mapController.move(_currentLocation!, 16);
+                    }
                     _followCurrentLocation();
                     _applyMovementBearing();
                   },
@@ -439,6 +459,12 @@ class _ExploreMapState extends State<ExploreMap> {
         }
         return;
       }
+      final lastKnownPosition = await Geolocator.getLastKnownPosition();
+      if (lastKnownPosition != null && mounted) {
+        _moveToLocation(
+          LatLng(lastKnownPosition.latitude, lastKnownPosition.longitude),
+        );
+      }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -446,10 +472,7 @@ class _ExploreMapState extends State<ExploreMap> {
         ),
       );
       if (!mounted) return;
-      setState(
-        () => _currentLocation = LatLng(position.latitude, position.longitude),
-      );
-      _mapController.move(LatLng(position.latitude, position.longitude), 14);
+      _moveToLocation(LatLng(position.latitude, position.longitude));
     } on TimeoutException {
       if (!mounted) return;
       setState(
@@ -480,6 +503,12 @@ class _ExploreMapState extends State<ExploreMap> {
     } finally {
       if (mounted) setState(() => _isLocating = false);
     }
+  }
+
+  void _moveToLocation(LatLng location) {
+    if (!mounted) return;
+    setState(() => _currentLocation = location);
+    if (_mapReady) _mapController.move(location, 16);
   }
 
   void _fitRoutes() {

@@ -100,9 +100,9 @@ Di tab **Logistik → Waktu acara**, pilih tanggal/waktu dan tekan zona waktu su
 
 Karakter rider (level/XP/gaya) tersedia di **Beranda → Karakter rider**. Sebaliknya, mini-game tantangan strategi **belum ada di aplikasi saat ini**: tidak ada route/layar game, dan migrasi database lokal versi 8 menghapus tabel hasil game lama. Bila gamifikasi reaksi/strategi tetap diinginkan, ia harus dibangun ulang sebagai item backlog (lihat [agents/scrum-guide.md](agents/scrum-guide.md) SP-37) — jangan dianggap sudah berfungsi.
 
-## Papan peringkat mingguan
+## Papan peringkat rekor gowes
 
-Peringkat tersedia melalui **Beranda → Papan peringkat** dan hanya dapat dilihat setelah masuk akun online serta mengaktifkan partisipasi dengan alias publik. Pilih **Papan peringkat** dari ringkasan sesi selesai untuk mengirim nilainya; ringkasan itu harus lebih dahulu disinkronkan secara terpisah. Minggu berjalan dihitung Senin–Minggu UTC, dengan kategori durasi aktif terlama dan jarak terjauh dari satu sesi. Peringkat hanya menampilkan urutan, alias, dan skor. Skor bersumber dari ringkasan yang dilaporkan aplikasi, belum diverifikasi independen. Opt-out menghapus seluruh skor akun dari tabel peringkat. Terapkan migrasi terbaru dengan `supabase db push`.
+Peringkat tersedia melalui **Beranda → Papan peringkat** setelah masuk akun online dan menyetujui partisipasi. Nama yang diatur di profil dipakai sebagai nama publik; tidak ada alias terpisah. Durasi terlama dan jarak terjauh dicatat otomatis dari sesi selesai dan terlihat di profil. Saat partisipasi aktif, hanya dua nilai rekor tersebut yang disinkronkan ke papan peringkat—tidak perlu mengirim skor atau menyinkronkan ringkasan sesi satu per satu. Peringkat menampilkan rekor sepanjang masa; durasi dan jarak terbaik dapat berasal dari sesi berbeda. Mencabut partisipasi menarik rekor dari papan peringkat, sedangkan riwayat lokal tetap tersedia. Skor berasal dari data aplikasi dan belum diverifikasi independen. Terapkan migrasi terbaru dengan `supabase db push`.
 
 ## Sinkronisasi ringkasan sesi
 
@@ -173,7 +173,7 @@ Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi s
 
 ### Seed data tim demo
 
-`supabase/seed.sql` menyediakan dua tim demo (masing-masing empat rider: Sprinter, Climber, Explorer, dan Ace), level/XP contoh, serta skor leaderboard mingguan. Setelah menjalankan migrasi, jalankan seed secara eksplisit melalui Supabase Dashboard → SQL Editor atau `supabase db reset` untuk database lokal yang memang boleh di-reset. Seed tidak dijalankan oleh `supabase db push`. Akun demo memakai alamat `example.invalid` dan password kosong sehingga merupakan data roster/leaderboard saja, tidak bisa login; jangan gunakan seed ini sebagai identitas pengguna produksi. Akun aplikasi yang sudah terdaftar bisa masuk ke tim demo dengan kode `A1000000000040008000000000000001` atau `A2000000000040008000000000000002`.
+`supabase/seed.sql` menyediakan dua tim demo (masing-masing empat rider: Sprinter, Climber, Explorer, dan Ace), level/XP contoh, serta rekor leaderboard. Setelah menjalankan migrasi, jalankan seed secara eksplisit melalui Supabase Dashboard → SQL Editor atau `supabase db reset` untuk database lokal yang memang boleh di-reset. Seed tidak dijalankan oleh `supabase db push`. Akun demo memakai alamat `example.invalid` dan password kosong sehingga merupakan data roster/leaderboard saja, tidak bisa login; jangan gunakan seed ini sebagai identitas pengguna produksi. Akun aplikasi yang sudah terdaftar bisa masuk ke tim demo dengan kode `A1000000000040008000000000000001` atau `A2000000000040008000000000000002`.
 
 4. Jalankan aplikasi dengan URL proyek dan publishable key Supabase dari `.env`:
 

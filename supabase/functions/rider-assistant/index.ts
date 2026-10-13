@@ -141,7 +141,8 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    const configuredModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    const model = configuredModel.replace(/^models\//, "").trim();
     let reply = "";
     let contentsForGeneration = contents;
     let stillTruncated = false;
@@ -164,7 +165,7 @@ Deno.serve(async (request: Request) => {
               }],
             },
             contents: contentsForGeneration,
-            generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
+            generationConfig: { temperature: 0.4, maxOutputTokens: 8192 },
           }),
           signal: AbortSignal.timeout(25000),
         },

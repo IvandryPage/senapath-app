@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/leaderboard_models.dart';
+import '../../session/presentation/session_cubit.dart';
 import 'leaderboard_cubit.dart';
 
 class LeaderboardScreen extends StatefulWidget {
@@ -19,7 +22,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     super.didChangeDependencies();
     if (_loaded) return;
     _loaded = true;
-    context.read<LeaderboardCubit>().load();
+    unawaited(_loadRecordsAndLeaderboard());
+  }
+
+  Future<void> _loadRecordsAndLeaderboard() async {
+    final sessionCubit = context.read<RideSessionCubit>();
+    await sessionCubit.initialize();
+    if (!mounted) return;
+    context.read<LeaderboardCubit>().updateLocalRecords(
+      sessionCubit.state.completedSessions,
+    );
+    await context.read<LeaderboardCubit>().load();
   }
 
   @override
@@ -45,11 +58,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               Text(
-                'Peringkat mingguan',
+                'Rekor sepanjang masa',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               Text(
-                'Minggu berjalan · UTC',
+                'Rekor durasi dan jarak terbaik yang dibagikan peserta',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -59,7 +72,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 spacing: 8,
                 children: [
                   ChoiceChip(
-                    label: const Text('Durasi aktif'),
+                    label: const Text('Durasi gowes terlama'),
                     selected: state.category == LeaderboardCategory.duration,
                     onSelected: state.isLoading
                         ? null
@@ -68,7 +81,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           ),
                   ),
                   ChoiceChip(
-                    label: const Text('Jarak'),
+                    label: const Text('Jarak terjauh'),
                     selected: state.category == LeaderboardCategory.distance,
                     onSelected: state.isLoading
                         ? null
@@ -99,9 +112,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   'Partisipasi belum aktif. Atur partisipasi di Profil > Pengaturan.',
                 )
               else if (state.entries.isEmpty)
-                const Text(
-                  'Belum ada skor yang dikirim untuk kategori ini minggu ini.',
-                )
+                const Text('Belum ada rekor peserta untuk kategori ini.')
               else ...[
                 _LeaderboardTopThree(
                   entries: state.entries.take(3).toList(growable: false),
@@ -113,15 +124,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     margin: const EdgeInsets.only(top: 8),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         child: Text(
                           '${entry.rank}',
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
-                      title: Text('${entry.alias} · Lv.${entry.riderLevel}'),
+                      title: Text(
+                        '${entry.displayName} · Lv.${entry.riderLevel}',
+                      ),
                       subtitle: Text(
                         '${entry.riderStyle.label} · ${entry.riderExperience} XP',
                       ),
@@ -193,7 +206,7 @@ class _LeaderboardTopThree extends StatelessWidget {
                 ),
               ),
               title: Text(
-                '${entry.rank} · ${entry.alias}',
+                '${entry.rank} · ${entry.displayName}',
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(
