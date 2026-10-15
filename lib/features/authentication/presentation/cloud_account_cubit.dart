@@ -106,7 +106,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
       if (rememberedSession &&
           biometricSettings != null &&
           (!enabled || !canUseBiometrics)) {
-        await _gateway.signInWithRememberedSession();
+        await _gateway.restoreRememberedSession();
       }
       if (isClosed) return;
       emit(
@@ -341,7 +341,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
         );
         return;
       }
-      await _gateway.signInWithRememberedSession();
+      await _gateway.restoreRememberedSession();
       emit(
         state.copyWith(
           email: _gateway.currentEmail,

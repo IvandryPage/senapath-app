@@ -39,8 +39,8 @@ class SupabaseCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
-  Future<void> signInWithRememberedSession() =>
-      _sessionManager.restoreForBiometricSignIn();
+  Future<void> restoreRememberedSession() =>
+      _sessionManager.restoreRememberedSession();
 
   @override
   Future<void> signOut() => _sessionManager.signOut();

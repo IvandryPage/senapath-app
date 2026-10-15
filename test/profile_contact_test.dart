@@ -245,7 +245,7 @@ class _TestCloudAccountGateway implements CloudAccountGateway {
   }) async {}
 
   @override
-  Future<void> signInWithRememberedSession() async {}
+  Future<void> restoreRememberedSession() async {}
 
   @override
   Future<void> signOut() async {}

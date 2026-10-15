@@ -38,7 +38,7 @@ void main() {
       expect(signedInCubit.state.isConfigured, isTrue);
       expect(
         signedInCubit.state.status,
-        contains('Data lokal tetap tersimpan'),
+        contains('Perjalanan di ponsel tetap tersimpan'),
       );
     },
   );
@@ -77,7 +77,7 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
-  Future<void> signInWithRememberedSession() async {}
+  Future<void> restoreRememberedSession() async {}
 
   @override
   Future<void> signOut() async {

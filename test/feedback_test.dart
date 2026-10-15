@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/features/feedback/data/feedback_gateway.dart';
@@ -9,35 +8,18 @@ import 'package:senapath/features/feedback/presentation/feedback_cubit.dart';
 import 'package:senapath/features/feedback/presentation/feedback_screen.dart';
 
 void main() {
-  testWidgets('feedback form shows retention caveat and enforces consent', (
+  testWidgets('feedback page shows hardcoded suggestions and impressions', (
     tester,
   ) async {
-    final cubit = FeedbackCubit(
-      FeedbackRepository(_MemorySecureVault()),
-      _FakeFeedbackGateway(),
-    );
-    addTearDown(cubit.close);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: BlocProvider.value(value: cubit, child: const FeedbackScreen()),
-      ),
-    );
+    await tester.pumpWidget(const MaterialApp(home: FeedbackScreen()));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('jangka waktu penyimpanan server belum ditentukan'),
-      findsOneWidget,
-    );
-    await tester.enterText(find.byType(TextField), 'Saran tanpa persetujuan');
-    await tester.tap(find.text('Kirim masukan'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Persetujuan diperlukan sebelum mengirim.'),
-      findsOneWidget,
-    );
-    expect(cubit.state.pending, isEmpty);
+    expect(find.text('Saran dan Kesan'), findsOneWidget);
+    expect(find.text('Saran'), findsOneWidget);
+    expect(find.text('Kesan'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
   });
 
   test('requires consent before saving or sending feedback', () async {

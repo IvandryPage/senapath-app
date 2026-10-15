@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/core/storage/app_database.dart';
+import 'package:senapath/core/storage/secure_vault.dart';
 import 'package:senapath/features/authentication/data/biometric_sign_in_settings_repository.dart';
 import 'package:senapath/features/authentication/data/cloud_account_gateway.dart';
 import 'package:senapath/features/authentication/data/custom_auth_session_manager.dart';
 import 'package:senapath/features/authentication/data/device_authenticator.dart';
 import 'package:senapath/features/authentication/presentation/cloud_account_cubit.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   test(
@@ -29,22 +32,19 @@ void main() {
     },
   );
 
-  test(
-    'sign-in and sign-out use cloud auth gateway',
-    () async {
-      final gateway = _FakeCloudAccountGateway();
-      final cubit = CloudAccountCubit(gateway);
-      addTearDown(cubit.close);
+  test('sign-in and sign-out use cloud auth gateway', () async {
+    final gateway = _FakeCloudAccountGateway();
+    final cubit = CloudAccountCubit(gateway);
+    addTearDown(cubit.close);
 
-      await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
-      expect(cubit.state.email, 'rider@example.com');
+    await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
+    expect(cubit.state.email, 'rider@example.com');
 
-      await cubit.signOut();
-      expect(gateway.signOutCalls, 1);
-      expect(cubit.state.isSignedIn, isFalse);
-      expect(cubit.state.status, contains('Data lokal tetap tersimpan'));
-    },
-  );
+    await cubit.signOut();
+    expect(gateway.signOutCalls, 1);
+    expect(cubit.state.isSignedIn, isFalse);
+    expect(cubit.state.status, contains('Perjalanan di ponsel tetap tersimpan'));
+  });
 
   test('shows the server configuration error returned by app-auth', () async {
     final gateway = _FakeCloudAccountGateway()
@@ -71,7 +71,7 @@ void main() {
     expect(cubit.state.error, isNotNull);
   });
 
-  test('biometric sign-in restores the remembered online account', () async {
+  test('biometric sign-in restores the remembered local account', () async {
     final gateway = _FakeCloudAccountGateway()
       ..rememberedSession = true
       ..rememberedEmail = 'rider@example.com';
@@ -87,8 +87,43 @@ void main() {
     expect(gateway.restoreCalls, 1);
     expect(cubit.state.isSignedIn, isTrue);
     expect(cubit.state.email, 'rider@example.com');
-    expect(cubit.state.status, contains('biometrik'));
+    expect(cubit.state.status, contains('sidik jari atau wajah'));
   });
+
+  test(
+    'restores an expired remembered session locally while offline',
+    () async {
+      final vault = _MemorySecureVault();
+      await vault.write(
+        'custom_auth_session',
+        jsonEncode({
+          'accessToken': 'expired-access-token',
+          'refreshToken': 'refresh-token',
+          'user': {'id': 'rider-id', 'email': 'rider@example.com'},
+          'expiresAt': DateTime.now()
+              .toUtc()
+              .subtract(const Duration(days: 1))
+              .millisecondsSinceEpoch,
+        }),
+      );
+      final client = SupabaseClient(
+        'https://example.supabase.co',
+        'test-publishable-key',
+      );
+      addTearDown(client.dispose);
+      final sessionManager = CustomAuthSessionManager(
+        client: client,
+        secureVault: vault,
+      );
+      addTearDown(sessionManager.dispose);
+
+      await sessionManager.restoreRememberedSession();
+
+      expect(sessionManager.currentEmail, 'rider@example.com');
+      expect(sessionManager.currentUserId, 'rider-id');
+      expect(await vault.read('custom_auth_session'), isNotNull);
+    },
+  );
 
   test(
     'startup requires enabled biometrics for a remembered session',
@@ -199,7 +234,7 @@ void main() {
       await cubit.signIn(email: 'rider@example.com', password: 'strong-pass-1');
 
       expect(gateway.signInCalls, 0);
-      expect(cubit.state.error, contains('belum dikonfigurasi'));
+      expect(cubit.state.error, contains('belum tersedia'));
     },
   );
 }
@@ -255,7 +290,7 @@ class _FakeCloudAccountGateway implements CloudAccountGateway {
   }
 
   @override
-  Future<void> signInWithRememberedSession() async {
+  Future<void> restoreRememberedSession() async {
     restoreCalls++;
     currentEmail = rememberedEmail;
   }
@@ -281,5 +316,22 @@ class _FakeAuthenticator implements DeviceAuthenticator {
   Future<bool> authenticate({required bool biometricOnly}) async {
     calls++;
     return biometricOnly;
+  }
+}
+
+class _MemorySecureVault implements SecureVault {
+  final Map<String, String> values = {};
+
+  @override
+  Future<void> delete(String key) async {
+    values.remove(key);
+  }
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    values[key] = value;
   }
 }

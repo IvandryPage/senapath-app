@@ -94,7 +94,7 @@ Beranda memakai pola feed aktivitas: ringkasan jarak/sesi tujuh hari terakhir, a
 
 Riwayat sesi menyimpan judul, jenis aktivitas (bersepeda, komuter, latihan, atau balapan), dan sumber pencatatan lokal. Judul dan jenis dapat diubah dari detail ringkasan tanpa mengubah titik GPS/telemetri. Aktivitas lama mendapat nilai bawaan saat migrasi database lokal versi 8. Dari **Profil → Riwayat sesi**, ekspor JSON dapat mencakup seluruh sesi selesai dan jejak GPS lokal. Aplikasi meminta konfirmasi sebelum ekspor karena koordinat merupakan data sensitif. Aktivitas selesai dapat dihapus dari perangkat dan salinan cloud; penghapusan dibatalkan bila salinan online tidak dapat dihapus. Ekspor dan penghapusan seluruh data profil/rute/preferences maupun penghapusan akun/cloud belum tersedia.
 
-Halaman Profil mengelompokkan kontak darurat di bagian keselamatan, riwayat/progres/rute di bagian aktivitas, dan pengaturan akun secara terpisah. **Saran dan kesan** menyediakan formulir dengan persetujuan eksplisit, antrean lokal aman, status pengiriman dan aksi coba ulang. Pengiriman memerlukan sesi akun online; masa penyimpanan feedback pada server belum ditetapkan dan dijelaskan di layar sebelum pengguna setuju.
+Halaman Profil mengelompokkan kontak darurat di bagian keselamatan, riwayat/progres/rute di bagian aktivitas, dan pengaturan akun secara terpisah. **Saran dan kesan** menampilkan konten saran dan kesan yang ditulis langsung di aplikasi; halaman ini tidak menerima atau mengirim masukan pengguna.
 
 ## Tim bersepeda
 
@@ -197,4 +197,4 @@ Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi s
 .\scripts\flutter_with_env.ps1 build apk --release
 ```
 
-Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Halaman **Profil → Saran dan kesan** menyimpan masukan yang belum berhasil dikirim di penyimpanan aman perangkat dan menyediakan aksi coba ulang. Pengiriman ke server memerlukan sesi akun online dan persetujuan eksplisit; layar menjelaskan bahwa masa penyimpanan server belum ditetapkan. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat memerlukan sesi akun.
+Publishable key memang digunakan oleh aplikasi klien; jangan pernah memasukkan signing secret JWT, service-role key, atau Gemini API key ke runner Flutter. Password dikelola server-side oleh custom auth dan tidak disimpan oleh aplikasi. Function AI membatasi setiap akun aplikasi hingga 30 permintaan per hari. Halaman **Profil → Saran dan kesan** hanya menampilkan konten statis dan tidak menyimpan atau mengirim masukan. Atur kuota dan batas biaya Gemini di Google AI Studio/Google Cloud. Chat memerlukan sesi akun.

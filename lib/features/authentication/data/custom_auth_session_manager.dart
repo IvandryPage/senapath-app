@@ -39,19 +39,12 @@ class CustomAuthSessionManager {
     }
   }
 
-  Future<void> restoreForBiometricSignIn() async {
+  Future<void> restoreRememberedSession() async {
     await restore();
     if (_session == null) {
       throw StateError(
         'Tidak ada sesi akun tersimpan. Masuk dengan email dan password terlebih dahulu.',
       );
-    }
-    try {
-      await requireAccessToken();
-    } catch (_) {
-      _session = null;
-      _client?.rest.setAuth(null);
-      rethrow;
     }
     _authChanges.add(_session!.email);
   }

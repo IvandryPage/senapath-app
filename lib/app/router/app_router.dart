@@ -230,7 +230,7 @@ class _AppShellState extends State<_AppShell> {
     final title = switch (widget.location) {
       '/' => 'Senapath',
       '/assistant' => 'Asisten AI',
-      '/feedback' => 'Masukan',
+      '/feedback' => 'Saran dan kesan',
       '/leaderboard' => 'Papan Peringkat',
       '/progress' => 'Progres perjalanan',
       '/account' => 'Akun & keamanan',

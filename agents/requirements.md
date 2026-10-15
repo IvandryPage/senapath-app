@@ -111,7 +111,7 @@ Papan peringkat bersepeda mingguan (minggu Senin–Minggu dalam UTC) memiliki du
 Pengguna harus dapat melihat dan memperbarui informasi profil yang diizinkan serta mengganti foto profil dengan gambar dari perangkat.
 
 **FR-17 — Saran dan kesan**  
-Pengguna harus menyetujui pengiriman, mengetahui tujuan dan retensi pesan, melihat status lokal/pending/berhasil/gagal, serta dapat mencoba ulang tanpa duplikasi. Kegagalan jaringan tidak boleh dilaporkan sebagai sukses. Isi pesan tidak boleh masuk log diagnostik.
+Halaman menampilkan saran dan kesan statis yang ditentukan di aplikasi; pengguna tidak memasukkan atau mengirim masukan dari halaman ini.
 
 **FR-18 — Navigasi, local lock, dan sign-out**  
 Navigasi harus memberi akses jelas ke Beranda, Jelajah, Sesi, Logistik/Tools, dan Profil sesuai pola platform. Beranda memprioritaskan aktivitas terbaru, ringkasan progres, status rekaman/sinkronisasi, peta, dan aksi utama; bukan sekadar daftar menu. Local lock, sign-out akun cloud, dan penghapusan data adalah aksi berbeda. Sign-out membersihkan token dan state sensitif dari memori, membatalkan respons async yang terlambat, tetapi tidak menghapus sesi lokal kecuali diminta.
