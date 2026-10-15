@@ -24,6 +24,7 @@ import '../../workouts/presentation/interval_workout_cubit.dart';
 import '../data/readiness_checker.dart';
 import '../data/session_file_service.dart';
 import '../domain/ride_session.dart';
+import '../../ride_coach/presentation/ride_coach_session_panel.dart';
 import 'session_cubit.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -264,6 +265,8 @@ class _SessionScreenState extends State<SessionScreen>
                                     session,
                                     unitSystem,
                                   ),
+                                  const SizedBox(height: 16),
+                                  RideCoachSessionPanel(sessionState: state),
                                 ],
                                 if (!widget.hideReadinessDetails &&
                                     (session == null ||
@@ -310,6 +313,8 @@ class _SessionScreenState extends State<SessionScreen>
                                   ),
                                   const SizedBox(height: 16),
                                   _buildSessionControls(context, state),
+                                  const SizedBox(height: 16),
+                                  RideCoachSessionPanel(sessionState: state),
                                 ] else ...[
                                   const SizedBox(height: 24),
                                   _buildReadiness(context, readiness, state),

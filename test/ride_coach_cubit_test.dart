@@ -1,8 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/features/ride_coach/data/ride_coach_gateway.dart';
 import 'package:senapath/features/ride_coach/presentation/ride_coach_cubit.dart';
+import 'package:senapath/features/ride_coach/presentation/ride_coach_session_panel.dart';
+import 'package:senapath/features/session/domain/ride_session.dart';
+import 'package:senapath/features/session/presentation/session_cubit.dart';
 
 void main() {
   late _FakeRideCoachGateway gateway;
@@ -68,26 +73,78 @@ void main() {
     expect(cubit.hasConsentForSession('ride-2'), isFalse);
   });
 
-  test('keeps a route-specific pre-ride briefing and reports failures', () async {
-    gateway.briefings.add(Future.value('Simpan tenaga untuk tanjakan nanti.'));
-    await cubit.prepareRide(
-      routeId: 'route-1',
-      routeAndWeather: const {},
-      consent: true,
+  testWidgets('shows coach recommendations inside an active session only', (
+    tester,
+  ) async {
+    Future<void> pumpPanel(RideSessionState rideState) => tester.pumpWidget(
+      BlocProvider.value(
+        value: cubit,
+        child: MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: RideCoachSessionPanel(sessionState: rideState),
+            ),
+          ),
+        ),
+      ),
     );
 
-    expect(cubit.state.preRideBriefing, 'Simpan tenaga untuk tanjakan nanti.');
-    expect(cubit.state.preRideRouteId, 'route-1');
-
-    gateway.briefings.add(Future.error(StateError('Kuota AI harian tercapai.')));
-    await cubit.prepareRide(
-      routeId: 'route-1',
-      routeAndWeather: const {},
-      consent: true,
+    await pumpPanel(
+      RideSessionState(
+        session: RideSessionSnapshot(
+          id: 'ride-1',
+          startedAt: DateTime.utc(2026, 10, 15),
+          status: RideSessionStatus.recording,
+          totalPausedMilliseconds: 0,
+          distanceMeters: 500,
+          currentSpeedMetersPerSecond: 3,
+        ),
+      ),
     );
-    expect(cubit.state.preRideBriefing, 'Simpan tenaga untuk tanjakan nanti.');
-    expect(cubit.state.preRideError, 'Kuota AI harian tercapai.');
+    await tester.pump();
+
+    expect(find.text('Pelatih AI'), findsOneWidget);
+    expect(find.text('Izinkan pelatih untuk perjalanan ini'), findsOneWidget);
+
+    await pumpPanel(const RideSessionState());
+    await tester.pump();
+
+    expect(find.text('Pelatih AI'), findsNothing);
   });
+
+  test(
+    'keeps a route-specific pre-ride briefing and reports failures',
+    () async {
+      gateway.briefings.add(
+        Future.value('Simpan tenaga untuk tanjakan nanti.'),
+      );
+      await cubit.prepareRide(
+        routeId: 'route-1',
+        routeAndWeather: const {},
+        consent: true,
+      );
+
+      expect(
+        cubit.state.preRideBriefing,
+        'Simpan tenaga untuk tanjakan nanti.',
+      );
+      expect(cubit.state.preRideRouteId, 'route-1');
+
+      gateway.briefings.add(
+        Future.error(StateError('Kuota AI harian tercapai.')),
+      );
+      await cubit.prepareRide(
+        routeId: 'route-1',
+        routeAndWeather: const {},
+        consent: true,
+      );
+      expect(
+        cubit.state.preRideBriefing,
+        'Simpan tenaga untuk tanjakan nanti.',
+      );
+      expect(cubit.state.preRideError, 'Kuota AI harian tercapai.');
+    },
+  );
 }
 
 class _FakeRideCoachGateway implements RideCoachGateway {
