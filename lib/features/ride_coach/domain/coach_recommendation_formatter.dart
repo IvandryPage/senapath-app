@@ -1,20 +1,19 @@
-String formatCoachRecommendation(String recommendation, {int maxWords = 14}) {
-  final firstLine = recommendation
+final _leadingMarker = RegExp(r'^(?:[-•*]|\d+[.)])\s*');
+final _greeting = RegExp(
+  r'^(?:halo|hallo|helo|hai|hi|hey|selamat\s+(?:pagi|siang|sore|malam)|'
+  r'salam\s+[a-z]+|assalamualaikum(?:\s+warahmatullahi\s+wabarakatuh)?)'
+  r'[\s,!.]*',
+  caseSensitive: false,
+);
+
+String formatCoachRecommendation(String recommendation) {
+  return recommendation
       .replaceAll(RegExp(r'```[^`]*```', dotAll: true), ' ')
-      .split(RegExp(r'\r?\n'))
-      .map((line) => line.trim())
-      .firstWhere((line) => line.isNotEmpty, orElse: () => '')
       .replaceAll(RegExp(r'[*_`#]'), '')
       .replaceAll(RegExp(r'\s+'), ' ')
+      .trim()
+      .replaceFirst(_leadingMarker, '')
+      .replaceFirst(_greeting, '')
+      .replaceFirst(_leadingMarker, '')
       .trim();
-  if (firstLine.isEmpty) return '';
-
-  final firstSentence = firstLine
-      .replaceFirst(RegExp(r'^(?:[-•*]|\d+[.)])\s*'), '')
-      .split(RegExp(r'(?<=[.!?])\s+|\n+'))
-      .first
-      .trim();
-  final words = firstSentence.split(' ');
-  if (words.length <= maxWords) return firstSentence;
-  return '${words.take(maxWords).join(' ')}…';
 }

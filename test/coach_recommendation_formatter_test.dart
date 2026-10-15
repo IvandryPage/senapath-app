@@ -2,31 +2,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:senapath/features/ride_coach/domain/coach_recommendation_formatter.dart';
 
 void main() {
-  test('formats a markdown recommendation as one clean sentence', () {
+  test('cleans markdown while keeping the full advice', () {
     expect(
       formatCoachRecommendation(
         '**Jaga pace tetap stabil.**\n- Minum sekarang.',
       ),
-      'Jaga pace tetap stabil.',
+      'Jaga pace tetap stabil. - Minum sekarang.',
     );
   });
 
-  test('keeps only the first concise recommendation', () {
+  test('keeps the whole response instead of only the first sentence', () {
     expect(
       formatCoachRecommendation(
-        '1. Jaga pace tetap stabil. Minum setiap dua puluh menit.',
+        'Jaga pace tetap stabil. Minum setiap dua puluh menit.',
       ),
-      'Jaga pace tetap stabil.',
+      'Jaga pace tetap stabil. Minum setiap dua puluh menit.',
     );
   });
 
-  test('limits long recommendations to fourteen words', () {
-    final formatted = formatCoachRecommendation(
-      'Atur pace tetap stabil dan simpan tenaga untuk tanjakan panjang '
-      'yang akan kamu hadapi nanti di perjalanan ini.',
+  test('drops a leading greeting but keeps the advice intact', () {
+    expect(
+      formatCoachRecommendation('Halo! Jaga pace tetap stabil. Minum sekarang.'),
+      'Jaga pace tetap stabil. Minum sekarang.',
     );
+    expect(
+      formatCoachRecommendation('Hai, minum sekarang sebelum tanjakan.'),
+      'minum sekarang sebelum tanjakan.',
+    );
+  });
 
-    expect(formatted.split(' '), hasLength(14));
-    expect(formatted, endsWith('…'));
+  test('skips a greeting-only line and uses the next line', () {
+    expect(
+      formatCoachRecommendation('Halo!\nJaga pace tetap stabil.'),
+      'Jaga pace tetap stabil.',
+    );
   });
 }
