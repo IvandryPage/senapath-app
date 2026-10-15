@@ -12,6 +12,7 @@ import '../../../core/validation/validators.dart';
 import '../domain/event_time_converter.dart';
 import '../domain/logistics_models.dart';
 import 'amount_input_formatter.dart';
+import 'currency_label.dart';
 import 'logistics_cubit.dart';
 
 class LogisticsScreen extends StatefulWidget {
@@ -249,7 +250,8 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
           allocated == 0
               ? 'Buat rencana dan catat pengeluaran perjalanan.'
               : remaining == null
-              ? 'Atur kurs untuk melihat sisa dalam ${data.baseCurrency.code}.'
+              ? 'Atur kurs untuk melihat sisa dalam ${data.baseCurrency.code} '
+                    '(${data.baseCurrency.label}).'
               : 'Sisa ${_formatMoney(remaining, data.baseCurrency)} · '
                     'Terpakai ${_formatMoney(spent!, data.baseCurrency)}',
         ),
@@ -266,7 +268,8 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Ringkasan menggunakan mata uang dasar ${data.baseCurrency.code}. '
+              'Ringkasan menggunakan mata uang dasar ${data.baseCurrency.code} '
+              '· ${data.baseCurrency.label}. '
               'Atur mata uang dasar di bagian Kurs & konversi mata uang. '
               'Nilai setara mengikuti kurs tersimpan.',
               style: Theme.of(context).textTheme.bodySmall,
@@ -349,19 +352,21 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
     LogisticsState state,
   ) {
     final amount = _parseAmount(_eurAmountController.text);
-    final destinationCurrencies = BudgetCurrency.values
-        .where((currency) => currency != data.baseCurrency)
-        .toList(growable: false);
+    final destinationCurrencies = data.effectiveConversionCurrencies;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<BudgetCurrency>(
           key: const Key('logistics-base-currency'),
           initialValue: data.baseCurrency,
+          isExpanded: true,
           decoration: const InputDecoration(labelText: 'Mata uang dasar'),
           items: [
             for (final currency in BudgetCurrency.values)
-              DropdownMenuItem(value: currency, child: Text(currency.code)),
+              DropdownMenuItem(
+                value: currency,
+                child: CurrencyLabel(currency, dense: true),
+              ),
           ],
           onChanged: state.isSaving
               ? null
@@ -415,14 +420,56 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
                           currency,
                           data,
                         ),
+                        onRemove: state.isSaving
+                            ? null
+                            : () => context
+                                  .read<LogisticsCubit>()
+                                  .removeConversionCurrency(currency),
                       ),
                     ),
                 ],
               );
             },
           ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed:
+                state.isSaving ||
+                    _remainingConversionCurrencies(data).isEmpty
+                ? null
+                : () => _addConversionCurrency(context, data),
+            icon: const Icon(Icons.add),
+            label: const Text('Tambah mata uang'),
+          ),
+        ),
       ],
     );
+  }
+
+  List<BudgetCurrency> _remainingConversionCurrencies(LogisticsData data) {
+    final shown = data.effectiveConversionCurrencies.toSet();
+    return [
+      for (final currency in BudgetCurrency.values)
+        if (currency != data.baseCurrency && !shown.contains(currency))
+          currency,
+    ];
+  }
+
+  Future<void> _addConversionCurrency(
+    BuildContext context,
+    LogisticsData data,
+  ) async {
+    final currency = await showDialog<BudgetCurrency>(
+      context: context,
+      builder: (_) => _ConversionCurrencyPickerDialog(
+        available: _remainingConversionCurrencies(data),
+      ),
+    );
+    if (currency != null && context.mounted) {
+      await context.read<LogisticsCubit>().addConversionCurrency(currency);
+    }
   }
 
   String _formatBaseConversion(
@@ -901,10 +948,15 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
 }
 
 class _ConversionResult extends StatelessWidget {
-  const _ConversionResult({required this.currency, required this.result});
+  const _ConversionResult({
+    required this.currency,
+    required this.result,
+    this.onRemove,
+  });
 
   final BudgetCurrency currency;
   final String result;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -918,11 +970,39 @@ class _ConversionResult extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                currency.code,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            if (onRemove != null)
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Hapus ${currency.code}',
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+          ],
+        ),
         Text(
-          currency.code,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w700,
+          currency.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 4),
@@ -935,6 +1015,52 @@ class _ConversionResult extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+class _ConversionCurrencyPickerDialog extends StatelessWidget {
+  const _ConversionCurrencyPickerDialog({required this.available});
+
+  final List<BudgetCurrency> available;
+
+  @override
+  Widget build(BuildContext context) => SenapathAlertDialog(
+    title: const Text('Tambah mata uang'),
+    content: SizedBox(
+      width: 420,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 360),
+              child: available.isEmpty
+                  ? const Center(
+                      child: Text('Semua mata uang sudah ditampilkan.'),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: available.length,
+                      itemBuilder: (context, index) {
+                        final currency = available[index];
+                        return ListTile(
+                          dense: true,
+                          title: CurrencyLabel(currency),
+                          onTap: () => Navigator.of(context).pop(currency),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Batal'),
+      ),
+    ],
   );
 }
 
@@ -1102,10 +1228,14 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
           const SizedBox(height: 12),
           DropdownButtonFormField<BudgetCurrency>(
             initialValue: _currency,
+            isExpanded: true,
             decoration: const InputDecoration(labelText: 'Mata uang'),
             items: [
               for (final currency in BudgetCurrency.values)
-                DropdownMenuItem(value: currency, child: Text(currency.code)),
+                DropdownMenuItem(
+                  value: currency,
+                  child: CurrencyLabel(currency, dense: true),
+                ),
             ],
             onChanged: (currency) {
               if (currency != null) setState(() => _currency = currency);
@@ -1230,10 +1360,14 @@ class _BudgetExpenseDialogState extends State<_BudgetExpenseDialog> {
             const SizedBox(height: 12),
             DropdownButtonFormField<BudgetCurrency>(
               initialValue: _currency,
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Mata uang bayar'),
               items: [
                 for (final currency in BudgetCurrency.values)
-                  DropdownMenuItem(value: currency, child: Text(currency.code)),
+                  DropdownMenuItem(
+                    value: currency,
+                    child: CurrencyLabel(currency, dense: true),
+                  ),
               ],
               onChanged: (currency) {
                 if (currency != null) setState(() => _currency = currency);
@@ -1364,7 +1498,7 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
                   decimal: true,
                 ),
                 decoration: InputDecoration(
-                  labelText: '1 EUR = ... ${currency.code}',
+                  labelText: '1 EUR = ... ${currency.code} · ${currency.label}',
                 ),
                 validator: (value) => AmountValidators.amount(
                   value,

@@ -233,7 +233,29 @@ class LogisticsCubit extends Cubit<LogisticsState> {
   }
 
   Future<void> setBaseCurrency(BudgetCurrency currency) async {
-    await _persist(_copyData(baseCurrency: currency));
+    final updated = state.data.conversionCurrencies
+        .where((existing) => existing != currency)
+        .toList();
+    await _persist(
+      _copyData(baseCurrency: currency, conversionCurrencies: updated),
+    );
+  }
+
+  Future<void> addConversionCurrency(BudgetCurrency currency) async {
+    if (currency == state.data.baseCurrency) return;
+    final current = state.data.effectiveConversionCurrencies;
+    if (current.contains(currency)) return;
+    await _persist(
+      _copyData(conversionCurrencies: [...current, currency]),
+    );
+  }
+
+  Future<void> removeConversionCurrency(BudgetCurrency currency) async {
+    final current = state.data.effectiveConversionCurrencies
+        .where((existing) => existing != currency)
+        .toList();
+    if (current.isEmpty) return;
+    await _persist(_copyData(conversionCurrencies: current));
   }
 
   Future<void> setBaseTimeZone(String ianaName) async {
@@ -443,6 +465,7 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     String? rateSource,
     BudgetCurrency? targetCurrency,
     BudgetCurrency? baseCurrency,
+    List<BudgetCurrency>? conversionCurrencies,
     String? baseTimeZoneIanaName,
   }) => LogisticsData(
     items: items ?? state.data.items,
@@ -454,6 +477,8 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     rateSource: rateSource ?? state.data.rateSource,
     targetCurrency: targetCurrency ?? state.data.targetCurrency,
     baseCurrency: baseCurrency ?? state.data.baseCurrency,
+    conversionCurrencies:
+        conversionCurrencies ?? state.data.conversionCurrencies,
     baseTimeZoneIanaName:
         baseTimeZoneIanaName ?? state.data.baseTimeZoneIanaName,
   );

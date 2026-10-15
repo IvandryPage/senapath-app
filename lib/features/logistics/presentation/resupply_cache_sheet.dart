@@ -9,6 +9,7 @@ import '../../../core/widgets/press_scale.dart';
 import '../../routes/domain/saved_route.dart';
 import '../domain/logistics_models.dart';
 import 'amount_input_formatter.dart';
+import 'currency_label.dart';
 import 'logistics_cubit.dart';
 
 class ResupplyCacheSheet extends StatefulWidget {
@@ -149,6 +150,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
               const SizedBox(height: 8),
               DropdownButtonFormField<BudgetCurrency>(
                 initialValue: _localCurrency,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Mata uang harga di wilayah ini',
                   prefixIcon: Icon(Icons.payments_outlined),
@@ -157,7 +159,7 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
                   for (final currency in BudgetCurrency.values)
                     DropdownMenuItem(
                       value: currency,
-                      child: Text(currency.code),
+                      child: CurrencyLabel(currency, dense: true),
                     ),
                 ],
                 onChanged: (currency) {
@@ -178,8 +180,8 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Mata uang akun: ${state.data.baseCurrency.code} '
-                '(bisa diubah di Logistik)',
+                'Mata uang akun: ${state.data.baseCurrency.code} · '
+                '${state.data.baseCurrency.label} (bisa diubah di Logistik)',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),

@@ -1,38 +1,39 @@
 enum BudgetCurrency {
-  eur('EUR'),
-  idr('IDR'),
-  usd('USD'),
-  chf('CHF'),
-  myr('MYR'),
-  aud('AUD'),
-  brl('BRL'),
-  cad('CAD'),
-  cny('CNY'),
-  czk('CZK'),
-  dkk('DKK'),
-  gbp('GBP'),
-  hkd('HKD'),
-  huf('HUF'),
-  ils('ILS'),
-  inr('INR'),
-  isk('ISK'),
-  jpy('JPY'),
-  krw('KRW'),
-  mxn('MXN'),
-  nok('NOK'),
-  nzd('NZD'),
-  php('PHP'),
-  pln('PLN'),
-  ron('RON'),
-  sek('SEK'),
-  sgd('SGD'),
-  thb('THB'),
-  tryCurrency('TRY'),
-  zar('ZAR');
+  eur('EUR', 'Euro'),
+  idr('IDR', 'Rupiah Indonesia'),
+  usd('USD', 'Dolar Amerika Serikat'),
+  chf('CHF', 'Franc Swiss'),
+  myr('MYR', 'Ringgit Malaysia'),
+  aud('AUD', 'Dolar Australia'),
+  brl('BRL', 'Real Brasil'),
+  cad('CAD', 'Dolar Kanada'),
+  cny('CNY', 'Yuan Tiongkok'),
+  czk('CZK', 'Koruna Ceko'),
+  dkk('DKK', 'Krone Denmark'),
+  gbp('GBP', 'Pound Inggris'),
+  hkd('HKD', 'Dolar Hong Kong'),
+  huf('HUF', 'Forint Hungaria'),
+  ils('ILS', 'Shekel Israel'),
+  inr('INR', 'Rupee India'),
+  isk('ISK', 'Krona Islandia'),
+  jpy('JPY', 'Yen Jepang'),
+  krw('KRW', 'Won Korea Selatan'),
+  mxn('MXN', 'Peso Meksiko'),
+  nok('NOK', 'Krone Norwegia'),
+  nzd('NZD', 'Dolar Selandia Baru'),
+  php('PHP', 'Peso Filipina'),
+  pln('PLN', 'Zloty Polandia'),
+  ron('RON', 'Leu Rumania'),
+  sek('SEK', 'Krona Swedia'),
+  sgd('SGD', 'Dolar Singapura'),
+  thb('THB', 'Baht Thailand'),
+  tryCurrency('TRY', 'Lira Turki'),
+  zar('ZAR', 'Rand Afrika Selatan');
 
-  const BudgetCurrency(this.code);
+  const BudgetCurrency(this.code, this.label);
 
   final String code;
+  final String label;
 
   int get decimalDigits => switch (this) {
     idr || huf || isk || jpy || krw => 0,
@@ -44,6 +45,43 @@ enum BudgetCurrency {
       if (currency.code == code) return currency;
     }
     return null;
+  }
+
+  /// Priority order used to pick a sensible pair of conversion currencies.
+  static const List<BudgetCurrency> _conversionPriority = [
+    usd,
+    idr,
+    eur,
+    gbp,
+    jpy,
+    sgd,
+    aud,
+    myr,
+    thb,
+    chf,
+  ];
+
+  /// Returns up to [count] default conversion currencies for [base], never
+  /// including [base] itself.
+  static List<BudgetCurrency> defaultConversionCurrencies(
+    BudgetCurrency base, {
+    int count = 2,
+  }) {
+    final result = <BudgetCurrency>[];
+    void add(BudgetCurrency currency) {
+      if (currency == base || result.contains(currency)) return;
+      result.add(currency);
+    }
+
+    for (final currency in _conversionPriority) {
+      if (result.length >= count) break;
+      add(currency);
+    }
+    for (final currency in values) {
+      if (result.length >= count) break;
+      add(currency);
+    }
+    return result;
   }
 }
 
@@ -184,6 +222,7 @@ class LogisticsData {
     this.rateSource = 'Manual',
     this.targetCurrency = BudgetCurrency.eur,
     this.baseCurrency = BudgetCurrency.idr,
+    this.conversionCurrencies = const [],
     this.baseTimeZoneIanaName = 'Asia/Jakarta',
   });
 
@@ -197,7 +236,24 @@ class LogisticsData {
   final String rateSource;
   final BudgetCurrency targetCurrency;
   final BudgetCurrency baseCurrency;
+
+  /// Currencies shown in the base-currency converter. Empty means "use the
+  /// two default currencies" derived from [baseCurrency].
+  final List<BudgetCurrency> conversionCurrencies;
   final String baseTimeZoneIanaName;
+
+  /// Currencies actually shown in the converter, honouring the user's
+  /// selection (or the defaults when none was made) and excluding
+  /// [baseCurrency].
+  List<BudgetCurrency> get effectiveConversionCurrencies {
+    if (conversionCurrencies.isEmpty) {
+      return BudgetCurrency.defaultConversionCurrencies(baseCurrency);
+    }
+    return [
+      for (final currency in conversionCurrencies)
+        if (currency != baseCurrency) currency,
+    ];
+  }
 
   Map<String, Object?> toJson() => {
     'items': items.map((item) => item.toJson()).toList(),
@@ -212,6 +268,9 @@ class LogisticsData {
     'rateSource': rateSource,
     'targetCurrency': targetCurrency.code,
     'baseCurrency': baseCurrency.code,
+    'conversionCurrencies': [
+      for (final currency in conversionCurrencies) currency.code,
+    ],
     'baseTimeZoneIanaName': baseTimeZoneIanaName,
   };
 
@@ -224,6 +283,7 @@ class LogisticsData {
     final rawTarget = json['targetCurrency'] as String?;
     final rawBaseCurrency = json['baseCurrency'] as String?;
     final rawBaseTimeZone = json['baseTimeZoneIanaName'] as String?;
+    final rawConversionCurrencies = json['conversionCurrencies'];
     final rawRateSource = json['rateSource'];
     final target = BudgetCurrency.fromCode(rawTarget);
     final baseCurrency =
@@ -236,6 +296,7 @@ class LogisticsData {
         rawRates is! Map ||
         target == null ||
         baseCurrency == null ||
+        (rawConversionCurrencies != null && rawConversionCurrencies is! List) ||
         (rawBaseTimeZone != null && rawBaseTimeZone.trim().isEmpty) ||
         (rawRateSource != null && rawRateSource is! String)) {
       throw const FormatException('Invalid logistics data.');
@@ -258,6 +319,16 @@ class LogisticsData {
         : DateTime.tryParse(rawUpdatedAt);
     if (rawUpdatedAt != null && updatedAt == null) {
       throw const FormatException('Invalid exchange-rate timestamp.');
+    }
+
+    final conversionCurrencies = <BudgetCurrency>[];
+    for (final rawCurrency in (rawConversionCurrencies as List?) ?? const []) {
+      final currency = rawCurrency is String
+          ? BudgetCurrency.fromCode(rawCurrency)
+          : null;
+      if (currency != null && !conversionCurrencies.contains(currency)) {
+        conversionCurrencies.add(currency);
+      }
     }
 
     return LogisticsData(
@@ -284,6 +355,7 @@ class LogisticsData {
       rateSource: rawRateSource as String? ?? 'Manual',
       targetCurrency: target,
       baseCurrency: baseCurrency,
+      conversionCurrencies: conversionCurrencies,
       baseTimeZoneIanaName: rawBaseTimeZone ?? 'Asia/Jakarta',
     );
   }
