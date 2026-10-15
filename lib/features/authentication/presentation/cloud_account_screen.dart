@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import 'cloud_account_cubit.dart';
 
 class CloudAccountScreen extends StatefulWidget {
@@ -127,23 +130,25 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
                         textInputAction: TextInputAction.next,
+                        inputFormatters: [
+                          const SingleLineInputFormatter(),
+                          const ForbiddenCharactersInputFormatter(),
+                          LengthLimitingTextInputFormatter(
+                            InputLimits.emailMaxLength,
+                          ),
+                        ],
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
-                        validator: (value) =>
-                            value == null ||
-                                !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                    .hasMatch(value.trim())
-                            ? 'Masukkan email yang valid.'
-                            : null,
+                        validator: TextValidators.email,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _passwordController,
                         enabled: state.isConfigured && !state.isLoading,
-                        maxLength: 128,
+                        maxLength: InputLimits.passwordMaxLength,
                         obscureText: !_showPassword,
                         autofillHints: [
                           _isRegistering
@@ -153,6 +158,10 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                         textInputAction: _isRegistering
                             ? TextInputAction.next
                             : TextInputAction.done,
+                        inputFormatters: const [
+                          SingleLineInputFormatter(),
+                          ForbiddenCharactersInputFormatter(),
+                        ],
                         decoration: InputDecoration(
                           labelText: 'Kata sandi',
                           border: const OutlineInputBorder(),
@@ -170,9 +179,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                             ),
                           ),
                         ),
-                        validator: (value) => value == null || value.length < 8
-                            ? 'Kata sandi harus terdiri dari minimal 8 karakter.'
-                            : null,
+                        validator: TextValidators.password,
                         onFieldSubmitted: _isRegistering
                             ? null
                             : (_) => _submit(),
@@ -182,19 +189,24 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
                         TextFormField(
                           controller: _confirmationController,
                           enabled: state.isConfigured && !state.isLoading,
-                          maxLength: 128,
+                          maxLength: InputLimits.passwordMaxLength,
                           obscureText: true,
                           autofillHints: const [AutofillHints.newPassword],
                           textInputAction: TextInputAction.done,
+                          inputFormatters: const [
+                            SingleLineInputFormatter(),
+                            ForbiddenCharactersInputFormatter(),
+                          ],
                           decoration: const InputDecoration(
                             labelText: 'Ulangi kata sandi',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.lock_outline),
                           ),
                           validator: (value) =>
-                              value != _passwordController.text
-                              ? 'Kata sandi belum cocok.'
-                              : null,
+                              TextValidators.passwordConfirmation(
+                                value,
+                                _passwordController.text,
+                              ),
                           onFieldSubmitted: (_) => _submit(),
                         ),
                       ],

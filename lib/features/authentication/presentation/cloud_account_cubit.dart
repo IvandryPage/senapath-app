@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/validation/validators.dart';
 import '../data/device_authenticator.dart';
 import '../data/cloud_account_gateway.dart';
 import '../data/custom_auth_session_manager.dart';
@@ -388,19 +389,8 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
-  String? _validate(String email, String password) {
-    if (!_isValidEmail(email)) return 'Masukkan alamat email yang valid.';
-    if (password.length < 8) {
-      return 'Kata sandi harus terdiri dari minimal 8 karakter.';
-    }
-    if (password.length > 128) {
-      return 'Kata sandi maksimal 128 karakter.';
-    }
-    return null;
-  }
-
-  bool _isValidEmail(String email) =>
-      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
+  String? _validate(String email, String password) =>
+      TextValidators.email(email) ?? TextValidators.password(password);
 
   String _messageFor(Object error, String fallback) => switch (error) {
     CustomAuthException(:final message) => message,

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/validation/validators.dart';
 import '../data/user_profile_repository.dart';
 import '../domain/user_profile.dart';
 
@@ -141,13 +142,18 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<bool> saveProfile(UserProfile profile) async {
-    final cleanedName = profile.displayName.trim();
+    final cleanedName = TextValidators.sanitizeSingleLine(profile.displayName);
     if (cleanedName.isEmpty) {
       emit(state.copyWith(message: 'Nama tidak boleh kosong.'));
       return false;
     }
-    if (cleanedName.length > 60) {
-      emit(state.copyWith(message: 'Nama maksimal 60 karakter.'));
+    if (cleanedName.runes.length > InputLimits.displayNameMaxLength) {
+      emit(
+        state.copyWith(
+          message:
+              'Nama maksimal ${InputLimits.displayNameMaxLength} karakter.',
+        ),
+      );
       return false;
     }
 
@@ -196,7 +202,24 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<void> saveContact(EmergencyContact contact) async {
-    final index = state.contacts.indexWhere((item) => item.id == contact.id);
+    final cleanedName = TextValidators.sanitizeSingleLine(contact.name);
+    if (cleanedName.isEmpty ||
+        cleanedName.runes.length > InputLimits.displayNameMaxLength) {
+      emit(state.copyWith(message: 'Nama kontak harus 1 sampai '
+          '${InputLimits.displayNameMaxLength} karakter.'));
+      return;
+    }
+    if (contact.phone.trim().isEmpty) {
+      emit(state.copyWith(message: 'Nomor telepon kontak belum diisi.'));
+      return;
+    }
+    final normalized = EmergencyContact(
+      id: contact.id,
+      name: cleanedName,
+      phone: contact.phone.trim(),
+      relationship: TextValidators.sanitizeSingleLine(contact.relationship),
+    );
+    final index = state.contacts.indexWhere((item) => item.id == normalized.id);
     if (index < 0 && state.contacts.length >= maximumContacts) {
       emit(state.copyWith(message: 'Maksimal tiga kontak darurat.'));
       return;
@@ -204,9 +227,9 @@ class ProfileCubit extends Cubit<ProfileState> {
 
     final updated = [...state.contacts];
     if (index < 0) {
-      updated.add(contact);
+      updated.add(normalized);
     } else {
-      updated[index] = contact;
+      updated[index] = normalized;
     }
     await _save(
       () => _repository.saveContacts(updated),

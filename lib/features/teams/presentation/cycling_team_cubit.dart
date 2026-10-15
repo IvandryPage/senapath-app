@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/validation/validators.dart';
 import '../data/cycling_team_repository.dart';
 import '../domain/cycling_team.dart';
 
@@ -105,8 +106,26 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
     required String name,
     required String displayName,
   }) async {
+    final error = TextValidators.name(
+          name,
+          label: 'nama tim',
+          minLength: InputLimits.teamNameMinLength,
+          maxLength: InputLimits.teamNameMaxLength,
+        ) ??
+        TextValidators.name(
+          displayName,
+          label: 'nama tampilan',
+          maxLength: InputLimits.displayNameMaxLength,
+        );
+    if (error != null) {
+      emit(state.copyWith(isSaving: false, error: error));
+      return;
+    }
     await _mutate(
-      () => _repository.createTeam(name, displayName),
+      () => _repository.createTeam(
+        TextValidators.sanitizeSingleLine(name),
+        TextValidators.sanitizeSingleLine(displayName),
+      ),
       successMessage: 'Tim berhasil dibuat.',
     );
   }
@@ -115,8 +134,22 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
     required String inviteCode,
     required String displayName,
   }) async {
+    final error =
+        TextValidators.inviteCode(inviteCode) ??
+        TextValidators.name(
+          displayName,
+          label: 'nama tampilan',
+          maxLength: InputLimits.displayNameMaxLength,
+        );
+    if (error != null) {
+      emit(state.copyWith(isSaving: false, error: error));
+      return;
+    }
     await _mutate(
-      () => _repository.joinTeam(inviteCode, displayName),
+      () => _repository.joinTeam(
+        TextValidators.sanitizeSingleLine(inviteCode).toUpperCase(),
+        TextValidators.sanitizeSingleLine(displayName),
+      ),
       successMessage: 'Berhasil bergabung dengan tim.',
     );
   }

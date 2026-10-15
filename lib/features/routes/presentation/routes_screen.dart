@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../../core/widgets/active_navigation_branch.dart';
 import '../../../core/widgets/feature_state_view.dart';
 import '../data/overpass_route_places_service.dart';
@@ -729,6 +732,13 @@ class _GpxRoutePickerState extends State<_GpxRoutePicker> {
                 key: const ValueKey('explore-gpx-search'),
                 controller: _searchController,
                 onChanged: context.read<RoutesCubit>().search,
+                inputFormatters: [
+                  const SingleLineInputFormatter(),
+                  const ForbiddenCharactersInputFormatter(),
+                  LengthLimitingTextInputFormatter(
+                    InputLimits.searchQueryMaxLength,
+                  ),
+                ],
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
                   hintText: 'Cari nama rute',
@@ -933,6 +943,13 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
             TextField(
               key: const ValueKey('gpx-route-search'),
               onChanged: context.read<RoutesCubit>().search,
+              inputFormatters: [
+                const SingleLineInputFormatter(),
+                const ForbiddenCharactersInputFormatter(),
+                LengthLimitingTextInputFormatter(
+                  InputLimits.searchQueryMaxLength,
+                ),
+              ],
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
                 hintText: 'Cari nama rute',

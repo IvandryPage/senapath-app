@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../../core/widgets/press_scale.dart';
 import '../../routes/domain/saved_route.dart';
 import '../domain/logistics_models.dart';
@@ -183,7 +185,11 @@ class _ResupplyCacheSheetState extends State<ResupplyCacheSheet> {
               const SizedBox(height: 8),
               TextField(
                 controller: _areaHintController,
-                maxLength: 100,
+                maxLength: InputLimits.areaHintMaxLength,
+                inputFormatters: [
+                  const SingleLineInputFormatter(),
+                  const ForbiddenCharactersInputFormatter(),
+                ],
                 decoration: const InputDecoration(
                   labelText: 'Negara/kota (opsional)',
                   helperText: 'Nama wilayah ini dikirim untuk memperkirakan harga. Titik GPS tidak dikirim.',
@@ -532,6 +538,7 @@ class _CustomResupplyItemDialog extends StatefulWidget {
 }
 
 class _CustomResupplyItemDialogState extends State<_CustomResupplyItemDialog> {
+  final _formKey = GlobalKey<FormState>();
   final _controller = TextEditingController();
 
   @override
@@ -540,35 +547,47 @@ class _CustomResupplyItemDialogState extends State<_CustomResupplyItemDialog> {
     super.dispose();
   }
 
+  String? _validate(String? value) => TextValidators.name(
+    value,
+    label: 'nama barang',
+    maxLength: InputLimits.itemNameMaxLength,
+    emptyMessage: 'Isi nama barang.',
+  );
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.pop(context, _controller.text.trim());
+  }
+
   @override
   Widget build(BuildContext context) => SenapathAlertDialog(
+    scrollable: true,
     title: const Text('Tambah barang resupply'),
-    content: TextField(
-      controller: _controller,
-      autofocus: true,
-      maxLength: 60,
-      textCapitalization: TextCapitalization.sentences,
-      decoration: const InputDecoration(
-        labelText: 'Nama barang',
-        hintText: 'Contoh: roti isi atau baterai lampu',
+    content: Form(
+      key: _formKey,
+      child: TextFormField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: InputLimits.itemNameMaxLength,
+        textCapitalization: TextCapitalization.sentences,
+        inputFormatters: const [
+          SingleLineInputFormatter(),
+          ForbiddenCharactersInputFormatter(),
+        ],
+        decoration: const InputDecoration(
+          labelText: 'Nama barang',
+          hintText: 'Contoh: roti isi atau baterai lampu',
+        ),
+        validator: _validate,
+        onFieldSubmitted: (_) => _submit(),
       ),
-      onSubmitted: (value) {
-        final label = value.trim();
-        if (label.isNotEmpty) Navigator.pop(context, label);
-      },
     ),
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
         child: const Text('Batal'),
       ),
-      FilledButton(
-        onPressed: () {
-          final label = _controller.text.trim();
-          if (label.isNotEmpty) Navigator.pop(context, label);
-        },
-        child: const Text('Tambah'),
-      ),
+      FilledButton(onPressed: _submit, child: const Text('Tambah')),
     ],
   );
 }

@@ -29,6 +29,7 @@ class SenapathAlertDialog extends StatelessWidget {
     this.contentPadding = const EdgeInsets.fromLTRB(24, 16, 24, 8),
     this.titlePadding = const EdgeInsets.fromLTRB(24, 24, 24, 0),
     this.actionsPadding = const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    this.scrollable = false,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class SenapathAlertDialog extends StatelessWidget {
   final EdgeInsetsGeometry contentPadding;
   final EdgeInsetsGeometry titlePadding;
   final EdgeInsetsGeometry actionsPadding;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -47,6 +49,7 @@ class SenapathAlertDialog extends StatelessWidget {
     titlePadding: titlePadding,
     contentPadding: contentPadding,
     actionsPadding: actionsPadding,
+    scrollable: scrollable,
     actionsOverflowButtonSpacing: SenapathSpacing.xs,
   );
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/validation/validators.dart';
 import '../data/activity_goals_repository.dart';
 import '../domain/activity_progress.dart';
 
@@ -43,6 +44,21 @@ class ActivityGoalsCubit extends Cubit<ActivityGoalsState> {
   }
 
   Future<void> upsert(ActivityGoal goal) async {
+    final maxTarget = switch (goal.metric) {
+      GoalMetric.completedSessions => InputLimits.goalSessionsMax,
+      GoalMetric.distanceMeters => InputLimits.goalDistanceKmMax * 1000,
+      GoalMetric.activeSeconds => InputLimits.goalActiveHoursMax * 3600,
+    };
+    if (goal.id.trim().isEmpty ||
+        !goal.target.isFinite ||
+        goal.target <= 0 ||
+        goal.target > maxTarget) {
+      throw ArgumentError.value(
+        goal.target,
+        'target',
+        'Use a positive target within the allowed limit.',
+      );
+    }
     final index = state.goals.indexWhere((item) => item.id == goal.id);
     final updated = [...state.goals];
     if (index < 0) {

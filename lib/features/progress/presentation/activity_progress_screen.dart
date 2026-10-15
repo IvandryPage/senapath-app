@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
 import '../domain/activity_progress.dart';
@@ -604,13 +606,49 @@ class _GoalDialogState extends State<_GoalDialog> {
   }
 
   double? _targetValue() {
-    final value = double.tryParse(_target.text.trim().replaceAll(',', '.'));
-    if (value == null || !value.isFinite || value <= 0) return null;
+    final value = _rawTarget();
+    if (value == null || value <= 0) return null;
     return switch (_metric) {
       GoalMetric.completedSessions => value,
       GoalMetric.distanceMeters => value * 1000,
       GoalMetric.activeSeconds => value * 3600,
     };
+  }
+
+  double? _rawTarget() {
+    final value = double.tryParse(_target.text.trim().replaceAll(',', '.'));
+    if (value == null || !value.isFinite) return null;
+    return value;
+  }
+
+  double _maxRawTarget(GoalMetric metric) => switch (metric) {
+    GoalMetric.completedSessions => InputLimits.goalSessionsMax,
+    GoalMetric.distanceMeters => InputLimits.goalDistanceKmMax,
+    GoalMetric.activeSeconds => InputLimits.goalActiveHoursMax,
+  };
+
+  String _targetFieldLabel(GoalMetric metric) => switch (metric) {
+    GoalMetric.completedSessions => 'jumlah sesi',
+    GoalMetric.distanceMeters => 'jarak (km)',
+    GoalMetric.activeSeconds => 'durasi (jam)',
+  };
+
+  String? _validateTarget(String? value) {
+    if (_metric == GoalMetric.completedSessions) {
+      return TextValidators.positiveInteger(
+        value,
+        label: 'jumlah sesi',
+        parsed: int.tryParse((value ?? '').trim()),
+        max: InputLimits.goalSessionsMax.toInt(),
+      );
+    }
+    return TextValidators.number(
+      value,
+      label: _targetFieldLabel(_metric),
+      parsed: _rawTarget(),
+      max: _maxRawTarget(_metric),
+      maxDecimals: InputLimits.goalMaxDecimals,
+    );
   }
 
   String _formatTarget(double value, GoalMetric metric) => switch (metric) {
@@ -621,6 +659,7 @@ class _GoalDialogState extends State<_GoalDialog> {
 
   @override
   Widget build(BuildContext context) => SenapathAlertDialog(
+    scrollable: true,
     title: Text(widget.existing == null ? 'Buat target' : 'Ubah target'),
     content: Form(
       key: _formKey,
@@ -663,10 +702,12 @@ class _GoalDialogState extends State<_GoalDialog> {
           TextFormField(
             controller: _target,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: const [
+              SingleLineInputFormatter(),
+              ForbiddenCharactersInputFormatter(),
+            ],
             decoration: InputDecoration(labelText: _targetLabel(_metric)),
-            validator: (_) => _targetValue() == null
-                ? 'Masukkan target yang lebih besar dari nol.'
-                : null,
+            validator: _validateTarget,
           ),
         ],
       ),

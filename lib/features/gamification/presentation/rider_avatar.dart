@@ -58,6 +58,11 @@ class RiderAvatar extends StatelessWidget {
   IconData get _styleIcon => switch (style) {
     RiderStyle.sprinter => Icons.bolt,
     RiderStyle.climber => Icons.terrain,
+    RiderStyle.puncheur => Icons.landscape,
+    RiderStyle.rouleur => Icons.directions_bike,
+    RiderStyle.timetrialist => Icons.timer,
+    RiderStyle.domestique => Icons.groups,
+    RiderStyle.leadout => Icons.flag,
     RiderStyle.explorer => Icons.explore,
     RiderStyle.ace => Icons.stars,
   };

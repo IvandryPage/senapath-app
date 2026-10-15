@@ -11,6 +11,8 @@ import 'package:latlong2/latlong.dart' as latlong;
 
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../routes/data/route_file_exchange.dart';
@@ -2032,6 +2034,7 @@ class _ActivityMetadataDialog extends StatefulWidget {
 
 class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
   late final TextEditingController _nameController;
+  final _formKey = GlobalKey<FormState>();
   late RideActivityType _activityType;
 
   @override
@@ -2051,40 +2054,53 @@ class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
     title: const Text('Detail aktivitas'),
-    content: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TextField(
-          controller: _nameController,
-          maxLength: 60,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Nama aktivitas',
-            hintText: 'Contoh: Gowes pagi',
-          ),
-        ),
-        const SizedBox(height: 12),
-        InputDecorator(
-          decoration: const InputDecoration(labelText: 'Jenis'),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<RideActivityType>(
-              value: _activityType,
-              isExpanded: true,
-              isDense: true,
-              items: [
-                for (final type in RideActivityType.values)
-                  DropdownMenuItem(
-                    value: type,
-                    child: Text(_activityTypeLabelForDialog(type)),
-                  ),
-              ],
-              onChanged: (value) {
-                if (value != null) setState(() => _activityType = value);
-              },
+    content: Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            maxLength: InputLimits.sessionNameMaxLength,
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: const [
+              SingleLineInputFormatter(),
+              ForbiddenCharactersInputFormatter(),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Nama aktivitas',
+              hintText: 'Contoh: Gowes pagi',
+            ),
+            validator: (value) => TextValidators.name(
+              value,
+              label: 'nama aktivitas',
+              maxLength: InputLimits.sessionNameMaxLength,
+              emptyMessage: 'Isi nama aktivitas.',
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          InputDecorator(
+            decoration: const InputDecoration(labelText: 'Jenis'),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<RideActivityType>(
+                value: _activityType,
+                isExpanded: true,
+                isDense: true,
+                items: [
+                  for (final type in RideActivityType.values)
+                    DropdownMenuItem(
+                      value: type,
+                      child: Text(_activityTypeLabelForDialog(type)),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => _activityType = value);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
     actions: [
       TextButton(
@@ -2092,8 +2108,10 @@ class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
         child: const Text('Batal'),
       ),
       FilledButton(
-        onPressed: () =>
-            Navigator.pop(context, (_nameController.text, _activityType)),
+        onPressed: () {
+          if (!_formKey.currentState!.validate()) return;
+          Navigator.pop(context, (_nameController.text.trim(), _activityType));
+        },
         child: const Text('Simpan'),
       ),
     ],

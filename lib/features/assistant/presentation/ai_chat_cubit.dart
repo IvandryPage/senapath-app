@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'dart:async';
 
+import '../../../core/validation/validators.dart';
 import '../data/ai_chat_gateway.dart';
 import '../domain/ai_chat_message.dart';
 
@@ -53,8 +54,19 @@ class AiChatCubit extends Cubit<AiChatState> {
     required String content,
     Map<String, Object?> context = const {},
   }) async {
-    final message = content.trim();
+    final message = TextValidators
+        .stripForbiddenCharacters(content, allowLineBreaks: true)
+        .trim();
     if (state.isSending || message.isEmpty) return;
+    if (message.length > InputLimits.chatMessageMaxLength) {
+      emit(
+        state.copyWith(
+          error:
+              'Pesan maksimal ${InputLimits.chatMessageMaxLength} karakter.',
+        ),
+      );
+      return;
+    }
     if (!isConfigured) {
       emit(
         state.copyWith(

@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
@@ -187,6 +189,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
     return showDialog<_TeamFormResult>(
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
+        scrollable: true,
         title: Text(join ? 'Gabung dengan kode' : 'Buat tim'),
         content: Form(
           key: formKey,
@@ -197,25 +200,39 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
                 TextFormField(
                   controller: inviteController,
                   textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    const SingleLineInputFormatter(),
+                    const ForbiddenCharactersInputFormatter(),
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
+                    LengthLimitingTextInputFormatter(
+                      InputLimits.inviteCodeMaxLength,
+                    ),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Kode undangan',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Masukkan kode undangan.'
-                      : null,
+                  validator: TextValidators.inviteCode,
                 )
               else
                 TextFormField(
                   controller: nameController,
-                  maxLength: 60,
+                  maxLength: InputLimits.teamNameMaxLength,
+                  inputFormatters: const [
+                    SingleLineInputFormatter(),
+                    ForbiddenCharactersInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Nama tim',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value == null || value.trim().length < 2
-                      ? 'Nama tim minimal 2 karakter.'
-                      : null,
+                  validator: (value) => TextValidators.name(
+                    value,
+                    label: 'nama tim',
+                    minLength: InputLimits.teamNameMinLength,
+                    maxLength: InputLimits.teamNameMaxLength,
+                    emptyMessage: 'Masukkan nama tim.',
+                  ),
                 ),
               const SizedBox(height: 12),
               ListTile(

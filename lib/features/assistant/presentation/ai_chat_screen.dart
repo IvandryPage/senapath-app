@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../routes/domain/saved_route.dart';
 import '../../routes/presentation/routes_cubit.dart';
 import 'ai_chat_cubit.dart';
@@ -210,6 +212,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       controller: _preferencesController,
                       minLines: 1,
                       maxLines: 3,
+                      inputFormatters: [
+                        const ForbiddenCharactersInputFormatter(
+                          allowLineBreaks: true,
+                        ),
+                        LengthLimitingTextInputFormatter(
+                          InputLimits.preferencesMaxLength,
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: 'Preferensi latihan',
                         hintText: 'Contoh: jaga tenaga di tanjakan panjang',
@@ -556,6 +566,14 @@ class _Composer extends StatelessWidget {
                       enabled: isConfigured && !isSending,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.send,
+                      inputFormatters: [
+                        const ForbiddenCharactersInputFormatter(
+                          allowLineBreaks: true,
+                        ),
+                        LengthLimitingTextInputFormatter(
+                          InputLimits.chatMessageMaxLength,
+                        ),
+                      ],
                       onChanged: onMessageChanged,
                       onSubmitted: canSend ? (_) => onSend() : null,
                       decoration: const InputDecoration(

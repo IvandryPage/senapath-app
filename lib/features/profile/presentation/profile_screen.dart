@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +12,8 @@ import 'package:phone_form_field/phone_form_field.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../emergency/presentation/emergency_cubit.dart';
 import '../../authentication/presentation/cloud_account_cubit.dart';
 import '../../gamification/presentation/rider_gamification_cubit.dart';
@@ -930,6 +932,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   @override
   Widget build(BuildContext context) {
     return SenapathAlertDialog(
+      scrollable: true,
       title: const Text('Edit profil'),
       content: Form(
         key: _formKey,
@@ -954,11 +957,20 @@ class _ProfileEditorState extends State<_ProfileEditor> {
             TextFormField(
               controller: _nameController,
               autofocus: true,
-              maxLength: 60,
+              maxLength: InputLimits.displayNameMaxLength,
               textCapitalization: TextCapitalization.words,
+              inputFormatters: const [
+                SingleLineInputFormatter(),
+                ForbiddenCharactersInputFormatter(),
+              ],
               decoration: const InputDecoration(labelText: 'Nama'),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Isi nama.' : null,
+              validator: (value) => TextValidators.name(
+                value,
+                label: 'nama',
+                minLength: InputLimits.displayNameMinLength,
+                maxLength: InputLimits.displayNameMaxLength,
+                emptyMessage: 'Isi nama.',
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<RiderStyle>(
@@ -1042,6 +1054,7 @@ class _ContactEditorState extends State<_ContactEditor> {
   @override
   Widget build(BuildContext context) {
     return SenapathAlertDialog(
+      scrollable: true,
       title: Text(widget.contact == null ? 'Tambah kontak' : 'Edit kontak'),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       content: Form(
@@ -1054,12 +1067,23 @@ class _ContactEditorState extends State<_ContactEditor> {
               controller: _nameController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
+              inputFormatters: [
+                const SingleLineInputFormatter(),
+                const ForbiddenCharactersInputFormatter(),
+                LengthLimitingTextInputFormatter(
+                  InputLimits.displayNameMaxLength,
+                ),
+              ],
               decoration: const InputDecoration(
                 labelText: 'Nama',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Isi nama.' : null,
+              validator: (value) => TextValidators.name(
+                value,
+                label: 'nama',
+                maxLength: InputLimits.displayNameMaxLength,
+                emptyMessage: 'Isi nama.',
+              ),
             ),
             const SizedBox(height: 16),
             PhoneFormField(
@@ -1098,13 +1122,23 @@ class _ContactEditorState extends State<_ContactEditor> {
             TextFormField(
               controller: _relationshipController,
               textCapitalization: TextCapitalization.sentences,
+              inputFormatters: [
+                const SingleLineInputFormatter(),
+                const ForbiddenCharactersInputFormatter(),
+                LengthLimitingTextInputFormatter(
+                  InputLimits.relationshipMaxLength,
+                ),
+              ],
               decoration: const InputDecoration(
                 labelText: 'Hubungan',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Isi hubungan.'
-                  : null,
+              validator: (value) => TextValidators.name(
+                value,
+                label: 'hubungan',
+                maxLength: InputLimits.relationshipMaxLength,
+                emptyMessage: 'Isi hubungan.',
+              ),
             ),
           ],
         ),

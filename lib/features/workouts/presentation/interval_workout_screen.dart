@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
 import '../domain/interval_workout.dart';
@@ -195,11 +198,18 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  maxLength: 60,
+                  maxLength: InputLimits.workoutNameMaxLength,
+                  inputFormatters: const [
+                    SingleLineInputFormatter(),
+                    ForbiddenCharactersInputFormatter(),
+                  ],
                   decoration: const InputDecoration(labelText: 'Nama latihan'),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Masukkan nama latihan.'
-                      : null,
+                  validator: (value) => TextValidators.name(
+                    value,
+                    label: 'nama latihan',
+                    maxLength: InputLimits.workoutNameMaxLength,
+                    emptyMessage: 'Masukkan nama latihan.',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 for (var index = 0; index < _intervals.length; index++)
@@ -284,11 +294,18 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
             ),
             TextFormField(
               controller: draft.nameController,
-              maxLength: 40,
+              maxLength: InputLimits.intervalLabelMaxLength,
+              inputFormatters: const [
+                SingleLineInputFormatter(),
+                ForbiddenCharactersInputFormatter(),
+              ],
               decoration: const InputDecoration(labelText: 'Label'),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Masukkan label interval.'
-                  : null,
+              validator: (value) => TextValidators.name(
+                value,
+                label: 'label interval',
+                maxLength: InputLimits.intervalLabelMaxLength,
+                emptyMessage: 'Masukkan label interval.',
+              ),
             ),
             DropdownButtonFormField<WorkoutTargetType>(
               initialValue: draft.targetType,
@@ -310,6 +327,10 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
             TextFormField(
               controller: draft.targetController,
               keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                const SingleLineInputFormatter(),
+              ],
               decoration: InputDecoration(
                 labelText: draft.targetType == WorkoutTargetType.duration
                     ? 'Durasi dalam detik'
@@ -318,11 +339,16 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
               validator: (value) {
                 final target = int.tryParse(value ?? '');
                 final max = draft.targetType == WorkoutTargetType.duration
-                    ? 86400
-                    : 1000000;
-                return target == null || target <= 0 || target > max
-                    ? 'Masukkan angka 1–$max.'
-                    : null;
+                    ? InputLimits.intervalDurationMaxSeconds
+                    : InputLimits.intervalDistanceMaxMeters;
+                return TextValidators.positiveInteger(
+                  value,
+                  label: draft.targetType == WorkoutTargetType.duration
+                      ? 'durasi'
+                      : 'jarak',
+                  parsed: target,
+                  max: max,
+                );
               },
             ),
             CheckboxListTile(

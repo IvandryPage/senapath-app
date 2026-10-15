@@ -12,6 +12,7 @@ import '../data/ride_session_cloud_sync.dart';
 import '../data/ride_session_repository.dart';
 import '../data/session_sync_coordinator.dart';
 import '../data/session_sync_settings_repository.dart';
+import '../../../core/validation/validators.dart';
 import '../../notifications/data/notification_settings_repository.dart';
 import '../../notifications/data/ride_notification_service.dart';
 import '../../ledger/data/ride_ledger_repository.dart';
@@ -678,10 +679,17 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     required String title,
     required RideActivityType activityType,
   }) async {
+    final normalizedTitle = TextValidators.sanitizeSingleLine(title);
+    if (normalizedTitle.isEmpty ||
+        normalizedTitle.runes.length > InputLimits.sessionNameMaxLength) {
+      _setMessage('Nama aktivitas harus 1 sampai '
+          '${InputLimits.sessionNameMaxLength} karakter.');
+      return;
+    }
     try {
       final updated = await repository.updateActivityMetadata(
         sessionId: sessionId,
-        title: title,
+        title: normalizedTitle,
         activityType: activityType,
       );
       final history = [

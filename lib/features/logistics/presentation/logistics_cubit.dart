@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../assistant/data/ai_chat_gateway.dart';
 import '../../assistant/domain/ai_chat_message.dart';
+import '../../../core/validation/validators.dart';
 import '../data/exchange_rate_service.dart';
 import '../data/logistics_repository.dart';
 import '../domain/event_time_converter.dart';
@@ -55,12 +56,37 @@ class LogisticsCubit extends Cubit<LogisticsState> {
   }
 
   Future<void> upsertItem(BudgetItem item) async {
+    final name = item.name.trim();
+    if (item.id.trim().isEmpty ||
+        name.isEmpty ||
+        name.runes.length > InputLimits.itemNameMaxLength) {
+      throw ArgumentError.value(
+        item.name,
+        'name',
+        'Use 1 to ${InputLimits.itemNameMaxLength} characters.',
+      );
+    }
+    if (!item.amount.isFinite ||
+        item.amount <= 0 ||
+        item.amount > InputLimits.moneyMaxAmount) {
+      throw ArgumentError.value(
+        item.amount,
+        'amount',
+        'Use a positive amount within the allowed limit.',
+      );
+    }
+    final normalized = BudgetItem(
+      id: item.id,
+      name: name,
+      amount: item.amount,
+      currency: item.currency,
+    );
     final items = [...state.data.items];
     final index = items.indexWhere((existing) => existing.id == item.id);
     if (index == -1) {
-      items.add(item);
+      items.add(normalized);
     } else {
-      items[index] = item;
+      items[index] = normalized;
     }
     await _persist(_copyData(items: items));
   }
@@ -84,6 +110,19 @@ class LogisticsCubit extends Cubit<LogisticsState> {
         'Budget category does not exist.',
       );
     }
+    if (!expense.amount.isFinite ||
+        expense.amount <= 0 ||
+        expense.amount > InputLimits.moneyMaxAmount) {
+      throw ArgumentError.value(
+        expense.amount,
+        'amount',
+        'Use a positive amount within the allowed limit.',
+      );
+    }
+    if (expense.note.runes.length > InputLimits.expenseNoteMaxLength ||
+        TextValidators.hasForbiddenCharacters(expense.note)) {
+      throw ArgumentError.value(expense.note, 'note', 'Invalid note.');
+    }
     final expenses = [...state.data.expenses];
     final index = expenses.indexWhere((existing) => existing.id == expense.id);
     if (index == -1) {
@@ -106,8 +145,15 @@ class LogisticsCubit extends Cubit<LogisticsState> {
 
   Future<void> upsertCustomResupplyItem(CustomResupplyItem item) async {
     final name = item.name.trim();
-    if (item.id.trim().isEmpty || name.isEmpty || name.length > 60) {
-      throw ArgumentError.value(item.name, 'name', 'Use 1 to 60 characters.');
+    if (item.id.trim().isEmpty ||
+        name.isEmpty ||
+        name.runes.length > InputLimits.itemNameMaxLength ||
+        TextValidators.hasForbiddenCharacters(name)) {
+      throw ArgumentError.value(
+        item.name,
+        'name',
+        'Use 1 to ${InputLimits.itemNameMaxLength} characters.',
+      );
     }
     final items = [...state.data.customResupplyItems];
     final index = items.indexWhere((existing) => existing.id == item.id);
@@ -135,7 +181,8 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     for (final entry in rates.entries) {
       if (entry.key == BudgetCurrency.eur ||
           !entry.value.isFinite ||
-          entry.value <= 0) {
+          entry.value <= 0 ||
+          entry.value > InputLimits.moneyMaxAmount) {
         throw ArgumentError.value(
           entry.value,
           entry.key.code,
@@ -210,8 +257,13 @@ class LogisticsCubit extends Cubit<LogisticsState> {
       throw ArgumentError.value(items, 'items', 'Pilih 1 sampai 8 kebutuhan.');
     }
     final normalizedArea = areaHint.trim();
-    if (normalizedArea.length > 100) {
-      throw ArgumentError.value(areaHint, 'areaHint', 'Wilayah terlalu panjang.');
+    if (normalizedArea.length > InputLimits.areaHintMaxLength ||
+        TextValidators.hasForbiddenCharacters(normalizedArea)) {
+      throw ArgumentError.value(
+        areaHint,
+        'areaHint',
+        'Area hint is too long or invalid.',
+      );
     }
     final request = 'Estimasi kisaran harga non-real-time untuk barang ini: '
         '${jsonEncode(items)}. Mata uang lokal ${localCurrency.code}; '

@@ -1,29 +1,60 @@
 import '../../session/domain/ride_session.dart';
 
 enum RiderStyle {
-  sprinter,
-  climber,
-  explorer,
-  ace;
-
-  static RiderStyle fromName(Object? name) => RiderStyle.values.firstWhere(
-    (style) => style.name == name,
-    orElse: () => RiderStyle.explorer,
+  sprinter(
+    label: 'Sprinter',
+    description: 'Spesialis kecepatan tinggi di jalan datar dan adu sprint garis finish.',
+  ),
+  climber(
+    label: 'Climber',
+    description: 'Spesialis rute pegunungan dan tanjakan curam.',
+  ),
+  ace(
+    label: 'Ace / Leader',
+    description: 'Kapten utama tim dengan performa konsisten di berbagai medan.',
+  ),
+  puncheur(
+    label: 'Puncheur',
+    description: 'Tangguh melakukan akselerasi mendadak di tanjakan pendek.',
+  ),
+  rouleur(
+    label: 'Rouleur',
+    description: 'Pembalap serba bisa penahan angin dan pengatur ritme peleton.',
+  ),
+  timetrialist(
+    label: 'Time Trialist',
+    description: 'Spesialis balap solo melawan waktu dengan posisi aerodinamis.',
+  ),
+  domestique(
+    label: 'Domestique',
+    description: 'Pembalap pendukung yang bekerja demi strategi kemenangan tim.',
+  ),
+  leadout(
+    label: 'Lead-out',
+    description: 'Pembalap penarik sprint di kilometer terakhir untuk memecah angin.',
+  ),
+  explorer(
+    label: 'Explorer',
+    description: 'Pesepeda yang gemar eksplorasi rute baru dan variasi medan.',
   );
 
-  String get label => switch (this) {
-    RiderStyle.sprinter => 'Pengejar kecepatan',
-    RiderStyle.climber => 'Penakluk tanjakan',
-    RiderStyle.explorer => 'Penjelajah rute',
-    RiderStyle.ace => 'Serba bisa',
-  };
+  const RiderStyle({
+    required this.label,
+    required this.description,
+  });
 
-  String get description => switch (this) {
-    RiderStyle.sprinter => 'Fokus pada kecepatan dan konsistensi.',
-    RiderStyle.climber => 'Tangguh menghadapi tanjakan.',
-    RiderStyle.explorer => 'Senang mencoba rute baru.',
-    RiderStyle.ace => 'Serba bisa untuk berbagai medan dan strategi lomba.',
-  };
+  final String label;
+  final String description;
+
+  /// Parsing safe & case-insensitive dari JSON / API response.
+  static RiderStyle fromName(Object? name) {
+    if (name == null) return RiderStyle.explorer;
+    final normalized = name.toString().trim().toLowerCase();
+    return RiderStyle.values.firstWhere(
+      (style) => style.name.toLowerCase() == normalized,
+      orElse: () => RiderStyle.explorer,
+    );
+  }
 }
 
 enum RiderKitColor {

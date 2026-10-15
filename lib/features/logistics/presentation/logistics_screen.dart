@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import '../../../core/validation/input_formatters.dart';
+import '../../../core/validation/validators.dart';
 import '../domain/event_time_converter.dart';
 import '../domain/logistics_models.dart';
 import 'amount_input_formatter.dart';
@@ -372,7 +375,11 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
         TextField(
           key: const Key('eur-converter-amount'),
           controller: _eurAmountController,
-          inputFormatters: const [AmountInputFormatter()],
+          inputFormatters: [
+            AmountInputFormatter(),
+            ForbiddenCharactersInputFormatter(),
+            LengthLimitingTextInputFormatter(20),
+          ],
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             labelText: 'Nominal',
@@ -964,12 +971,19 @@ class _TimeZonePickerDialogState extends State<_TimeZonePickerDialog> {
       title: const Text('Pilih zona waktu'),
       content: SizedBox(
         width: 420,
-        height: 420,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: _searchController,
               autofocus: true,
+              inputFormatters: [
+                const SingleLineInputFormatter(),
+                const ForbiddenCharactersInputFormatter(),
+                LengthLimitingTextInputFormatter(
+                  InputLimits.searchQueryMaxLength,
+                ),
+              ],
               decoration: const InputDecoration(
                 labelText: 'Cari kota atau zona',
                 prefixIcon: Icon(Icons.search),
@@ -977,21 +991,25 @@ class _TimeZonePickerDialogState extends State<_TimeZonePickerDialog> {
               onChanged: (value) => setState(() => _query = value),
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: matches.isEmpty
-                  ? const Center(child: Text('Zona waktu tidak ditemukan.'))
-                  : ListView.builder(
-                      itemCount: matches.length,
-                      itemBuilder: (context, index) {
-                        final zone = matches[index];
-                        return ListTile(
-                          dense: true,
-                          title: Text(zone.label),
-                          subtitle: Text(zone.ianaName),
-                          onTap: () => Navigator.of(context).pop(zone),
-                        );
-                      },
-                    ),
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 360),
+                child: matches.isEmpty
+                    ? const Center(child: Text('Zona waktu tidak ditemukan.'))
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: matches.length,
+                        itemBuilder: (context, index) {
+                          final zone = matches[index];
+                          return ListTile(
+                            dense: true,
+                            title: Text(zone.label),
+                            subtitle: Text(zone.ianaName),
+                            onTap: () => Navigator.of(context).pop(zone),
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         ),
@@ -1043,6 +1061,7 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
 
   @override
   Widget build(BuildContext context) => SenapathAlertDialog(
+    scrollable: true,
     title: Text(widget.existing == null ? 'Tambah anggaran' : 'Edit anggaran'),
     content: Form(
       key: _formKey,
@@ -1051,22 +1070,34 @@ class _BudgetItemDialogState extends State<_BudgetItemDialog> {
         children: [
           TextFormField(
             controller: _nameController,
+            inputFormatters: [
+              const SingleLineInputFormatter(),
+              const ForbiddenCharactersInputFormatter(),
+              LengthLimitingTextInputFormatter(InputLimits.itemNameMaxLength),
+            ],
             decoration: const InputDecoration(labelText: 'Nama item'),
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Isi nama item.' : null,
+            validator: (value) => TextValidators.name(
+              value,
+              label: 'nama item',
+              maxLength: InputLimits.itemNameMaxLength,
+              emptyMessage: 'Isi nama item.',
+            ),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _amountController,
-            inputFormatters: const [AmountInputFormatter()],
+            inputFormatters: [
+              AmountInputFormatter(),
+              ForbiddenCharactersInputFormatter(),
+              LengthLimitingTextInputFormatter(20),
+            ],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Nominal'),
-            validator: (value) {
-              final amount = _parseAmount(value);
-              return amount == null || amount <= 0
-                  ? 'Masukkan nominal lebih dari nol.'
-                  : null;
-            },
+            validator: (value) => AmountValidators.amount(
+              value,
+              label: 'nominal',
+              parsed: _parseAmount(value),
+            ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<BudgetCurrency>(
@@ -1179,19 +1210,22 @@ class _BudgetExpenseDialogState extends State<_BudgetExpenseDialog> {
           children: [
             TextFormField(
               controller: _amountController,
-              inputFormatters: const [AmountInputFormatter()],
+              inputFormatters: [
+                AmountInputFormatter(),
+                ForbiddenCharactersInputFormatter(),
+                LengthLimitingTextInputFormatter(20),
+              ],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(
                 labelText: 'Nominal yang dibayar',
               ),
-              validator: (value) {
-                final amount = _parseAmount(value);
-                return amount == null || amount <= 0
-                    ? 'Masukkan nominal lebih dari nol.'
-                    : null;
-              },
+              validator: (value) => AmountValidators.amount(
+                value,
+                label: 'nominal',
+                parsed: _parseAmount(value),
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<BudgetCurrency>(
@@ -1208,11 +1242,23 @@ class _BudgetExpenseDialogState extends State<_BudgetExpenseDialog> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _noteController,
+              inputFormatters: [
+                const SingleLineInputFormatter(),
+                const ForbiddenCharactersInputFormatter(),
+                LengthLimitingTextInputFormatter(
+                  InputLimits.expenseNoteMaxLength,
+                ),
+              ],
               decoration: const InputDecoration(
                 labelText: 'Catatan (opsional)',
                 hintText: 'Contoh: makan siang',
               ),
               textCapitalization: TextCapitalization.sentences,
+              validator: (value) => TextValidators.optionalText(
+                value,
+                label: 'catatan',
+                maxLength: InputLimits.expenseNoteMaxLength,
+              ),
             ),
             const SizedBox(height: 8),
             Align(
@@ -1309,20 +1355,23 @@ class _ExchangeRatesDialogState extends State<_ExchangeRatesDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _controllers[currency],
-                inputFormatters: const [AmountInputFormatter()],
+                inputFormatters: [
+                  AmountInputFormatter(),
+                  ForbiddenCharactersInputFormatter(),
+                  LengthLimitingTextInputFormatter(20),
+                ],
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 decoration: InputDecoration(
                   labelText: '1 EUR = ... ${currency.code}',
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) return null;
-                  final rate = _parseAmount(value);
-                  return rate == null || rate <= 0
-                      ? 'Masukkan kurs lebih dari nol.'
-                      : null;
-                },
+                validator: (value) => AmountValidators.amount(
+                  value,
+                  label: 'kurs',
+                  parsed: _parseAmount(value),
+                  required: false,
+                ),
               ),
             ],
             const SizedBox(height: 12),
