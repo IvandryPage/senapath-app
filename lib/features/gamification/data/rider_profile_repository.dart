@@ -17,6 +17,7 @@ class RiderProfileRepository {
 
   static const _styleKey = 'rider_style_v1';
   static const _appearanceKey = 'rider_appearance_v1';
+  static const _bonusExperienceKey = 'rider_bonus_experience_v1';
   final AppDatabase _database;
   final SupabaseClient? _cloudClient;
   final CustomAuthSessionManager? _sessionManager;
@@ -76,6 +77,38 @@ class RiderProfileRepository {
     if (gateway != null && gateway.isSignedIn) {
       try {
         await gateway.pushSetting(_appearanceKey, appearance.toJson());
+      } catch (_) {
+        // Persist locally only; a later load retries the cloud copy.
+      }
+    }
+  }
+
+  Future<int> loadBonusExperience() async {
+    final gateway = _cloudGateway;
+    if (gateway != null && gateway.isSignedIn) {
+      try {
+        final remote = await gateway.pullSetting(_bonusExperienceKey);
+        final bonus = _parseBonusExperience(remote);
+        if (bonus != null) {
+          await _saveLocalBonusExperience(bonus);
+          return bonus;
+        }
+        final local = await _loadLocalBonusExperience();
+        await gateway.pushSetting(_bonusExperienceKey, local);
+        return local;
+      } catch (_) {
+        // Fall back to the locally stored value when the cloud is unavailable.
+      }
+    }
+    return _loadLocalBonusExperience();
+  }
+
+  Future<void> saveBonusExperience(int bonusExperience) async {
+    await _saveLocalBonusExperience(bonusExperience);
+    final gateway = _cloudGateway;
+    if (gateway != null && gateway.isSignedIn) {
+      try {
+        await gateway.pushSetting(_bonusExperienceKey, bonusExperience);
       } catch (_) {
         // Persist locally only; a later load retries the cloud copy.
       }
@@ -168,6 +201,35 @@ class RiderProfileRepository {
           AppPreferencesCompanion.insert(
             key: _appearanceKey,
             value: jsonEncode(appearance.toJson()),
+          ),
+        );
+  }
+
+  int? _parseBonusExperience(Object? value) {
+    if (value is int && value >= 0) return value;
+    if (value is num && value >= 0) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null && parsed >= 0) return parsed;
+    }
+    return null;
+  }
+
+  Future<int> _loadLocalBonusExperience() async {
+    final row = await (_database.select(
+      _database.appPreferences,
+    )..where((item) => item.key.equals(_bonusExperienceKey))).getSingleOrNull();
+    if (row == null) return 0;
+    return _parseBonusExperience(jsonDecode(row.value)) ?? 0;
+  }
+
+  Future<void> _saveLocalBonusExperience(int bonusExperience) async {
+    await _database
+        .into(_database.appPreferences)
+        .insertOnConflictUpdate(
+          AppPreferencesCompanion.insert(
+            key: _bonusExperienceKey,
+            value: jsonEncode(bonusExperience),
           ),
         );
   }

@@ -141,6 +141,7 @@ class RiderProgress {
     this.rideDurationSeconds = 0,
     this.longestRideMeters = 0,
     this.weekendRides = 0,
+    this.bonusExperience = 0,
   });
 
   static const experiencePerLevel = 500;
@@ -153,6 +154,9 @@ class RiderProgress {
   final int rideDurationSeconds;
   final double longestRideMeters;
   final int weekendRides;
+
+  /// Experience earned outside of rides (for example mini-game rewards).
+  final int bonusExperience;
 
   double get levelProgress =>
       (experience % experiencePerLevel) / experiencePerLevel;
@@ -248,6 +252,7 @@ class RiderProgress {
   factory RiderProgress.fromSessions(
     List<RideSessionSnapshot> sessions, {
     required RiderStyle style,
+    int bonusExperience = 0,
   }) {
     var experience = 0;
     var distanceMeters = 0.0;
@@ -273,15 +278,17 @@ class RiderProgress {
         experience += 10;
       }
     }
+    final totalExperience = experience + bonusExperience;
     return RiderProgress(
-      experience: experience,
-      level: experience ~/ experiencePerLevel + 1,
+      experience: totalExperience,
+      level: totalExperience ~/ experiencePerLevel + 1,
       distanceMeters: distanceMeters,
       completedRides: sessions.length,
       style: style,
       rideDurationSeconds: rideDurationSeconds,
       longestRideMeters: longestRideMeters,
       weekendRides: weekendRides,
+      bonusExperience: bonusExperience,
     );
   }
 }

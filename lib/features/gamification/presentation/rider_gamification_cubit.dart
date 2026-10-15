@@ -31,6 +31,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
   final RiderProfileRepository _repository;
   List<RideSessionSnapshot> _sessions = const [];
   RiderStyle? _pendingCyclistType;
+  int _bonusExperience = 0;
 
   Future<void> load(List<RideSessionSnapshot> sessions) async {
     _sessions = sessions;
@@ -77,7 +78,16 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     } catch (_) {
       syncError = 'Tampilan pesepeda yang tersimpan tidak dapat dimuat.';
     }
-    var progress = RiderProgress.fromSessions(_sessions, style: style);
+    try {
+      _bonusExperience = await _repository.loadBonusExperience();
+    } catch (_) {
+      _bonusExperience = 0;
+    }
+    var progress = RiderProgress.fromSessions(
+      _sessions,
+      style: style,
+      bonusExperience: _bonusExperience,
+    );
     try {
       final cloud = await _repository.loadCloudProgress();
       if (cloud != null) {
@@ -130,6 +140,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
       ),
       longestRideMeters: local.longestRideMeters,
       weekendRides: math.max(local.weekendRides, cloud.weekendRides),
+      bonusExperience: local.bonusExperience,
     );
   }
 
@@ -139,7 +150,11 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     if (progress == null) return;
     emit(
       RiderGamificationState(
-        progress: RiderProgress.fromSessions(sessions, style: progress.style),
+        progress: RiderProgress.fromSessions(
+          sessions,
+          style: progress.style,
+          bonusExperience: _bonusExperience,
+        ),
         appearance: state.appearance,
       ),
     );
@@ -181,7 +196,11 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     try {
       await _repository.saveStyle(style);
       _pendingCyclistType = null;
-      final updated = RiderProgress.fromSessions(_sessions, style: style);
+      final updated = RiderProgress.fromSessions(
+        _sessions,
+        style: style,
+        bonusExperience: _bonusExperience,
+      );
       if (!isClosed) {
         emit(
           RiderGamificationState(
@@ -233,6 +252,37 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
         );
       }
     }
+  }
+
+  Future<void> awardExperience(int amount) async {
+    if (amount <= 0) return;
+    _bonusExperience += amount;
+    final progress = state.progress;
+    if (progress == null) {
+      try {
+        await _repository.saveBonusExperience(_bonusExperience);
+      } catch (_) {}
+      return;
+    }
+    final experience = progress.experience + amount;
+    final updated = RiderProgress(
+      experience: experience,
+      level: experience ~/ RiderProgress.experiencePerLevel + 1,
+      distanceMeters: progress.distanceMeters,
+      completedRides: progress.completedRides,
+      style: progress.style,
+      rideDurationSeconds: progress.rideDurationSeconds,
+      longestRideMeters: progress.longestRideMeters,
+      weekendRides: progress.weekendRides,
+      bonusExperience: _bonusExperience,
+    );
+    emit(
+      RiderGamificationState(progress: updated, appearance: state.appearance),
+    );
+    try {
+      await _repository.saveBonusExperience(_bonusExperience);
+    } catch (_) {}
+    unawaited(_syncProfile(updated));
   }
 
   Future<void> _syncProfile(RiderProgress progress) async {

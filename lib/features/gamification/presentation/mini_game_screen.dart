@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/theme/senapath_design.dart';
+import 'rider_gamification_cubit.dart';
 
 /// A drag-and-drop jigsaw puzzle that reassembles a 3x3 grid into one image.
 class MiniGameScreen extends StatefulWidget {
@@ -10,6 +13,9 @@ class MiniGameScreen extends StatefulWidget {
 
   static const String asset = 'assets/images/mini_games_image.jpg';
   static const int gridSize = 3;
+
+  /// Experience awarded every time the puzzle is solved.
+  static const int rewardExperience = 10;
 
   @override
   State<MiniGameScreen> createState() => _MiniGameScreenState();
@@ -70,7 +76,14 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       _moves++;
       _solved = _isSolvedOrder(_tiles);
     });
-    if (_solved) _showSolvedDialog();
+    if (_solved) {
+      unawaited(
+        context.read<RiderGamificationCubit>().awardExperience(
+          MiniGameScreen.rewardExperience,
+        ),
+      );
+      _showSolvedDialog();
+    }
   }
 
   Future<void> _showSolvedDialog() async {
@@ -79,7 +92,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
       context: context,
       builder: (dialogContext) => SenapathAlertDialog(
         title: const Text('Puzzle selesai!'),
-        content: Text('Kamu menyusun gambar dalam $_moves langkah.'),
+        content: Text(
+          'Kamu menyusun gambar dalam $_moves langkah. '
+          '+${MiniGameScreen.rewardExperience} EXP',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
