@@ -119,6 +119,18 @@ class RiderScreen extends StatelessWidget {
               onTap: () => context.push('/rider/ledger'),
             ),
           ),
+          const SizedBox(height: 12),
+          SenapathCard(
+            margin: EdgeInsets.zero,
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              leading: const Icon(Icons.videogame_asset_outlined),
+              title: const Text('Mini games'),
+              subtitle: const Text('Susun puzzle gambar 3x3.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/rider/minigames'),
+            ),
+          ),
           const SizedBox(height: 18),
           Text(
             'Pencapaian · $unlockedAchievements/${achievements.length}',

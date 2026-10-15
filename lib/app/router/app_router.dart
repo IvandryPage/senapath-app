@@ -25,6 +25,7 @@ import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 import '../../features/progress/presentation/activity_progress_screen.dart';
 import '../../features/teams/presentation/cycling_team_screen.dart';
 import '../../features/notifications/presentation/notification_settings_screen.dart';
+import '../../features/gamification/presentation/mini_game_screen.dart';
 import '../../features/gamification/presentation/rider_screen.dart';
 import '../../features/ledger/presentation/ride_ledger_screen.dart';
 import '../../features/workouts/presentation/interval_workout_screen.dart';
@@ -81,6 +82,10 @@ final appRouter = GoRouter(
                     GoRoute(
                       path: 'ledger',
                       builder: (context, state) => const RideLedgerScreen(),
+                    ),
+                    GoRoute(
+                      path: 'minigames',
+                      builder: (context, state) => const MiniGameScreen(),
                     ),
                   ],
                 ),
@@ -238,6 +243,7 @@ class _AppShellState extends State<_AppShell> {
       '/profile/notifications' => 'Notifikasi',
       '/rider' => 'Profil pesepeda',
       '/rider/ledger' => 'Bukti perjalanan',
+      '/rider/minigames' => 'Mini games',
       '/profile/teams' => 'Tim',
       _ when widget.location.startsWith('/profile/teams/') => 'Detail tim',
       '/profile/sessions' => 'Riwayat perjalanan',
