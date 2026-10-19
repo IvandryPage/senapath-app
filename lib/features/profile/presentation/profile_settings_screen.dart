@@ -170,7 +170,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
       title: const Text('Tema perangkat'),
       subtitle: const Text(
-        'Tampilan mengikuti mode terang atau gelap yang dipilih di perangkat.',
+        'Tema otomatis mengikuti sensor cahaya: ruangan redup menjadi gelap, '
+        'ruangan terang menjadi terang. Kalau sensor tidak tersedia, tema '
+        'mengikuti pengaturan perangkat.',
       ),
     ),
   );

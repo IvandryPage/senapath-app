@@ -56,9 +56,6 @@ import 'features/ride_coach/presentation/ride_coach_cubit.dart';
 import 'features/ride_prediction/data/ride_history_repository.dart';
 import 'features/workouts/data/interval_workout_repository.dart';
 import 'features/workouts/presentation/interval_workout_cubit.dart';
-import 'features/feedback/data/feedback_repository.dart';
-import 'features/feedback/data/supabase_feedback_gateway.dart';
-import 'features/feedback/presentation/feedback_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -168,10 +165,6 @@ Future<void> main() async {
         SupabaseRideCoachGateway(supabaseClient, authSessionManager),
       ),
       intervalWorkoutCubit: intervalWorkoutCubit,
-      feedbackCubit: FeedbackCubit(
-        FeedbackRepository(secureVault),
-        SupabaseFeedbackGateway(supabaseClient, authSessionManager),
-      ),
       sessionCubit: RideSessionCubit(
         repository: sessionRepository,
         readinessChecker: const DeviceReadinessChecker(),

@@ -12,7 +12,7 @@ class FeedbackScreen extends StatelessWidget {
       Text('Saran dan Kesan', style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),
       Text(
-        'Catatan untuk pengembangan Senapath.',
+        'Mata Kuliah Pemrograman Aplikasi Mobile.',
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       const SizedBox(height: 16),

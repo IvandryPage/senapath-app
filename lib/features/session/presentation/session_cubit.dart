@@ -46,7 +46,7 @@ class RideSessionState {
     this.motion,
     this.now,
     this.message,
-    this.isAmbientBright = false,
+    this.isAmbientBright,
     this.messageIsSuccess = false,
   });
 
@@ -71,7 +71,7 @@ class RideSessionState {
   final MotionSnapshot? motion;
   final DateTime? now;
   final String? message;
-  final bool isAmbientBright;
+  final bool? isAmbientBright;
   final bool messageIsSuccess;
 
   RideSessionState copyWith({
@@ -104,6 +104,7 @@ class RideSessionState {
     String? message,
     bool clearMessage = false,
     bool? isAmbientBright,
+    bool clearAmbientBright = false,
     bool messageIsSuccess = false,
   }) => RideSessionState(
     isInitialized: isInitialized ?? this.isInitialized,
@@ -135,7 +136,9 @@ class RideSessionState {
     motion: clearMotion ? null : motion ?? this.motion,
     now: now ?? this.now,
     message: clearMessage ? null : message ?? this.message,
-    isAmbientBright: isAmbientBright ?? this.isAmbientBright,
+    isAmbientBright: clearAmbientBright
+        ? null
+        : isAmbientBright ?? this.isAmbientBright,
     messageIsSuccess: clearMessage
         ? false
         : message == null
@@ -707,7 +710,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
-  Future<void> deleteCompletedSession(String sessionId) async {
+  Future<bool> deleteCompletedSession(String sessionId) async {
     final sync = cloudSync;
     final remoteCopyMayExist = state.completedSessions.any(
       (session) => session.id == sessionId && session.syncStatus != 'pending',
@@ -716,7 +719,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       _setMessage(
         'Perjalanan belum dihapus. Sambungkan akun online untuk menghapus salinannya juga.',
       );
-      return;
+      return false;
     }
 
     final deleteOnlineCopy = sync?.canSync == true;
@@ -736,10 +739,12 @@ class RideSessionCubit extends Cubit<RideSessionState> {
               : 'Perjalanan dihapus dari ponsel.',
         ),
       );
+      return true;
     } catch (_) {
       _setMessage(
         'Perjalanan belum dihapus. Salinan online tidak dapat dihapus. Periksa koneksi dan coba lagi.',
       );
+      return false;
     }
   }
 
@@ -1544,8 +1549,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     try {
       _ambientLightSubscription = source.readings.listen(
         (lux) {
-          final isBright = shouldUseHighAmbientContrast(
-            isBright: state.isAmbientBright,
+          final isBright = shouldUseLightTheme(
+            isBright: state.isAmbientBright ?? false,
             lux: lux,
           );
           if (isBright != state.isAmbientBright && !isClosed) {
@@ -1556,23 +1561,23 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           if (!isClosed) {
             emit(
               state.copyWith(
-                isAmbientBright: false,
-                message: 'Sensor cahaya tidak tersedia; tampilan menggunakan kontras standar.',
+                clearAmbientBright: true,
+                message: 'Sensor cahaya tidak tersedia; tampilan mengikuti tema perangkat.',
               ),
             );
           }
         },
         onDone: () {
-          if (!isClosed && state.isAmbientBright) {
-            emit(state.copyWith(isAmbientBright: false));
+          if (!isClosed && state.isAmbientBright != null) {
+            emit(state.copyWith(clearAmbientBright: true));
           }
         },
       );
     } catch (_) {
       emit(
         state.copyWith(
-          isAmbientBright: false,
-          message: 'Sensor cahaya tidak tersedia; tampilan menggunakan kontras standar.',
+          clearAmbientBright: true,
+          message: 'Sensor cahaya tidak tersedia; tampilan mengikuti tema perangkat.',
         ),
       );
     }

@@ -224,7 +224,7 @@ class _AppShellState extends State<_AppShell> {
       '/profile/sessions' => 'Riwayat perjalanan',
       _ when widget.location.startsWith('/profile/sessions/') =>
         'Detail perjalanan',
-      '/routes/saved' => 'Rute tersimpan',
+      '/routes/saved' => 'Pilih rute',
       '/routes/workouts' => 'Latihan interval',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };

@@ -23,7 +23,7 @@ class DeviceAmbientLightSource implements AmbientLightSource {
   }
 }
 
-bool shouldUseHighAmbientContrast({required bool isBright, required int lux}) {
+bool shouldUseLightTheme({required bool isBright, required int lux}) {
   if (lux < 0) return isBright;
-  return isBright ? lux >= 7000 : lux >= 10000;
+  return isBright ? lux >= 150 : lux >= 300;
 }

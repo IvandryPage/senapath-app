@@ -202,53 +202,6 @@ abstract final class AppTheme {
     );
   }
 
-  static ThemeData get rideBright {
-    const background = Color(0xFF071122);
-    const surface = Color(0xFF101D31);
-    const foreground = Color(0xFFF4F7FB);
-    const accent = Color(0xFF0A7DD2);
-    final textTheme = light.textTheme
-        .apply(bodyColor: foreground, displayColor: foreground)
-        .copyWith(
-          bodySmall: light.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-          bodyMedium: light.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-          bodyLarge: light.textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        );
-    return light.copyWith(
-      brightness: Brightness.dark,
-      colorScheme: light.colorScheme.copyWith(
-        brightness: Brightness.dark,
-        primary: accent,
-        onPrimary: Colors.white,
-        secondary: const Color(0xFF7FC8FF),
-        onSecondary: background,
-        surface: surface,
-        onSurface: foreground,
-        outline: accent,
-        outlineVariant: const Color(0xFF41536A),
-        surfaceContainerHighest: const Color(0xFF17263B),
-        onSurfaceVariant: const Color(0xFFD0D9E5),
-        surfaceTint: accent,
-      ),
-      scaffoldBackgroundColor: background,
-      textTheme: textTheme,
-      appBarTheme: light.appBarTheme.copyWith(
-        backgroundColor: background,
-        foregroundColor: foreground,
-      ),
-      cardTheme: light.cardTheme.copyWith(
-        color: surface,
-        shadowColor: Colors.transparent,
-      ),
-    );
-  }
-
   static ThemeData get light {
     const ink = SenapathColors.ink;
     const canvas = SenapathColors.canvas;

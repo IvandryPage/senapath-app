@@ -10,7 +10,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../../../app/theme/app_theme.dart';
 import '../../../app/theme/senapath_design.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
@@ -232,328 +231,298 @@ class _RoutesScreenState extends State<RoutesScreen> {
                       : null;
                   final activeRoute = state.sessionRoute;
                   final guidanceRoute = state.guidanceRoute;
-                  return AnimatedTheme(
-                    data: guidanceRoute != null && sessionState.isAmbientBright
-                        ? AppTheme.rideBright
-                        : Theme.of(context),
-                    duration: const Duration(milliseconds: 450),
-                    curve: Curves.easeInOut,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final sessionMetrics =
-                            hasActiveSession && session != null
-                            ? _SessionMetricsOverlay(
-                                speedMetersPerSecond:
-                                    session.currentSpeedMetersPerSecond,
-                                distanceMeters: session.distanceMeters,
-                                unitSystem: unitSystem,
-                              )
-                            : null;
-                        final sideAction = hasActiveSession
-                            ? ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: constraints.maxWidth * 0.48,
-                                ),
-                                child: Tooltip(
-                                  message: 'Pilih telepon atau WhatsApp',
-                                  child: FilledButton.icon(
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .error,
-                                      foregroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .onError,
-                                    ),
-                                    onPressed: !profileState.isLoaded
-                                        ? null
-                                        : profileState.contacts.isEmpty
-                                        ? () => context.push('/profile')
-                                        : () => _showEmergencyOptions(
-                                            profileState.contacts.first,
-                                            currentLocation,
-                                          ),
-                                    icon: Icon(
-                                      profileState.contacts.isEmpty
-                                          ? Icons.person_add_alt_1
-                                          : Icons.sos,
-                                    ),
-                                    label: Text(
-                                      !profileState.isLoaded
-                                          ? 'Memuat kontak…'
-                                          : profileState.contacts.isEmpty
-                                          ? 'Tambah kontak darurat'
-                                          : 'SOS darurat',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final sessionMetrics = hasActiveSession && session != null
+                          ? _SessionMetricsOverlay(
+                              speedMetersPerSecond:
+                                  session.currentSpeedMetersPerSecond,
+                              distanceMeters: session.distanceMeters,
+                              unitSystem: unitSystem,
+                            )
+                          : null;
+                      final sideAction = hasActiveSession
+                          ? ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: constraints.maxWidth * 0.48,
+                              ),
+                              child: Tooltip(
+                                message: 'Pilih telepon atau WhatsApp',
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .error,
+                                    foregroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .onError,
                                   ),
-                                ),
-                              )
-                            : ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: constraints.maxWidth * 0.45,
-                                ),
-                                child: OutlinedButton.icon(
-                                  onPressed: workoutState.isLoading
+                                  onPressed: !profileState.isLoaded
                                       ? null
-                                      : () => context.push('/routes/workouts'),
-                                  icon: const Icon(Icons.timer_outlined),
+                                      : profileState.contacts.isEmpty
+                                      ? () => context.push('/profile')
+                                      : () => _showEmergencyOptions(
+                                          profileState.contacts.first,
+                                          currentLocation,
+                                        ),
+                                  icon: Icon(
+                                    profileState.contacts.isEmpty
+                                        ? Icons.person_add_alt_1
+                                        : Icons.sos,
+                                  ),
                                   label: Text(
-                                    workoutState.selectedWorkout == null
-                                        ? 'Latihan'
-                                        : 'Latihan dipilih',
+                                    !profileState.isLoaded
+                                        ? 'Memuat kontak…'
+                                        : profileState.contacts.isEmpty
+                                        ? 'Tambah kontak darurat'
+                                        : 'SOS darurat',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              );
-                        final mainFab = hasActiveSession
-                            ? FloatingActionButton.extended(
-                                tooltip: 'Detail perjalanan',
-                                onPressed: () => _openSessionDetails(context),
-                                icon: const Icon(Icons.monitor_heart_outlined),
-                                label: const Text('Detail perjalanan'),
-                              )
-                            : FloatingActionButton.extended(
-                                key: const Key('start-session-button'),
-                                tooltip: 'Mulai merekam',
-                                onPressed: sessionState.isCheckingReadiness
+                              ),
+                            )
+                          : ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: constraints.maxWidth * 0.45,
+                              ),
+                              child: OutlinedButton.icon(
+                                onPressed: workoutState.isLoading
                                     ? null
-                                    : () => context
-                                          .read<RideSessionCubit>()
-                                          .start(
-                                            route: activeRoute,
-                                            workout:
-                                                workoutState.selectedWorkout,
-                                          ),
-                                icon: const Icon(Icons.play_arrow),
-                                label: const Text('Mulai merekam'),
-                              );
-                        return Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            BlocBuilder<RouteGuidanceCubit, RouteGuidanceState>(
-                              builder: (context, guidanceState) {
-                                final guidanceRunning =
-                                    guidanceRoute != null &&
-                                    guidanceState.isRunning;
-                                final guidanceLocation = guidanceRunning
-                                    ? guidanceState.currentPosition
-                                    : null;
-                                final mapLocation = guidanceLocation != null
-                                    ? LatLng(
-                                        guidanceLocation.latitude,
-                                        guidanceLocation.longitude,
-                                      )
-                                    : currentLocation == null
+                                    : () => context.push('/routes/workouts'),
+                                icon: const Icon(Icons.timer_outlined),
+                                label: Text(
+                                  workoutState.selectedWorkout == null
+                                      ? 'Latihan'
+                                      : 'Latihan dipilih',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            );
+                      final mainFab = hasActiveSession
+                          ? FloatingActionButton.extended(
+                              tooltip: 'Detail perjalanan',
+                              onPressed: () => _openSessionDetails(context),
+                              icon: const Icon(Icons.monitor_heart_outlined),
+                              label: const Text('Detail perjalanan'),
+                            )
+                          : FloatingActionButton.extended(
+                              key: const Key('start-session-button'),
+                              tooltip: 'Mulai merekam',
+                              onPressed: sessionState.isCheckingReadiness
+                                  ? null
+                                  : () =>
+                                        context.read<RideSessionCubit>().start(
+                                          route: activeRoute,
+                                          workout: workoutState.selectedWorkout,
+                                        ),
+                              icon: const Icon(Icons.play_arrow),
+                              label: const Text('Mulai merekam'),
+                            );
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          BlocBuilder<RouteGuidanceCubit, RouteGuidanceState>(
+                            builder: (context, guidanceState) {
+                              final guidanceRunning =
+                                  guidanceRoute != null &&
+                                  guidanceState.isRunning;
+                              final guidanceLocation = guidanceRunning
+                                  ? guidanceState.currentPosition
+                                  : null;
+                              final mapLocation = guidanceLocation != null
+                                  ? LatLng(
+                                      guidanceLocation.latitude,
+                                      guidanceLocation.longitude,
+                                    )
+                                  : currentLocation == null
+                                  ? null
+                                  : LatLng(
+                                      currentLocation.latitude,
+                                      currentLocation.longitude,
+                                    );
+                              GhostPacerMapPosition? ghost;
+                              if (guidanceRunning &&
+                                  !guidanceState.hasReachedEnd &&
+                                  _ghostPerformance != null &&
+                                  _guidanceStartedAt != null) {
+                                ghost = ghostPacerMapPositionAt(
+                                  guidanceRoute.points,
+                                  _ghostPerformance!.distanceAt(
+                                    DateTime.now().difference(
+                                      _guidanceStartedAt!,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return ExploreMap(
+                                routes: activeRoute == null
+                                    ? const []
+                                    : [activeRoute],
+                                nearbyPlaces:
+                                    _nearbyPlacesRouteId == activeRoute?.id
+                                    ? _nearbyPlaces
+                                    : const [],
+                                autoLocate: _isExploreBranchActive,
+                                height: constraints.maxHeight,
+                                trackPoints: trackPoints,
+                                currentLocation: mapLocation,
+                                ghostPosition: ghost == null
                                     ? null
                                     : LatLng(
-                                        currentLocation.latitude,
-                                        currentLocation.longitude,
-                                      );
-                                GhostPacerMapPosition? ghost;
-                                if (guidanceRunning &&
-                                    !guidanceState.hasReachedEnd &&
-                                    _ghostPerformance != null &&
-                                    _guidanceStartedAt != null) {
-                                  ghost = ghostPacerMapPositionAt(
-                                    guidanceRoute.points,
-                                    _ghostPerformance!.distanceAt(
-                                      DateTime.now().difference(
-                                        _guidanceStartedAt!,
+                                        ghost.point.latitude,
+                                        ghost.point.longitude,
                                       ),
-                                    ),
-                                  );
-                                }
-                                return ExploreMap(
-                                  routes: activeRoute == null
-                                      ? const []
-                                      : [activeRoute],
-                                  nearbyPlaces:
-                                      _nearbyPlacesRouteId == activeRoute?.id
-                                      ? _nearbyPlaces
-                                      : const [],
-                                  autoLocate: _isExploreBranchActive,
-                                  height: constraints.maxHeight,
-                                  trackPoints: trackPoints,
-                                  currentLocation: mapLocation,
-                                  ghostPosition: ghost == null
-                                      ? null
-                                      : LatLng(
-                                          ghost.point.latitude,
-                                          ghost.point.longitude,
-                                        ),
-                                  ghostHeadingDegrees: ghost?.headingDegrees,
-                                  followLocation:
-                                      sessionState.session?.status ==
-                                          RideSessionStatus.recording ||
-                                      guidanceRunning,
-                                  movementBearingDegrees: movementBearing,
-                                  northUpLocked: _northUpLocked,
-                                  onToggleNorthUp: () => setState(
-                                    () => _northUpLocked = !_northUpLocked,
-                                  ),
-                                  onCheckpointTap: _showResupplyCache,
-                                  showEmptyMessage: false,
-                                );
-                              },
-                            ),
-                            if (guidanceRoute != null)
-                              Positioned(
-                                left: 12,
-                                right: 12,
-                                bottom: 12,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (sessionMetrics != null)
-                                      Align(
-                                        alignment: Alignment.centerRight,
-                                        child: sessionMetrics,
-                                      ),
-                                    Row(
-                                      children: [
-                                        Expanded(child: sideAction),
-                                        const SizedBox(width: 12),
-                                        mainFab,
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    GuidanceToolbar(
-                                      route: guidanceRoute,
-                                      onStop: () => context
-                                          .read<RoutesCubit>()
-                                          .endGuidance(),
-                                    ),
-                                  ],
+                                ghostHeadingDegrees: ghost?.headingDegrees,
+                                followLocation:
+                                    sessionState.session?.status ==
+                                        RideSessionStatus.recording ||
+                                    guidanceRunning,
+                                movementBearingDegrees: movementBearing,
+                                northUpLocked: _northUpLocked,
+                                onToggleNorthUp: () => setState(
+                                  () => _northUpLocked = !_northUpLocked,
                                 ),
-                              )
-                            else ...[
-                              if (sessionMetrics != null)
-                                Positioned(
-                                  right: 16,
-                                  bottom: 84,
-                                  child: sessionMetrics,
-                                ),
-                              Positioned(
-                                left: 16,
-                                bottom: 16,
-                                child: sideAction,
-                              ),
-                            ],
+                                onCheckpointTap: _showResupplyCache,
+                                showEmptyMessage: false,
+                              );
+                            },
+                          ),
+                          if (guidanceRoute != null)
                             Positioned(
-                              top: 12,
-                              left: 16,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: constraints.maxWidth - 104,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    activeRoute == null
-                                        ? FilledButton.tonalIcon(
-                                            onPressed: state.isLoading
-                                                ? null
-                                                : _openGpxPicker,
-                                            icon: const Icon(Icons.search),
-                                            label: const Text(
-                                              'Pilih file rute',
-                                            ),
-                                          )
-                                        : _SelectedRouteControl(
-                                            route: activeRoute,
-                                            onChange: state.isLoading
-                                                ? null
-                                                : _openGpxPicker,
-                                            onRemove: guidanceRoute != null
-                                                ? null
-                                                : () => context
-                                                      .read<RoutesCubit>()
-                                                      .selectSessionRoute(null),
-                                            statusLine: guidanceRoute == null
-                                                ? null
-                                                : GuidanceStatusLine(
-                                                    route: guidanceRoute,
-                                                    ghostPacerError:
-                                                        _hasGhostPacerError,
-                                                  ),
+                              left: 12,
+                              right: 12,
+                              bottom: 12,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (sessionMetrics != null)
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: sessionMetrics,
+                                    ),
+                                  Row(
+                                    children: [
+                                      Expanded(child: sideAction),
+                                      const SizedBox(width: 12),
+                                      mainFab,
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  GuidanceToolbar(
+                                    route: guidanceRoute,
+                                    onStop: () => context
+                                        .read<RoutesCubit>()
+                                        .endGuidance(),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else ...[
+                            if (sessionMetrics != null)
+                              Positioned(
+                                right: 16,
+                                bottom: 84,
+                                child: sessionMetrics,
+                              ),
+                            Positioned(left: 16, bottom: 16, child: sideAction),
+                          ],
+                          Positioned(
+                            top: 12,
+                            left: 16,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: constraints.maxWidth - 104,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  activeRoute == null
+                                      ? FilledButton.tonalIcon(
+                                          key: const Key(
+                                            'explore-saved-routes',
                                           ),
+                                          onPressed: () =>
+                                              context.push('/routes/saved'),
+                                          icon: const Icon(Icons.search),
+                                          label: const Text('Pilih rute'),
+                                        )
+                                      : _SelectedRouteControl(
+                                          route: activeRoute,
+                                          onChange: () =>
+                                              context.push('/routes/saved'),
+                                          onRemove: guidanceRoute != null
+                                              ? null
+                                              : () => context
+                                                    .read<RoutesCubit>()
+                                                    .selectSessionRoute(null),
+                                          statusLine: guidanceRoute == null
+                                              ? null
+                                              : GuidanceStatusLine(
+                                                  route: guidanceRoute,
+                                                  ghostPacerError:
+                                                      _hasGhostPacerError,
+                                                ),
+                                        ),
+                                  if (activeRoute != null &&
+                                      activeRoute.points.length >= 2) ...[
                                     const SizedBox(height: 8),
                                     OutlinedButton.icon(
-                                      key: const Key('explore-saved-routes'),
-                                      onPressed: () =>
-                                          context.push('/routes/saved'),
-                                      icon: const Icon(Icons.history_outlined),
-                                      label: const Text('Rute tersimpan'),
+                                      key: const Key('route-nearby-places'),
+                                      onPressed: _isLoadingNearbyPlaces
+                                          ? null
+                                          : () =>
+                                                _nearbyPlacesRouteId ==
+                                                    activeRoute.id
+                                                ? _showNearbyPlaces(
+                                                    _nearbyPlaces,
+                                                  )
+                                                : _confirmAndLoadNearbyPlaces(
+                                                    activeRoute,
+                                                  ),
+                                      icon: _isLoadingNearbyPlaces
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : Icon(
+                                              _nearbyPlacesRouteId ==
+                                                      activeRoute.id
+                                                  ? Icons.place
+                                                  : Icons.search,
+                                            ),
+                                      label: Text(
+                                        _isLoadingNearbyPlaces
+                                            ? 'Mencari fasilitas…'
+                                            : _nearbyPlacesRouteId ==
+                                                  activeRoute.id
+                                            ? 'Fasilitas (${_nearbyPlaces.length})'
+                                            : 'Cari fasilitas',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                       style: OutlinedButton.styleFrom(
                                         backgroundColor: Theme.of(context)
                                             .colorScheme
                                             .surface,
                                       ),
                                     ),
-                                    if (activeRoute != null &&
-                                        activeRoute.points.length >= 2) ...[
-                                      const SizedBox(height: 8),
-                                      OutlinedButton.icon(
-                                        key: const Key('route-nearby-places'),
-                                        onPressed: _isLoadingNearbyPlaces
-                                            ? null
-                                            : () =>
-                                                  _nearbyPlacesRouteId ==
-                                                      activeRoute.id
-                                                  ? _showNearbyPlaces(
-                                                      _nearbyPlaces,
-                                                    )
-                                                  : _confirmAndLoadNearbyPlaces(
-                                                      activeRoute,
-                                                    ),
-                                        icon: _isLoadingNearbyPlaces
-                                            ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                    ),
-                                              )
-                                            : Icon(
-                                                _nearbyPlacesRouteId ==
-                                                        activeRoute.id
-                                                    ? Icons.place
-                                                    : Icons.search,
-                                              ),
-                                        label: Text(
-                                          _isLoadingNearbyPlaces
-                                              ? 'Mencari fasilitas…'
-                                              : _nearbyPlacesRouteId ==
-                                                    activeRoute.id
-                                              ? 'Fasilitas (${_nearbyPlaces.length})'
-                                              : 'Cari fasilitas',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          backgroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .surface,
-                                        ),
-                                      ),
-                                    ],
                                   ],
-                                ),
+                                ],
                               ),
                             ),
-                            if (guidanceRoute == null)
-                              Positioned(right: 16, bottom: 16, child: mainFab),
-                          ],
-                        );
-                      },
-                    ),
+                          ),
+                          if (guidanceRoute == null)
+                            Positioned(right: 16, bottom: 16, child: mainFab),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
@@ -561,18 +530,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Future<void> _openGpxPicker() async {
-    final routesCubit = context.read<RoutesCubit>();
-    await routesCubit.load();
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => const _GpxRoutePicker(),
     );
   }
 
@@ -887,149 +844,6 @@ class _SelectedRouteControl extends StatelessWidget {
   );
 }
 
-class _GpxRoutePicker extends StatefulWidget {
-  const _GpxRoutePicker();
-
-  @override
-  State<_GpxRoutePicker> createState() => _GpxRoutePickerState();
-}
-
-class _GpxRoutePickerState extends State<_GpxRoutePicker> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => BlocBuilder<RoutesCubit, RoutesState>(
-    builder: (context, state) {
-      final routes = state.routes
-          .where((route) => route.points.length >= 2)
-          .toList(growable: false);
-      return Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          20 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.72,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Pilih rute tersimpan',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                key: const ValueKey('explore-gpx-search'),
-                controller: _searchController,
-                onChanged: context.read<RoutesCubit>().search,
-                inputFormatters: [
-                  const SingleLineInputFormatter(),
-                  const ForbiddenCharactersInputFormatter(),
-                  LengthLimitingTextInputFormatter(
-                    InputLimits.searchQueryMaxLength,
-                  ),
-                ],
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'Cari nama rute',
-                  suffixIcon: state.query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Hapus pencarian',
-                          onPressed: () {
-                            _searchController.clear();
-                            context.read<RoutesCubit>().search('');
-                          },
-                          icon: const Icon(Icons.clear),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: state.isLoading
-                    ? null
-                    : context.read<RoutesCubit>().importGpx,
-                icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('Impor file rute'),
-              ),
-              if (state.isLoading) const LinearProgressIndicator(),
-              if (state.message != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    state.message!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: routes.isEmpty
-                    ? Center(
-                        child: Text(
-                          state.query.isEmpty
-                              ? 'Belum ada rute. Impor file GPX untuk menambahkan rute.'
-                              : 'Tidak ada rute bernama “${state.query}”.',
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.separated(
-                        itemCount: routes.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 6),
-                        itemBuilder: (context, index) {
-                          final route = routes[index];
-                          return SenapathCard(
-                            child: ListTile(
-                              leading: const Icon(Icons.route_outlined),
-                              title: Text(route.name),
-                              subtitle: Text(
-                                '${route.points.length} titik rute',
-                              ),
-                              trailing: const Icon(Icons.map_outlined),
-                              onTap: () {
-                                final routesCubit = context.read<RoutesCubit>();
-                                final isGuiding =
-                                    routesCubit.state.guidanceRoute != null;
-                                Navigator.of(context).pop();
-                                if (isGuiding) {
-                                  routesCubit.startGuidance(route);
-                                } else {
-                                  routesCubit.selectSessionRoute(route);
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
 class _SessionMetricsOverlay extends StatelessWidget {
   const _SessionMetricsOverlay({
     required this.speedMetersPerSecond,
@@ -1117,6 +931,13 @@ class SavedRoutesScreen extends StatefulWidget {
 
 class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   bool _loaded = false;
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -1135,12 +956,13 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
           children: [
             Text(
-              'Rute tersimpan',
+              'Pilih rute',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 6),
             const Text(
-              'Cari rute yang kamu simpan atau impor file GPX. Pilih rute untuk melihatnya di peta.',
+              'Cari atau impor file GPX. Ketuk rute untuk langsung '
+              'tampilkan di Jelajah, atau buka detailnya.',
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -1156,6 +978,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
             const SizedBox(height: 12),
             TextField(
               key: const ValueKey('gpx-route-search'),
+              controller: _searchController,
               onChanged: context.read<RoutesCubit>().search,
               inputFormatters: [
                 const SingleLineInputFormatter(),
@@ -1171,7 +994,10 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                     ? null
                     : IconButton(
                         tooltip: 'Hapus pencarian',
-                        onPressed: () => context.read<RoutesCubit>().search(''),
+                        onPressed: () {
+                          _searchController.clear();
+                          context.read<RoutesCubit>().search('');
+                        },
                         icon: const Icon(Icons.clear),
                       ),
               ),
@@ -1674,7 +1500,21 @@ class _RouteTile extends StatelessWidget {
 
     return SenapathCard(
       child: ListTile(
-        onTap: () => _showRoutePreview(context),
+        onTap: () {
+          final routesCubit = context.read<RoutesCubit>();
+          final isGuiding = routesCubit.state.guidanceRoute != null;
+          final router = GoRouter.maybeOf(context);
+          if (isGuiding) {
+            routesCubit.startGuidance(route);
+          } else {
+            routesCubit.selectSessionRoute(route);
+          }
+          if (router != null) {
+            router.go('/routes');
+          } else {
+            Navigator.of(context).pop();
+          }
+        },
         leading: const Icon(Icons.route_outlined),
         title: Text(route.name),
         subtitle: Text(
@@ -1699,7 +1539,11 @@ class _RouteTile extends StatelessWidget {
                 icon: const Icon(Icons.delete_outline),
               ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right),
+            IconButton(
+              tooltip: 'Detail rute ${route.name}',
+              onPressed: () => _showRoutePreview(context),
+              icon: const Icon(Icons.chevron_right),
+            ),
           ],
         ),
       ),

@@ -139,7 +139,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Pilih file rute di Jelajah, lalu ketuk titik pada peta untuk '
+            'Pilih rute di Jelajah, lalu ketuk titik pada peta untuk '
             'melihat perkiraan kebutuhan air, camilan, kopi, dan ban dalam.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),

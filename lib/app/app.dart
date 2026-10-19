@@ -19,7 +19,6 @@ import '../features/gamification/presentation/rider_gamification_cubit.dart';
 import '../features/ledger/presentation/ride_ledger_cubit.dart';
 import '../features/ride_coach/presentation/ride_coach_cubit.dart';
 import '../features/workouts/presentation/interval_workout_cubit.dart';
-import '../features/feedback/presentation/feedback_cubit.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -41,7 +40,6 @@ class SenapathApp extends StatelessWidget {
     required this.rideLedgerCubit,
     required this.rideCoachCubit,
     required this.intervalWorkoutCubit,
-    required this.feedbackCubit,
     super.key,
   });
 
@@ -61,7 +59,6 @@ class SenapathApp extends StatelessWidget {
   final RideLedgerCubit rideLedgerCubit;
   final RideCoachCubit rideCoachCubit;
   final IntervalWorkoutCubit intervalWorkoutCubit;
-  final FeedbackCubit feedbackCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +80,6 @@ class SenapathApp extends StatelessWidget {
         BlocProvider.value(value: rideLedgerCubit),
         BlocProvider.value(value: rideCoachCubit),
         BlocProvider.value(value: intervalWorkoutCubit),
-        BlocProvider.value(value: feedbackCubit),
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) => previous.email != current.email,
@@ -112,12 +108,21 @@ class SenapathApp extends StatelessWidget {
               !identical(previous.completedSessions, current.completedSessions),
           listener: (context, state) =>
               leaderboardCubit.updateLocalRecords(state.completedSessions),
-          child: MaterialApp.router(
-            title: 'Senapath',
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: ThemeMode.system,
-            routerConfig: appRouter,
+          child: BlocBuilder<RideSessionCubit, RideSessionState>(
+            builder: (context, sessionState) {
+              final ambient = sessionState.isAmbientBright;
+              return MaterialApp.router(
+                title: 'Senapath',
+                theme: AppTheme.light,
+                darkTheme: AppTheme.dark,
+                themeMode: ambient == null
+                    ? ThemeMode.system
+                    : ambient
+                    ? ThemeMode.light
+                    : ThemeMode.dark,
+                routerConfig: appRouter,
+              );
+            },
           ),
         ),
       ),

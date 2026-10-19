@@ -38,19 +38,26 @@ class GeolocatorRoutePositionSource implements RoutePositionSource {
   }
 
   @override
-  Stream<RoutePosition> watch() =>
-      Geolocator.getPositionStream(
+  Stream<RoutePosition> watch() async* {
+    try {
+      final first = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
-        ),
-      ).map(
-        (position) => RoutePosition(
-          latitude: position.latitude,
-          longitude: position.longitude,
-          accuracyMeters: position.accuracy,
+          timeLimit: Duration(seconds: 10),
         ),
       );
+      yield _toRoutePosition(first);
+    } catch (_) {}
+    yield* Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    ).map(_toRoutePosition);
+  }
+
+  RoutePosition _toRoutePosition(Position position) => RoutePosition(
+    latitude: position.latitude,
+    longitude: position.longitude,
+    accuracyMeters: position.accuracy,
+  );
 }
 
 class RouteGuidanceState {
