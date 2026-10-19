@@ -20,16 +20,14 @@ class FeedbackScreen extends StatelessWidget {
         icon: Icons.lightbulb_outline,
         title: 'Saran',
         message:
-            'Terus kembangkan fitur navigasi dan informasi rute agar pesepeda '
-            'dapat merencanakan perjalanan dengan lebih nyaman.',
+            'Saya menyarankan agar requirements proyek dibuat lebih fleksibel dan disesuaikan dengan relevansi tema aplikasi. Permintaan yang terlalu banyak dan juga spesifik dapat membatasi kreatifitas mahasiswa dalam mengimplementasikan proyek mobile. Saya menyarankan juga untuk kolaborasi dengan mata kuliah Desain Pengalaman Pengguna sehingga aplikasi yang dibuat dapat benar-benar menyelesaikan suatu permasalahan nyata, bukan hanya pemenuhan requirements.'
       ),
       const SizedBox(height: 12),
       const _FeedbackNoteCard(
         icon: Icons.favorite_outline,
         title: 'Kesan',
         message:
-            'Senapath membantu mencatat aktivitas bersepeda dan mendukung '
-            'perjalanan menjadi lebih terencana.',
+            'Mata kuliah ini memberikan pengalaman yang menantang dan bermanfaat karena mendorong mahasiswa untuk mengintegrasikan berbagai teknologi ke dalam satu aplikasi yang utuh. Mahasiswa tidak hanya dituntut untuk membangun antarmuka, tetapi juga memahami autentikasi, pengelolaan basis data, integrasi API, sensor perangkat, kecerdasan buatan, dan aspek keamanan sistem. Melalui proyek ini, saya dapat memperoleh gambaran yang lebih nyata mengenai kompleksitas pengembangan aplikasi mobile serta pentingnya menghubungkan berbagai komponen agar dapat bekerja secara terpadu.'
       ),
     ],
   );

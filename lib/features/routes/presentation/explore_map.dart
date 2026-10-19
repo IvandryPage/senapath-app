@@ -18,6 +18,8 @@ class ExploreMap extends StatefulWidget {
     this.nearbyPlaces = const [],
     this.trackPoints = const [],
     this.currentLocation,
+    this.ghostPosition,
+    this.ghostHeadingDegrees,
     this.followLocation = false,
     this.autoLocate = false,
     this.movementBearingDegrees,
@@ -35,6 +37,8 @@ class ExploreMap extends StatefulWidget {
   final List<NearbyRoutePlace> nearbyPlaces;
   final List<LatLng> trackPoints;
   final LatLng? currentLocation;
+  final LatLng? ghostPosition;
+  final double? ghostHeadingDegrees;
   final bool followLocation;
   final bool autoLocate;
   final double? movementBearingDegrees;
@@ -273,6 +277,24 @@ class _ExploreMapState extends State<ExploreMap> {
                                   color: SenapathColors.navy,
                                   size: 22,
                                 ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (widget.ghostPosition case final ghost?)
+                        Marker(
+                          point: ghost,
+                          width: 38,
+                          height: 38,
+                          child: Transform.rotate(
+                            angle:
+                                ((widget.ghostHeadingDegrees ?? 0) * math.pi) /
+                                180,
+                            child: Icon(
+                              Icons.navigation_rounded,
+                              size: 26,
+                              color: SenapathColors.accent.withValues(
+                                alpha: 0.6,
                               ),
                             ),
                           ),

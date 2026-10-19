@@ -2,82 +2,46 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme/senapath_design.dart';
-import '../../../app/theme/app_theme.dart';
 import '../../../core/units/unit_settings_cubit.dart';
 import '../../../core/units/unit_system.dart';
-import '../data/ghost_pacer_service.dart';
 import '../data/route_wind_service.dart';
-import '../domain/ghost_pacer.dart';
 import '../domain/route_wind.dart';
 import '../domain/saved_route.dart';
 import 'route_guidance_cubit.dart';
 import 'route_wind_indicator.dart';
-import 'routes_screen.dart';
 
-class RouteGuidanceView extends StatelessWidget {
-  const RouteGuidanceView({
+String formatGuidanceDistance(double meters, UnitSystem unitSystem) {
+  if (unitSystem == UnitSystem.metric) {
+    return meters >= 1000
+        ? '${(meters / 1000).toStringAsFixed(1)} km'
+        : '${NumberFormat('0').format(meters)} m';
+  }
+  return meters >= 1609.344
+      ? '${(meters / 1609.344).toStringAsFixed(1)} mi'
+      : '${NumberFormat('0').format(meters * 3.28084)} ft';
+}
+
+class GuidanceStatusLine extends StatefulWidget {
+  const GuidanceStatusLine({
     required this.route,
-    required this.onStop,
-    this.positionSource,
     this.windService,
-    this.ghostPacerService,
-    this.ambientBright = false,
+    this.ghostPacerError = false,
     super.key,
   });
 
   final RouteRecord route;
-  final VoidCallback onStop;
-  final RoutePositionSource? positionSource;
   final RouteWindService? windService;
-  final GhostPacerService? ghostPacerService;
-  final bool ambientBright;
+  final bool ghostPacerError;
 
   @override
-  Widget build(BuildContext context) => AnimatedTheme(
-    data: ambientBright ? AppTheme.rideBright : Theme.of(context),
-    duration: const Duration(milliseconds: 450),
-    curve: Curves.easeInOut,
-    child: BlocProvider(
-      create: (_) {
-        final cubit = RouteGuidanceCubit(
-          positionSource ?? const GeolocatorRoutePositionSource(),
-        );
-        unawaited(cubit.start(route));
-        return cubit;
-      },
-      child: _RouteGuidanceView(
-        route: route,
-        onStop: onStop,
-        windService: windService,
-        ghostPacerService: ghostPacerService,
-      ),
-    ),
-  );
+  State<GuidanceStatusLine> createState() => _GuidanceStatusLineState();
 }
 
-class _RouteGuidanceView extends StatefulWidget {
-  const _RouteGuidanceView({
-    required this.route,
-    required this.onStop,
-    this.windService,
-    this.ghostPacerService,
-  });
-
-  final RouteRecord route;
-  final VoidCallback onStop;
-  final RouteWindService? windService;
-  final GhostPacerService? ghostPacerService;
-
-  @override
-  State<_RouteGuidanceView> createState() => _RouteGuidanceViewState();
-}
-
-class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
+class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
   late final RouteWindService _windService =
       widget.windService ?? OpenMeteoRouteWindService();
   RouteWindObservation? _wind;
@@ -86,150 +50,96 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
   bool _windConsentGranted = false;
   bool _isLoadingWind = false;
   bool _hasWindError = false;
-  GhostPacerPerformance? _ghostPacer;
-  bool _hasGhostPacerError = false;
-  DateTime? _ghostStartedAt;
-  Timer? _ghostClock;
 
   @override
-  void initState() {
-    super.initState();
-    unawaited(_loadGhostPacer());
-  }
-
-  @override
-  void dispose() {
-    _ghostClock?.cancel();
-    unawaited(WakelockPlus.disable());
-    super.dispose();
-  }
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) => BlocListener<RouteGuidanceCubit, RouteGuidanceState>(
-    listenWhen: (previous, current) =>
-        previous.isRunning != current.isRunning ||
-        previous.currentPosition != current.currentPosition,
-    listener: (_, state) {
-      _syncGhostClock(state);
-      if (state.isRunning) {
-        unawaited(WakelockPlus.enable());
-      } else {
-        unawaited(WakelockPlus.disable());
-      }
-      if (_windConsentGranted &&
-          state.currentPosition != null &&
-          state.hasAccurateFix) {
-        unawaited(_refreshWindIfNeeded(state));
-      }
-    },
-    child: BlocBuilder<RouteGuidanceCubit, RouteGuidanceState>(
-      builder: (context, state) {
-        final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
-        final current = state.currentPosition;
-        final positionPoint = current == null
-            ? null
-            : RoutePoint(
-                latitude: current.latitude,
-                longitude: current.longitude,
-                elevationMeters: 0,
-              );
-        final routeHeading = widget.route.points.length < 2
-            ? null
-            : routeHeadingDegrees(widget.route.points, state.nearestRouteIndex);
-        final ghostPosition = state.isRunning && !state.hasReachedEnd
-            ? _ghostPacerPosition()
-            : null;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            RouteMapPreview(
-              points: widget.route.points,
-              source: widget.route.source,
-              currentPosition: positionPoint,
-              ghostPosition: ghostPosition?.point,
-              ghostHeadingDegrees: ghostPosition?.headingDegrees,
-              height: null,
-            ),
-            Positioned(
-              top: 12,
-              left: 16,
-              right: 16,
-              child: _GuidanceStatus(
-                label: _statusLabel(state),
-                accuracyMeters: current?.accuracyMeters,
-                warning: _warningLabel(state),
-                windIndicator: RouteWindIndicator(
-                  wind: _wind,
-                  routeHeadingDegrees: routeHeading,
-                  isLoading: _isLoadingWind,
-                  hasError: _hasWindError,
-                  isLocationReady: current != null && state.hasAccurateFix,
-                  onPressed: current == null || !state.hasAccurateFix
-                      ? null
-                      : () => _requestWind(state),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: _GuidanceControls(
-                distanceRemaining: state.distanceRemainingMeters == null
-                    ? 'Menunggu lokasi'
-                    : _formatDistance(
-                        state.distanceRemainingMeters!,
-                        unitSystem,
+  Widget build(BuildContext context) =>
+      BlocListener<RouteGuidanceCubit, RouteGuidanceState>(
+        listenWhen: (previous, current) =>
+            previous.currentPosition != current.currentPosition,
+        listener: (_, state) {
+          if (_windConsentGranted &&
+              state.currentPosition != null &&
+              state.hasAccurateFix) {
+            unawaited(_refreshWindIfNeeded(state));
+          }
+        },
+        child: BlocBuilder<RouteGuidanceCubit, RouteGuidanceState>(
+          builder: (context, state) {
+            final colors = Theme.of(context).colorScheme;
+            final textTheme = Theme.of(context).textTheme;
+            final current = state.currentPosition;
+            final routeHeading = widget.route.points.length < 2
+                ? null
+                : routeHeadingDegrees(
+                    widget.route.points,
+                    state.nearestRouteIndex,
+                  );
+            final warning = _warningLabel(state);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.navigation_outlined,
+                      size: 18,
+                      color: SenapathColors.accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _statusLabel(state),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                routePosition:
-                    '${state.nearestRouteIndex + 1}/${widget.route.points.length}',
-                onStop: () {
-                  unawaited(context.read<RouteGuidanceCubit>().stop());
-                  widget.onStop();
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-
-  Future<void> _loadGhostPacer() async {
-    final service = widget.ghostPacerService;
-    if (service == null) return;
-    try {
-      final performance = await service.loadBestForRoute(widget.route);
-      if (mounted) setState(() => _ghostPacer = performance);
-    } catch (_) {
-      if (mounted) setState(() => _hasGhostPacerError = true);
-    }
-  }
-
-  void _syncGhostClock(RouteGuidanceState state) {
-    if (state.isRunning && !state.hasReachedEnd) {
-      _ghostStartedAt ??= DateTime.now();
-      _ghostClock ??= Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted) setState(() {});
-      });
-    } else {
-      _ghostClock?.cancel();
-      _ghostClock = null;
-    }
-  }
-
-  GhostPacerMapPosition? _ghostPacerPosition() {
-    final performance = _ghostPacer;
-    final startedAt = _ghostStartedAt;
-    if (performance == null || startedAt == null) return null;
-    final elapsed = DateTime.now().difference(startedAt);
-    return ghostPacerMapPositionAt(
-      widget.route.points,
-      performance.distanceAt(elapsed),
-    );
-  }
+                    ),
+                    if (current != null)
+                      Text(
+                        '±${current.accuracyMeters.toStringAsFixed(0)} m',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    RouteWindIndicator(
+                      wind: _wind,
+                      routeHeadingDegrees: routeHeading,
+                      isLoading: _isLoadingWind,
+                      hasError: _hasWindError,
+                      isLocationReady: current != null && state.hasAccurateFix,
+                      onPressed: current == null || !state.hasAccurateFix
+                          ? null
+                          : () => _requestWind(state),
+                    ),
+                  ],
+                ),
+                if (warning != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      warning,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colors.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+      );
 
   Future<void> _requestWind(RouteGuidanceState state) async {
     if (_windConsentGranted) {
@@ -325,7 +235,7 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
   }
 
   String? _warningLabel(RouteGuidanceState state) {
-    if (_hasGhostPacerError) {
+    if (widget.ghostPacerError) {
       return 'Hantu performa sebelumnya tidak dapat dimuat.';
     }
     if (state.isOffRoute) {
@@ -336,151 +246,88 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
     }
     return state.error;
   }
-
-  String _formatDistance(double meters, UnitSystem unitSystem) {
-    if (unitSystem == UnitSystem.metric) {
-      return meters >= 1000
-          ? '${(meters / 1000).toStringAsFixed(1)} km'
-          : '${NumberFormat('0').format(meters)} m';
-    }
-    return meters >= 1609.344
-        ? '${(meters / 1609.344).toStringAsFixed(1)} mi'
-        : '${NumberFormat('0').format(meters * 3.28084)} ft';
-  }
 }
 
-class _GuidanceStatus extends StatelessWidget {
-  const _GuidanceStatus({
-    required this.label,
-    required this.accuracyMeters,
-    required this.warning,
-    required this.windIndicator,
-  });
+class GuidanceToolbar extends StatelessWidget {
+  const GuidanceToolbar({required this.route, required this.onStop, super.key});
 
-  final String label;
-  final double? accuracyMeters;
-  final String? warning;
-  final Widget windIndicator;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return SenapathCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.navigation_outlined, color: SenapathColors.accent),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                if (accuracyMeters != null)
-                  Text('±${accuracyMeters!.toStringAsFixed(0)} m'),
-                windIndicator,
-              ],
-            ),
-            if (warning != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.errorContainer,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  warning!,
-                  style: TextStyle(color: colors.onErrorContainer),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GuidanceControls extends StatelessWidget {
-  const _GuidanceControls({
-    required this.distanceRemaining,
-    required this.routePosition,
-    required this.onStop,
-  });
-
-  final String distanceRemaining;
-  final String routePosition;
+  final RouteRecord route;
   final VoidCallback onStop;
 
   @override
-  Widget build(BuildContext context) => SenapathCard(
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+  Widget build(
+    BuildContext context,
+  ) => BlocBuilder<RouteGuidanceCubit, RouteGuidanceState>(
+    builder: (context, state) {
+      final unitSystem = context.watch<UnitSettingsCubit>().state.unitSystem;
+      final distanceRemaining = state.distanceRemainingMeters == null
+          ? 'Menunggu lokasi'
+          : formatGuidanceDistance(state.distanceRemainingMeters!, unitSystem);
+      final routePosition =
+          '${state.nearestRouteIndex + 1}/${route.points.length}';
+      return SenapathCard(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: _GuidanceMetric(
+                child: _ToolbarMetric(
                   label: 'Jarak tersisa',
                   value: distanceRemaining,
                 ),
               ),
+              const SizedBox(width: 8),
               Expanded(
-                child: _GuidanceMetric(
+                child: _ToolbarMetric(
                   label: 'Posisi rute',
                   value: routePosition,
                 ),
               ),
+              const SizedBox(width: 8),
+              FilledButton.tonalIcon(
+                onPressed: () {
+                  unawaited(context.read<RouteGuidanceCubit>().stop());
+                  onStop();
+                },
+                icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                label: const Text('Akhiri panduan'),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'File GPX hanya menunjukkan garis rute, tanpa petunjuk belokan atau peta jalan.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: onStop,
-            icon: const Icon(Icons.stop_circle_outlined),
-            label: const Text('Akhiri panduan'),
-          ),
-        ],
-      ),
-    ),
+        ),
+      );
+    },
   );
 }
 
-class _GuidanceMetric extends StatelessWidget {
-  const _GuidanceMetric({required this.label, required this.value});
+class _ToolbarMetric extends StatelessWidget {
+  const _ToolbarMetric({required this.label, required this.value});
 
   final String label;
   final String value;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: Theme.of(context).textTheme.bodySmall),
-      const SizedBox(height: 2),
-      Text(
-        value,
-        style: Theme.of(context).textTheme.titleMedium
-            ?.copyWith(fontWeight: FontWeight.w700),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.bodySmall,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
 }

@@ -14,6 +14,7 @@ class RoutesState {
     this.sessionRoute,
     this.sessionRouteSelected = false,
     this.guidanceRoute,
+    this.guidanceStartCount = 0,
     this.message,
   });
 
@@ -23,6 +24,7 @@ class RoutesState {
   final RouteRecord? sessionRoute;
   final bool sessionRouteSelected;
   final RouteRecord? guidanceRoute;
+  final int guidanceStartCount;
   final String? message;
 
   RoutesState copyWith({
@@ -32,6 +34,7 @@ class RoutesState {
     RouteRecord? sessionRoute,
     bool? sessionRouteSelected,
     RouteRecord? guidanceRoute,
+    int? guidanceStartCount,
     String? message,
     bool clearMessage = false,
     bool clearSessionRoute = false,
@@ -45,6 +48,7 @@ class RoutesState {
     guidanceRoute: clearGuidanceRoute
         ? null
         : guidanceRoute ?? this.guidanceRoute,
+    guidanceStartCount: guidanceStartCount ?? this.guidanceStartCount,
     message: clearMessage ? null : message ?? this.message,
   );
 }
@@ -122,6 +126,7 @@ class RoutesCubit extends Cubit<RoutesState> {
       emit(
         state.copyWith(
           clearSessionRoute: state.sessionRoute?.id == routeId,
+          clearGuidanceRoute: state.guidanceRoute?.id == routeId,
           message: 'Rute berhasil dihapus.',
         ),
       );
@@ -151,8 +156,21 @@ class RoutesCubit extends Cubit<RoutesState> {
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 
   void startGuidance(RouteRecord route) {
-    emit(state.copyWith(guidanceRoute: route, clearMessage: true));
+    emit(
+      state.copyWith(
+        guidanceRoute: route,
+        guidanceStartCount: state.guidanceStartCount + 1,
+        clearMessage: true,
+      ),
+    );
     selectSessionRoute(route);
+    emit(
+      state.copyWith(
+        message:
+            'File GPX hanya menunjukkan garis rute, bukan jalan yang pasti '
+            'aman dilalui. Ikuti kondisi jalan, rambu, dan lingkungan sekitar.',
+      ),
+    );
   }
 
   void endGuidance() {
