@@ -8,10 +8,8 @@ import '../domain/nearby_route_place.dart';
 import '../domain/saved_route.dart';
 
 class OverpassRoutePlacesService {
-  OverpassRoutePlacesService({
-    this._client,
-    Uri? endpoint,
-  }) : _endpoint = endpoint ?? Uri.parse(defaultEndpoint);
+  OverpassRoutePlacesService({this._client, Uri? endpoint})
+    : _endpoint = endpoint ?? Uri.parse(defaultEndpoint);
 
   static const defaultEndpoint = 'https://overpass-api.de/api/interpreter';
   static const _searchRadiusMeters = 700;
@@ -32,7 +30,8 @@ class OverpassRoutePlacesService {
           .post(
             _endpoint,
             headers: const {
-              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'Content-Type':
+                  'application/x-www-form-urlencoded; charset=UTF-8',
               'User-Agent': 'Senapath/0.1 (OpenStreetMap route POI lookup)',
             },
             body: {'data': query},
@@ -73,19 +72,18 @@ class OverpassRoutePlacesService {
     final samples = <({double latitude, double longitude})>[];
     var segmentIndex = 1;
     for (var sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
-      final targetDistance =
-          totalDistance * sampleIndex / (sampleCount - 1);
+      final targetDistance = totalDistance * sampleIndex / (sampleCount - 1);
       while (segmentIndex < distances.length - 1 &&
           distances[segmentIndex] < targetDistance) {
         segmentIndex++;
       }
       final start = points[segmentIndex - 1];
       final end = points[segmentIndex];
-      final segmentDistance = distances[segmentIndex] - distances[segmentIndex - 1];
+      final segmentDistance =
+          distances[segmentIndex] - distances[segmentIndex - 1];
       final fraction = segmentDistance == 0
           ? 0.0
-          : ((targetDistance - distances[segmentIndex - 1]) /
-                    segmentDistance)
+          : ((targetDistance - distances[segmentIndex - 1]) / segmentDistance)
                 .clamp(0.0, 1.0);
       final sample = (
         latitude: start.latitude + (end.latitude - start.latitude) * fraction,

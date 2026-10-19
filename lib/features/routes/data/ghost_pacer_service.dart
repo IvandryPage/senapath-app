@@ -30,7 +30,12 @@ class GhostPacerService {
         continue;
       }
       final locations = await history.loadTelemetryLocations(session.id);
-      final performance = _matchPerformance(route, session, duration, locations);
+      final performance = _matchPerformance(
+        route,
+        session,
+        duration,
+        locations,
+      );
       if (performance != null) best = performance;
     }
     return best;
@@ -58,16 +63,19 @@ GhostPacerPerformance? _matchPerformance(
   List<TelemetryLocation> locations,
 ) {
   final routeSamples = _sampleRoute(route.points);
-  final validLocations = locations
-      .where(
-        (location) =>
-            location.latitude.isFinite &&
-            location.longitude.isFinite &&
-            location.accuracyMeters.isFinite &&
-            location.accuracyMeters <= 100,
-      )
-      .toList(growable: false)
-    ..sort((first, second) => first.recordedAt.compareTo(second.recordedAt));
+  final validLocations =
+      locations
+          .where(
+            (location) =>
+                location.latitude.isFinite &&
+                location.longitude.isFinite &&
+                location.accuracyMeters.isFinite &&
+                location.accuracyMeters <= 100,
+          )
+          .toList(growable: false)
+        ..sort(
+          (first, second) => first.recordedAt.compareTo(second.recordedAt),
+        );
   final trackSamples = _sampleTrack(validLocations);
   if (routeSamples.length < 2 || trackSamples.length < 5) return null;
 
@@ -173,7 +181,8 @@ List<_RouteSample> _sampleRoute(List<RoutePoint> points) {
   final distances = List<double>.filled(points.length, 0);
   for (var index = 1; index < points.length; index++) {
     distances[index] =
-        distances[index - 1] + _distanceBetweenPoints(points[index - 1], points[index]);
+        distances[index - 1] +
+        _distanceBetweenPoints(points[index - 1], points[index]);
   }
   if (points.length <= 180) {
     return [
@@ -239,12 +248,13 @@ double _distanceBetweenCoordinates(
   final endY = _radians(end.latitude - latitude) * earthRadiusMeters;
   final segmentX = endX - startX;
   final segmentY = endY - startY;
-  final segmentLengthSquared =
-      segmentX * segmentX + segmentY * segmentY;
+  final segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
   final fraction = segmentLengthSquared == 0
       ? 0.0
-      : (-(startX * segmentX + startY * segmentY) / segmentLengthSquared)
-            .clamp(0.0, 1.0);
+      : (-(startX * segmentX + startY * segmentY) / segmentLengthSquared).clamp(
+          0.0,
+          1.0,
+        );
   final distanceX = startX + segmentX * fraction;
   final distanceY = startY + segmentY * fraction;
   return (

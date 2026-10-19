@@ -477,10 +477,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
           await _stopMotionSensorStreams();
           _ticker?.cancel();
           _ticker = null;
-          pausedSession = await repository.pause(
-            session!.id,
-            _clock().toUtc(),
-          );
+          pausedSession = await repository.pause(session!.id, _clock().toUtc());
           recoveryMessage = ' Sesi tersimpan dan dijeda.';
         } catch (recoveryError) {
           recoveryMessage =
@@ -628,7 +625,9 @@ class RideSessionCubit extends Cubit<RideSessionState> {
         );
       }
     } catch (_) {
-      followUpMessages.add('Fitur prediksi belum dapat menyimpan data latihan.');
+      followUpMessages.add(
+        'Fitur prediksi belum dapat menyimpan data latihan.',
+      );
     }
     if (followUpMessages.isNotEmpty && !isClosed) {
       _setMessage(
@@ -682,8 +681,10 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     final normalizedTitle = TextValidators.sanitizeSingleLine(title);
     if (normalizedTitle.isEmpty ||
         normalizedTitle.runes.length > InputLimits.sessionNameMaxLength) {
-      _setMessage('Nama aktivitas harus 1 sampai '
-          '${InputLimits.sessionNameMaxLength} karakter.');
+      _setMessage(
+        'Nama aktivitas harus 1 sampai '
+        '${InputLimits.sessionNameMaxLength} karakter.',
+      );
       return;
     }
     try {
@@ -1218,9 +1219,8 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
     _positionSubscription = locationSource.positions.listen(
       (position) => unawaited(_handlePosition(sessionId, position)),
-      onError: (Object error) => unawaited(
-        _handleLocationStreamError(sessionId, error),
-      ),
+      onError: (Object error) =>
+          unawaited(_handleLocationStreamError(sessionId, error)),
     );
   }
 

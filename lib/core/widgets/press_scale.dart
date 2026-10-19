@@ -24,7 +24,9 @@ class _PressScaleState extends State<PressScale> {
     behavior: HitTestBehavior.opaque,
     onTapDown: widget.enabled ? (_) => setState(() => _isPressed = true) : null,
     onTapUp: widget.enabled ? (_) => setState(() => _isPressed = false) : null,
-    onTapCancel: widget.enabled ? () => setState(() => _isPressed = false) : null,
+    onTapCancel: widget.enabled
+        ? () => setState(() => _isPressed = false)
+        : null,
     onTap: widget.enabled ? widget.onTap : null,
     child: AnimatedScale(
       scale: _isPressed ? 0.95 : 1,

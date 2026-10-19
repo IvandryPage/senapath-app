@@ -19,12 +19,14 @@ class IntervalWorkoutRepository {
     if (decoded is! List) {
       throw const FormatException('Data workout lokal tidak valid.');
     }
-    return decoded.map((item) {
-      if (item is! Map<String, dynamic>) {
-        throw const FormatException('Data workout lokal tidak valid.');
-      }
-      return IntervalWorkout.fromJson(item);
-    }).toList(growable: false);
+    return decoded
+        .map((item) {
+          if (item is! Map<String, dynamic>) {
+            throw const FormatException('Data workout lokal tidak valid.');
+          }
+          return IntervalWorkout.fromJson(item);
+        })
+        .toList(growable: false);
   }
 
   Future<String?> loadSelectedWorkoutId() => _read(_selectedWorkoutKey);

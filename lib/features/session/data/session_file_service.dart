@@ -85,7 +85,9 @@ class SessionFileService {
           location.latitude > 90 ||
           location.longitude < -180 ||
           location.longitude > 180) {
-        throw const FormatException('Sesi memiliki titik GPS yang tidak valid.');
+        throw const FormatException(
+          'Sesi memiliki titik GPS yang tidak valid.',
+        );
       }
     }
 
@@ -102,7 +104,7 @@ class SessionFileService {
         builder.element(
           'trk',
           nest: () {
-              builder.element('name', nest: trackName);
+            builder.element('name', nest: trackName);
             builder.element(
               'trkseg',
               nest: () {

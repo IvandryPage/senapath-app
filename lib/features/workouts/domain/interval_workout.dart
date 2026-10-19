@@ -66,7 +66,8 @@ class WorkoutInterval {
 
   String get targetDescription => switch (targetType) {
     WorkoutTargetType.duration => '${targetValue}s',
-    WorkoutTargetType.distance => '${(targetValue / 1000).toStringAsFixed(2)} km',
+    WorkoutTargetType.distance =>
+      '${(targetValue / 1000).toStringAsFixed(2)} km',
   };
 }
 
@@ -134,12 +135,14 @@ class IntervalWorkout {
       return IntervalWorkout.create(
         id: json['id'] as String? ?? '',
         name: json['name'] as String? ?? '',
-        intervals: intervals.map((item) {
-          if (item is! Map<String, dynamic>) {
-            throw const FormatException('Data interval tidak valid.');
-          }
-          return WorkoutInterval.fromJson(item);
-        }).toList(growable: false),
+        intervals: intervals
+            .map((item) {
+              if (item is! Map<String, dynamic>) {
+                throw const FormatException('Data interval tidak valid.');
+              }
+              return WorkoutInterval.fromJson(item);
+            })
+            .toList(growable: false),
         audioCueEnabled: json['audioCueEnabled'] as bool? ?? true,
         hapticCueEnabled: json['hapticCueEnabled'] as bool? ?? true,
         visualCueEnabled: json['visualCueEnabled'] as bool? ?? true,
@@ -178,8 +181,7 @@ class WorkoutCheckpoint {
         sessionId: json['sessionId'] as String,
         workoutId: json['workoutId'] as String,
         intervalIndex: json['intervalIndex'] as int,
-        intervalStartElapsedSeconds:
-            json['intervalStartElapsedSeconds'] as int,
+        intervalStartElapsedSeconds: json['intervalStartElapsedSeconds'] as int,
         intervalStartDistanceMeters:
             (json['intervalStartDistanceMeters'] as num).toDouble(),
       );

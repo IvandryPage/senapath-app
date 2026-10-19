@@ -246,66 +246,89 @@ class _RoutesScreenState extends State<RoutesScreen> {
                             constraints: BoxConstraints(
                               maxWidth: constraints.maxWidth - 104,
                             ),
-                            child: activeRoute == null
-                                ? FilledButton.tonalIcon(
-                                    onPressed: state.isLoading
-                                        ? null
-                                        : _openGpxPicker,
-                                    icon: const Icon(Icons.search),
-                                    label: const Text('Pilih file rute'),
-                                  )
-                                : _SelectedRouteControl(
-                                    route: activeRoute,
-                                    onChange: state.isLoading
-                                        ? null
-                                        : _openGpxPicker,
-                                    onRemove: () => context
-                                        .read<RoutesCubit>()
-                                        .selectSessionRoute(null),
-                                  ),
-                          ),
-                        ),
-                        if (activeRoute != null &&
-                            activeRoute.points.length >= 2)
-                          Positioned(
-                            top: 78,
-                            left: 16,
-                            child: OutlinedButton.icon(
-                              key: const Key('route-nearby-places'),
-                              onPressed: _isLoadingNearbyPlaces
-                                  ? null
-                                  : () => _nearbyPlacesRouteId == activeRoute.id
-                                        ? _showNearbyPlaces(_nearbyPlaces)
-                                        : _confirmAndLoadNearbyPlaces(
-                                            activeRoute,
-                                          ),
-                              icon: _isLoadingNearbyPlaces
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                activeRoute == null
+                                    ? FilledButton.tonalIcon(
+                                        onPressed: state.isLoading
+                                            ? null
+                                            : _openGpxPicker,
+                                        icon: const Icon(Icons.search),
+                                        label: const Text('Pilih file rute'),
+                                      )
+                                    : _SelectedRouteControl(
+                                        route: activeRoute,
+                                        onChange: state.isLoading
+                                            ? null
+                                            : _openGpxPicker,
+                                        onRemove: () => context
+                                            .read<RoutesCubit>()
+                                            .selectSessionRoute(null),
                                       ),
-                                    )
-                                  : Icon(
-                                      _nearbyPlacesRouteId == activeRoute.id
-                                          ? Icons.place
-                                          : Icons.search,
+                                const SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  key: const Key('explore-saved-routes'),
+                                  onPressed: () =>
+                                      context.push('/routes/saved'),
+                                  icon: const Icon(Icons.history_outlined),
+                                  label: const Text('Rute tersimpan'),
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .surface,
+                                  ),
+                                ),
+                                if (activeRoute != null &&
+                                    activeRoute.points.length >= 2) ...[
+                                  const SizedBox(height: 8),
+                                  OutlinedButton.icon(
+                                    key: const Key('route-nearby-places'),
+                                    onPressed: _isLoadingNearbyPlaces
+                                        ? null
+                                        : () =>
+                                              _nearbyPlacesRouteId ==
+                                                  activeRoute.id
+                                              ? _showNearbyPlaces(_nearbyPlaces)
+                                              : _confirmAndLoadNearbyPlaces(
+                                                  activeRoute,
+                                                ),
+                                    icon: _isLoadingNearbyPlaces
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Icon(
+                                            _nearbyPlacesRouteId ==
+                                                    activeRoute.id
+                                                ? Icons.place
+                                                : Icons.search,
+                                          ),
+                                    label: Text(
+                                      _isLoadingNearbyPlaces
+                                          ? 'Mencari fasilitas…'
+                                          : _nearbyPlacesRouteId ==
+                                                activeRoute.id
+                                          ? 'Fasilitas (${_nearbyPlaces.length})'
+                                          : 'Cari fasilitas',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                              label: Text(
-                                _isLoadingNearbyPlaces
-                                    ? 'Mencari fasilitas…'
-                                    : _nearbyPlacesRouteId == activeRoute.id
-                                    ? 'Fasilitas (${_nearbyPlaces.length})'
-                                    : 'Cari fasilitas',
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .surface,
-                              ),
+                                    style: OutlinedButton.styleFrom(
+                                      backgroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .surface,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
+                        ),
                         Positioned(
                           right: 16,
                           bottom: 16,
@@ -1234,17 +1257,14 @@ class _RouteTimePredictionPreviewState
         : _distanceMeters(route.points);
     final routeAscent = route.elevationGainMeters;
     final routeAscentMeters =
-        routeAscent != null &&
-            routeAscent.isFinite &&
-            routeAscent >= 0
+        routeAscent != null && routeAscent.isFinite && routeAscent >= 0
         ? routeAscent
         : _ascentMeters(route.points);
 
     _distanceKm = distanceMeters.isFinite && distanceMeters > 0
         ? distanceMeters / 1000
         : null;
-    _routeAscentMeters =
-        routeAscentMeters.isFinite && routeAscentMeters >= 0
+    _routeAscentMeters = routeAscentMeters.isFinite && routeAscentMeters >= 0
         ? routeAscentMeters
         : null;
     if (_distanceKm == null || _routeAscentMeters == null) {
@@ -1346,9 +1366,8 @@ class _RouteTimePredictionPreviewState
                     const SizedBox(height: 2),
                     Text(
                       'Rata-rata dari ${prediction.neighborCount} gowes serupa · offline',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSecondaryContainer,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.onSecondaryContainer),
                     ),
                   ],
                 );

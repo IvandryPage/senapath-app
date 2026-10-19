@@ -33,9 +33,8 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     this._repository, {
     ExchangeRateProvider? rateProvider,
     this._aiChatGateway,
-  })
-    : _rateProvider = rateProvider ?? FrankfurterExchangeRateService(),
-      super(const LogisticsState());
+  }) : _rateProvider = rateProvider ?? FrankfurterExchangeRateService(),
+       super(const LogisticsState());
 
   final LogisticsRepository _repository;
   final ExchangeRateProvider _rateProvider;
@@ -193,10 +192,7 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     }
     await _persist(
       _copyData(
-        eurRates: {
-          BudgetCurrency.eur: 1,
-          ...updatedRates,
-        },
+        eurRates: {BudgetCurrency.eur: 1, ...updatedRates},
         rateUpdatedAt: DateTime.now(),
         rateSource: 'Manual',
       ),
@@ -245,9 +241,7 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     if (currency == state.data.baseCurrency) return;
     final current = state.data.effectiveConversionCurrencies;
     if (current.contains(currency)) return;
-    await _persist(
-      _copyData(conversionCurrencies: [...current, currency]),
-    );
+    await _persist(_copyData(conversionCurrencies: [...current, currency]));
   }
 
   Future<void> removeConversionCurrency(BudgetCurrency currency) async {
@@ -287,7 +281,8 @@ class LogisticsCubit extends Cubit<LogisticsState> {
         'Area hint is too long or invalid.',
       );
     }
-    final request = 'Estimasi kisaran harga non-real-time untuk barang ini: '
+    final request =
+        'Estimasi kisaran harga non-real-time untuk barang ini: '
         '${jsonEncode(items)}. Mata uang lokal ${localCurrency.code}; '
         'wilayah ${normalizedArea.isEmpty ? 'tidak diketahui' : normalizedArea}. '
         'Kembalikan satu objek JSON saja dengan bentuk '
@@ -321,7 +316,8 @@ class LogisticsCubit extends Cubit<LogisticsState> {
           ),
           const AiChatMessage(
             role: 'user',
-            content: 'Respons tadi tidak bisa dibaca sebagai data. Ulangi '
+            content:
+                'Respons tadi tidak bisa dibaca sebagai data. Ulangi '
                 'dengan satu objek JSON valid saja, tanpa Markdown atau teks '
                 'tambahan. Mantapkan nama field id, low, high, currency dan '
                 'pastikan angka berupa JSON number.',
@@ -349,11 +345,15 @@ class LogisticsCubit extends Cubit<LogisticsState> {
     final estimates = <ResupplyPriceEstimate>[];
     for (final item in rawItems) {
       if (item is! Map) {
-        throw const FormatException('Barang pada respons harga AI tidak valid.');
+        throw const FormatException(
+          'Barang pada respons harga AI tidak valid.',
+        );
       }
       final id = item['id'] ?? item['itemId'];
       if (id is! String || !allowedIds.contains(id)) {
-        throw const FormatException('Barang pada respons harga AI tidak valid.');
+        throw const FormatException(
+          'Barang pada respons harga AI tidak valid.',
+        );
       }
       final low = _parseEstimateNumber(item['low'] ?? item['min']);
       final high = _parseEstimateNumber(item['high'] ?? item['max']);
@@ -470,8 +470,7 @@ class LogisticsCubit extends Cubit<LogisticsState> {
   }) => LogisticsData(
     items: items ?? state.data.items,
     expenses: expenses ?? state.data.expenses,
-    customResupplyItems:
-        customResupplyItems ?? state.data.customResupplyItems,
+    customResupplyItems: customResupplyItems ?? state.data.customResupplyItems,
     eurRates: eurRates ?? state.data.eurRates,
     rateUpdatedAt: rateUpdatedAt ?? state.data.rateUpdatedAt,
     rateSource: rateSource ?? state.data.rateSource,

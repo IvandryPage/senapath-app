@@ -68,9 +68,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
   }
 
   @override
-  Future<void> saveConsent({
-    required bool isOptedIn,
-  }) async {
+  Future<void> saveConsent({required bool isOptedIn}) async {
     await (await _requiredClient).rpc(
       'set_leaderboard_consent',
       params: {'p_is_opted_in': isOptedIn},

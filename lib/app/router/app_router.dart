@@ -132,6 +132,16 @@ final appRouter = GoRouter(
                   path: 'workouts',
                   builder: (context, state) => const IntervalWorkoutScreen(),
                 ),
+                GoRoute(
+                  path: 'saved',
+                  builder: (context, state) => SavedRoutesScreen(
+                    rideCoachCubit: context.read<RideCoachCubit>(),
+                    preRideWeatherService: OpenMeteoPreRideWeatherService(),
+                    rideHistoryRepository: context
+                        .read<RideSessionCubit>()
+                        .rideHistoryRepository,
+                  ),
+                ),
               ],
             ),
           ],
@@ -167,13 +177,7 @@ final appRouter = GoRouter(
                 ),
                 GoRoute(
                   path: 'routes',
-                  builder: (context, state) => SavedRoutesScreen(
-                    rideCoachCubit: context.read<RideCoachCubit>(),
-                    preRideWeatherService: OpenMeteoPreRideWeatherService(),
-                    rideHistoryRepository: context
-                        .read<RideSessionCubit>()
-                        .rideHistoryRepository,
-                  ),
+                  redirect: (context, state) => '/routes/saved',
                 ),
                 GoRoute(
                   path: 'settings',
@@ -249,7 +253,7 @@ class _AppShellState extends State<_AppShell> {
       '/profile/sessions' => 'Riwayat perjalanan',
       _ when widget.location.startsWith('/profile/sessions/') =>
         'Detail perjalanan',
-      '/profile/routes' => 'Rute tersimpan',
+      '/routes/saved' => 'Rute tersimpan',
       '/routes/workouts' => 'Latihan interval',
       _ => _destinations[widget.navigationShell.currentIndex].label,
     };

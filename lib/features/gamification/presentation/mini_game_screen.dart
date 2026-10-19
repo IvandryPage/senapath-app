@@ -22,7 +22,8 @@ class MiniGameScreen extends StatefulWidget {
 }
 
 class _MiniGameScreenState extends State<MiniGameScreen> {
-  static const int _tileCount = MiniGameScreen.gridSize * MiniGameScreen.gridSize;
+  static const int _tileCount =
+      MiniGameScreen.gridSize * MiniGameScreen.gridSize;
 
   final Random _random = Random();
   late List<int> _tiles;
@@ -41,8 +42,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     precacheImage(const AssetImage(MiniGameScreen.asset), context);
   }
 
-  List<int> _solvedTiles() =>
-      List<int>.generate(_tileCount, (index) => index);
+  List<int> _solvedTiles() => List<int>.generate(_tileCount, (index) => index);
 
   bool _isSolvedOrder(List<int> tiles) {
     for (var index = 0; index < tiles.length; index++) {
@@ -147,10 +147,11 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
             children: [
               Expanded(
                 child: Text(
-                  _solved ? 'Selesai dalam $_moves langkah.' : 'Langkah: $_moves',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  _solved
+                      ? 'Selesai dalam $_moves langkah.'
+                      : 'Langkah: $_moves',
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               TextButton.icon(
@@ -232,7 +233,9 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
               dimension: cellSize,
               child: _PuzzlePiece(tile: tile, size: cellSize),
             ),
-            childWhenDragging: ColoredBox(color: colors.surfaceContainerHighest),
+            childWhenDragging: ColoredBox(
+              color: colors.surfaceContainerHighest,
+            ),
             child: _PuzzlePiece(tile: tile, size: cellSize),
           ),
         );

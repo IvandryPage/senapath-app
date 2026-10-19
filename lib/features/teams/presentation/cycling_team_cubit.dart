@@ -106,7 +106,8 @@ class CyclingTeamCubit extends Cubit<CyclingTeamState> {
     required String name,
     required String displayName,
   }) async {
-    final error = TextValidators.name(
+    final error =
+        TextValidators.name(
           name,
           label: 'nama tim',
           minLength: InputLimits.teamNameMinLength,

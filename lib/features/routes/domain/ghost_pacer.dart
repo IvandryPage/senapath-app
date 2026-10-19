@@ -3,10 +3,7 @@ import 'dart:math' as math;
 import 'saved_route.dart';
 
 class GhostPacerSample {
-  const GhostPacerSample({
-    required this.elapsed,
-    required this.distanceMeters,
-  });
+  const GhostPacerSample({required this.elapsed, required this.distanceMeters});
 
   final Duration elapsed;
   final double distanceMeters;
@@ -33,12 +30,11 @@ class GhostPacerPerformance {
       final previous = samples[index - 1];
       final next = samples[index];
       if (elapsed > next.elapsed) continue;
-      final interval = next.elapsed.inMicroseconds -
-          previous.elapsed.inMicroseconds;
+      final interval =
+          next.elapsed.inMicroseconds - previous.elapsed.inMicroseconds;
       if (interval <= 0) return next.distanceMeters;
       final progress =
-          (elapsed.inMicroseconds - previous.elapsed.inMicroseconds) /
-          interval;
+          (elapsed.inMicroseconds - previous.elapsed.inMicroseconds) / interval;
       return previous.distanceMeters +
           (next.distanceMeters - previous.distanceMeters) * progress;
     }

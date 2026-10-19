@@ -38,14 +38,11 @@ class RouteFileExchange {
   }) async {
     final bytes = Uint8List.fromList(utf8.encode(content));
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return await _androidFileExportChannel.invokeMethod<bool>(
-            'saveFile',
-            {
-              'bytes': bytes,
-              'fileName': suggestedName,
-              'mimeType': mimeType,
-            },
-          ) ??
+      return await _androidFileExportChannel.invokeMethod<bool>('saveFile', {
+            'bytes': bytes,
+            'fileName': suggestedName,
+            'mimeType': mimeType,
+          }) ??
           false;
     }
 
@@ -54,11 +51,7 @@ class RouteFileExchange {
         ShareParams(
           title: suggestedName,
           files: [
-            XFile.fromData(
-              bytes,
-              name: suggestedName,
-              mimeType: mimeType,
-            ),
+            XFile.fromData(bytes, name: suggestedName, mimeType: mimeType),
           ],
         ),
       );

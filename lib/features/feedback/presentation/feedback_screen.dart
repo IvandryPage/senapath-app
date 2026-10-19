@@ -9,10 +9,7 @@ class FeedbackScreen extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
     children: [
-      Text(
-        'Saran dan Kesan',
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      Text('Saran dan Kesan', style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),
       Text(
         'Catatan untuk pengembangan Senapath.',

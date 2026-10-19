@@ -65,8 +65,9 @@ abstract final class TextValidators {
   static bool hasForbiddenCharacters(
     String value, {
     bool allowLineBreaks = false,
-  }) => (allowLineBreaks ? _multiLineForbidden : _singleLineForbidden)
-      .hasMatch(value);
+  }) => (allowLineBreaks ? _multiLineForbidden : _singleLineForbidden).hasMatch(
+    value,
+  );
 
   static String stripForbiddenCharacters(
     String value, {
@@ -127,9 +128,7 @@ abstract final class TextValidators {
     if (hasForbiddenCharacters(text) || text.contains(RegExp(r'\s'))) {
       return 'Email tidak boleh memuat spasi atau karakter yang tidak didukung.';
     }
-    if (text.startsWith('.') ||
-        text.contains('..') ||
-        !_email.hasMatch(text)) {
+    if (text.startsWith('.') || text.contains('..') || !_email.hasMatch(text)) {
       return 'Masukkan email yang valid, contoh nama@domain.com.';
     }
     return null;

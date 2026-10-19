@@ -37,7 +37,9 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
     try {
       final workouts = await _repository.loadWorkouts();
       final selectedId = await _repository.loadSelectedWorkoutId();
-      final selectedExists = workouts.any((workout) => workout.id == selectedId);
+      final selectedExists = workouts.any(
+        (workout) => workout.id == selectedId,
+      );
       emit(
         IntervalWorkoutState(
           workouts: workouts,
@@ -49,9 +51,7 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
       }
     } catch (_) {
       emit(
-        const IntervalWorkoutState(
-          error: 'Workout lokal tidak dapat dimuat.',
-        ),
+        const IntervalWorkoutState(error: 'Workout lokal tidak dapat dimuat.'),
       );
     } finally {
       _loading = false;
@@ -82,10 +82,7 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
         await _repository.selectWorkout(null);
       }
       emit(
-        IntervalWorkoutState(
-          workouts: updated,
-          selectedWorkoutId: selectedId,
-        ),
+        IntervalWorkoutState(workouts: updated, selectedWorkoutId: selectedId),
       );
     } catch (_) {
       emit(

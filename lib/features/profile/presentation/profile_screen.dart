@@ -253,13 +253,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _profileMenuItem(
               sheetContext,
-              icon: Icons.route_outlined,
-              title: 'Rute tersimpan',
-              onTap: () =>
-                  _openMenuDestination(sheetContext, '/profile/routes'),
-            ),
-            _profileMenuItem(
-              sheetContext,
               icon: Icons.leaderboard_outlined,
               title: 'Papan peringkat',
               onTap: () => _openMenuDestination(sheetContext, '/leaderboard'),

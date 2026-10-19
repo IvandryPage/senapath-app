@@ -107,7 +107,11 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     try {
       response = await _sessionManager.invokeAuthenticatedFunction(
         'rider-coach',
-        body: {'action': 'pre_ride', 'consent': consent, 'preRide': routeAndWeather},
+        body: {
+          'action': 'pre_ride',
+          'consent': consent,
+          'preRide': routeAndWeather,
+        },
       );
     } on FunctionException catch (error) {
       throw StateError(_functionErrorMessage(error));
@@ -138,9 +142,9 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     return switch (error.status) {
       401 || 403 => 'Sesi akun tidak valid. Silakan masuk kembali.',
       429 => 'Batas penggunaan rekomendasi AI tercapai. Coba lagi nanti.',
-      503 =>
-        'Layanan AI belum siap. Periksa konfigurasi Edge Function dan secrets Supabase.',
-      _ => 'Edge Function rider-coach gagal (HTTP ${error.status}). Periksa log Supabase Functions.',
+      503 => 'Layanan AI belum siap. Periksa konfigurasi Edge Function dan secrets Supabase.',
+      _ =>
+        'Edge Function rider-coach gagal (HTTP ${error.status}). Periksa log Supabase Functions.',
     };
   }
 }

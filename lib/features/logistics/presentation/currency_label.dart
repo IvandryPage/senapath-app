@@ -27,10 +27,9 @@ class CurrencyLabel extends StatelessWidget {
             currency.label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: (dense
-                    ? theme.textTheme.bodySmall
-                    : theme.textTheme.bodyMedium)
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style:
+                (dense ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium)
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ),
       ],

@@ -9,11 +9,9 @@ class SessionSyncSettingsRepository {
 
   Future<bool> loadAutoSyncEnabled() async {
     final row =
-        await (_database.select(_database.appPreferences)
-              ..where(
-                (preference) =>
-                    preference.key.equals(_autoSyncPreferenceKey),
-              ))
+        await (_database.select(_database.appPreferences)..where(
+              (preference) => preference.key.equals(_autoSyncPreferenceKey),
+            ))
             .getSingleOrNull();
     return row?.value == 'true';
   }

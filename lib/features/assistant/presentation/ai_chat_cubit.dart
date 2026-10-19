@@ -54,24 +54,22 @@ class AiChatCubit extends Cubit<AiChatState> {
     required String content,
     Map<String, Object?> context = const {},
   }) async {
-    final message = TextValidators
-        .stripForbiddenCharacters(content, allowLineBreaks: true)
-        .trim();
+    final message = TextValidators.stripForbiddenCharacters(
+      content,
+      allowLineBreaks: true,
+    ).trim();
     if (state.isSending || message.isEmpty) return;
     if (message.length > InputLimits.chatMessageMaxLength) {
       emit(
         state.copyWith(
-          error:
-              'Pesan maksimal ${InputLimits.chatMessageMaxLength} karakter.',
+          error: 'Pesan maksimal ${InputLimits.chatMessageMaxLength} karakter.',
         ),
       );
       return;
     }
     if (!isConfigured) {
       emit(
-        state.copyWith(
-          error: 'Asisten belum dikonfigurasi. Coba lagi nanti.',
-        ),
+        state.copyWith(error: 'Asisten belum dikonfigurasi. Coba lagi nanti.'),
       );
       return;
     }

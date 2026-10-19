@@ -83,10 +83,12 @@ class OpenMeteoPreRideWeatherService implements PreRideWeatherService {
     );
     final requestClient = client ?? http.Client();
     try {
-      final response = await requestClient.get(
-        uri,
-        headers: const {'User-Agent': 'Senapath/0.1 (pre-ride briefing)'},
-      ).timeout(const Duration(seconds: 12));
+      final response = await requestClient
+          .get(
+            uri,
+            headers: const {'User-Agent': 'Senapath/0.1 (pre-ride briefing)'},
+          )
+          .timeout(const Duration(seconds: 12));
       if (response.statusCode != 200) {
         throw StateError('Open-Meteo returned ${response.statusCode}.');
       }
@@ -97,8 +99,7 @@ class OpenMeteoPreRideWeatherService implements PreRideWeatherService {
       final current = Map<String, Object?>.from(decoded['current'] as Map);
       final temperature = (current['temperature_2m'] as num?)?.toDouble();
       final code = (current['weather_code'] as num?)?.toInt();
-      final windDirection =
-          (current['wind_direction_10m'] as num?)?.toDouble();
+      final windDirection = (current['wind_direction_10m'] as num?)?.toDouble();
       final windSpeed = (current['wind_speed_10m'] as num?)?.toDouble();
       final observedAt = DateTime.tryParse(current['time'] as String? ?? '');
       if (temperature == null ||

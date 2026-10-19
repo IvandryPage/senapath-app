@@ -286,13 +286,14 @@ class LogisticsData {
     final rawConversionCurrencies = json['conversionCurrencies'];
     final rawRateSource = json['rateSource'];
     final target = BudgetCurrency.fromCode(rawTarget);
-    final baseCurrency =
-        rawBaseCurrency == null ? BudgetCurrency.idr : BudgetCurrency.fromCode(rawBaseCurrency);
+    final baseCurrency = rawBaseCurrency == null
+        ? BudgetCurrency.idr
+        : BudgetCurrency.fromCode(rawBaseCurrency);
     final rates = <BudgetCurrency, double>{BudgetCurrency.eur: 1};
 
     if (rawItems is! List ||
-    rawExpenses is! List ||
-    rawCustomResupplyItems is! List ||
+        rawExpenses is! List ||
+        rawCustomResupplyItems is! List ||
         rawRates is! Map ||
         target == null ||
         baseCurrency == null ||

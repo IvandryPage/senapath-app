@@ -436,8 +436,7 @@ class _LogisticsScreenState extends State<LogisticsScreen> {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed:
-                state.isSaving ||
-                    _remainingConversionCurrencies(data).isEmpty
+                state.isSaving || _remainingConversionCurrencies(data).isEmpty
                 ? null
                 : () => _addConversionCurrency(context, data),
             icon: const Icon(Icons.add),
@@ -1001,9 +1000,8 @@ class _ConversionResult extends StatelessWidget {
           currency.label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 4),
         Text(

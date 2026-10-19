@@ -122,9 +122,7 @@ class RideCoachCubit extends Cubit<RideCoachState> {
             recommendation: state.recommendation,
             preRideBriefing: state.preRideBriefing,
             preRideRouteId: routeId,
-            preRideError: error is StateError
-                ? error.message
-                : 'Briefing belum tersedia. Periksa koneksi internet dan coba lagi.',
+            preRideError: error is StateError ? error.message : 'Briefing belum tersedia. Periksa koneksi internet dan coba lagi.',
           ),
         );
       }

@@ -42,10 +42,14 @@ class OpenMeteoRouteWindService implements RouteWindService {
     );
     final requestClient = client ?? http.Client();
     try {
-      final response = await requestClient.get(
-        uri,
-        headers: const {'User-Agent': 'Senapath/0.1 (route wind direction)'},
-      ).timeout(const Duration(seconds: 12));
+      final response = await requestClient
+          .get(
+            uri,
+            headers: const {
+              'User-Agent': 'Senapath/0.1 (route wind direction)',
+            },
+          )
+          .timeout(const Duration(seconds: 12));
       if (response.statusCode != 200) {
         throw StateError('Open-Meteo returned ${response.statusCode}.');
       }
@@ -53,9 +57,7 @@ class OpenMeteoRouteWindService implements RouteWindService {
       if (decoded is! Map) {
         throw const FormatException('Invalid Open-Meteo response.');
       }
-      return RouteWindObservation.fromJson(
-        Map<String, Object?>.from(decoded),
-      );
+      return RouteWindObservation.fromJson(Map<String, Object?>.from(decoded));
     } finally {
       if (client == null) requestClient.close();
     }

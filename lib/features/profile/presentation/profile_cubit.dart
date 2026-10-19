@@ -205,8 +205,13 @@ class ProfileCubit extends Cubit<ProfileState> {
     final cleanedName = TextValidators.sanitizeSingleLine(contact.name);
     if (cleanedName.isEmpty ||
         cleanedName.runes.length > InputLimits.displayNameMaxLength) {
-      emit(state.copyWith(message: 'Nama kontak harus 1 sampai '
-          '${InputLimits.displayNameMaxLength} karakter.'));
+      emit(
+        state.copyWith(
+          message:
+              'Nama kontak harus 1 sampai '
+              '${InputLimits.displayNameMaxLength} karakter.',
+        ),
+      );
       return;
     }
     if (contact.phone.trim().isEmpty) {

@@ -138,13 +138,11 @@ class MotionSnapshot {
 
   bool get hasCadenceGraph => cadenceHistory.length >= 2;
 
-  double? get peakAcceleration => accelerationHistory.isEmpty
-      ? null
-      : accelerationHistory.reduce(math.max);
+  double? get peakAcceleration =>
+      accelerationHistory.isEmpty ? null : accelerationHistory.reduce(math.max);
 
-  double? get peakRotation => rotationHistory.isEmpty
-      ? null
-      : rotationHistory.reduce(math.max);
+  double? get peakRotation =>
+      rotationHistory.isEmpty ? null : rotationHistory.reduce(math.max);
 }
 
 class RideSpeedSample {
@@ -152,7 +150,6 @@ class RideSpeedSample {
     required this.recordedAt,
     required this.speedMetersPerSecond,
   });
-
 
   final DateTime recordedAt;
   final double speedMetersPerSecond;

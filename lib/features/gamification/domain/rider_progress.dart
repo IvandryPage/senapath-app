@@ -11,7 +11,8 @@ enum RiderStyle {
   ),
   ace(
     label: 'Ace / Leader',
-    description: 'Kapten utama tim dengan performa konsisten di berbagai medan.',
+    description:
+        'Kapten utama tim dengan performa konsisten di berbagai medan.',
   ),
   puncheur(
     label: 'Puncheur',
@@ -19,29 +20,30 @@ enum RiderStyle {
   ),
   rouleur(
     label: 'Rouleur',
-    description: 'Pembalap serba bisa penahan angin dan pengatur ritme peleton.',
+    description:
+        'Pembalap serba bisa penahan angin dan pengatur ritme peleton.',
   ),
   timetrialist(
     label: 'Time Trialist',
-    description: 'Spesialis balap solo melawan waktu dengan posisi aerodinamis.',
+    description:
+        'Spesialis balap solo melawan waktu dengan posisi aerodinamis.',
   ),
   domestique(
     label: 'Domestique',
-    description: 'Pembalap pendukung yang bekerja demi strategi kemenangan tim.',
+    description:
+        'Pembalap pendukung yang bekerja demi strategi kemenangan tim.',
   ),
   leadout(
     label: 'Lead-out',
-    description: 'Pembalap penarik sprint di kilometer terakhir untuk memecah angin.',
+    description:
+        'Pembalap penarik sprint di kilometer terakhir untuk memecah angin.',
   ),
   explorer(
     label: 'Explorer',
     description: 'Pesepeda yang gemar eksplorasi rute baru dan variasi medan.',
   );
 
-  const RiderStyle({
-    required this.label,
-    required this.description,
-  });
+  const RiderStyle({required this.label, required this.description});
 
   final String label;
   final String description;

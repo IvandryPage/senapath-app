@@ -21,10 +21,8 @@ class RideHistoryRepository {
     final endedAt = session.endedAt;
     final distanceKm = session.distanceMeters / 1000;
     final elevationGainMeters = summary.elevationGainMeters;
-    final durationMinutes = session.durationAt(
-      endedAt ?? session.startedAt,
-    ).inSeconds /
-        60;
+    final durationMinutes =
+        session.durationAt(endedAt ?? session.startedAt).inSeconds / 60;
     if (endedAt == null ||
         !distanceKm.isFinite ||
         distanceKm <= 0 ||
@@ -36,16 +34,18 @@ class RideHistoryRepository {
       return;
     }
 
-    await _database.into(_database.rideHistory).insertOnConflictUpdate(
-      RideHistoryCompanion.insert(
-        sessionId: session.id,
-        distanceKm: distanceKm,
-        elevationGainMeters: elevationGainMeters,
-        elevationPerDistance: elevationGainMeters / distanceKm,
-        durationMinutes: durationMinutes,
-        completedAt: endedAt,
-      ),
-    );
+    await _database
+        .into(_database.rideHistory)
+        .insertOnConflictUpdate(
+          RideHistoryCompanion.insert(
+            sessionId: session.id,
+            distanceKm: distanceKm,
+            elevationGainMeters: elevationGainMeters,
+            elevationPerDistance: elevationGainMeters / distanceKm,
+            durationMinutes: durationMinutes,
+            completedAt: endedAt,
+          ),
+        );
   }
 
   Future<List<RideHistoryEntry>> loadHistory() async {
@@ -69,10 +69,11 @@ class RideHistoryRepository {
     required List<RideSessionSnapshot> sessions,
     required Future<RideSessionSummary> Function(String sessionId) loadSummary,
   }) async {
-    final backfillState = await (_database.select(
-      _database.appPreferences,
-    )..where((preference) =>
-        preference.key.equals(_backfillPreferenceKey))).getSingleOrNull();
+    final backfillState =
+        await (_database.select(_database.appPreferences)..where(
+              (preference) => preference.key.equals(_backfillPreferenceKey),
+            ))
+            .getSingleOrNull();
     if (backfillState?.value == 'complete') return;
 
     final storedRows = await _database.select(_database.rideHistory).get();
@@ -86,12 +87,14 @@ class RideHistoryRepository {
       await recordCompletedRide(await loadSummary(session.id));
     }
 
-    await _database.into(_database.appPreferences).insertOnConflictUpdate(
-      AppPreferencesCompanion.insert(
-        key: _backfillPreferenceKey,
-        value: 'complete',
-      ),
-    );
+    await _database
+        .into(_database.appPreferences)
+        .insertOnConflictUpdate(
+          AppPreferencesCompanion.insert(
+            key: _backfillPreferenceKey,
+            value: 'complete',
+          ),
+        );
   }
 
   Future<RideTimePrediction?> predict({
