@@ -32,6 +32,8 @@ import '../../ride_prediction/data/ride_history_repository.dart';
 import '../../ride_prediction/domain/ride_time_predictor.dart';
 import 'routes_cubit.dart';
 import 'explore_map.dart';
+import 'route_guidance_view.dart';
+import '../data/ghost_pacer_service.dart';
 import '../../session/domain/ride_session.dart';
 import '../../session/presentation/session_cubit.dart';
 import '../../session/presentation/session_screen.dart';
@@ -152,8 +154,29 @@ class _RoutesScreenState extends State<RoutesScreen> {
                       )
                     : null;
                 final activeRoute = state.sessionRoute;
+                final guidanceRoute = state.guidanceRoute;
                 return LayoutBuilder(
                   builder: (context, constraints) {
+                    if (guidanceRoute != null) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          RouteGuidanceView(
+                            key: ValueKey(guidanceRoute.id),
+                            route: guidanceRoute,
+                            ambientBright: sessionState.isAmbientBright,
+                            ghostPacerService: GhostPacerService(
+                              history: RideSessionGhostPacerHistory(
+                                context.read<RideSessionCubit>().repository,
+                              ),
+                            ),
+                            onStop: () => context
+                                .read<RoutesCubit>()
+                                .endGuidance(),
+                          ),
+                        ],
+                      );
+                    }
                     return Stack(
                       fit: StackFit.expand,
                       children: [
@@ -1618,10 +1641,8 @@ class _RouteTile extends StatelessWidget {
                           ? null
                           : () {
                               Navigator.of(context).pop();
-                              router.push<void>(
-                                '/routes/guidance',
-                                extra: route,
-                              );
+                              context.read<RoutesCubit>().startGuidance(route);
+                              router.go('/routes');
                             },
                       icon: const Icon(Icons.navigation),
                       label: const Text('Mulai panduan'),

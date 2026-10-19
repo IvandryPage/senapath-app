@@ -9,9 +9,6 @@ import '../../features/overview/presentation/overview_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/profile_settings_screen.dart';
 import '../../features/routes/presentation/routes_screen.dart';
-import '../../features/routes/presentation/route_guidance_screen.dart';
-import '../../features/routes/domain/saved_route.dart';
-import '../../features/routes/data/ghost_pacer_service.dart';
 import '../../features/session/presentation/session_cubit.dart';
 import '../../features/session/presentation/session_screen.dart';
 import '../../features/ride_coach/presentation/ride_coach_cubit.dart';
@@ -102,32 +99,6 @@ final appRouter = GoRouter(
                 preRideWeatherService: OpenMeteoPreRideWeatherService(),
               ),
               routes: [
-                GoRoute(
-                  path: 'guidance',
-                  builder: (context, state) {
-                    final route = state.extra;
-                    if (route is! RouteRecord) {
-                      return const Scaffold(
-                        body: Center(
-                          child: Text('Rute panduan tidak tersedia.'),
-                        ),
-                      );
-                    }
-                    final sessionCubit = context.read<RideSessionCubit>();
-                    return RouteGuidanceScreen(
-                      route: route,
-                      ambientBright: context
-                          .watch<RideSessionCubit>()
-                          .state
-                          .isAmbientBright,
-                      ghostPacerService: GhostPacerService(
-                        history: RideSessionGhostPacerHistory(
-                          sessionCubit.repository,
-                        ),
-                      ),
-                    );
-                  },
-                ),
                 GoRoute(
                   path: 'workouts',
                   builder: (context, state) => const IntervalWorkoutScreen(),

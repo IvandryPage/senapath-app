@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -20,9 +19,10 @@ import 'route_guidance_cubit.dart';
 import 'route_wind_indicator.dart';
 import 'routes_screen.dart';
 
-class RouteGuidanceScreen extends StatelessWidget {
-  const RouteGuidanceScreen({
+class RouteGuidanceView extends StatelessWidget {
+  const RouteGuidanceView({
     required this.route,
+    required this.onStop,
     this.positionSource,
     this.windService,
     this.ghostPacerService,
@@ -31,6 +31,7 @@ class RouteGuidanceScreen extends StatelessWidget {
   });
 
   final RouteRecord route;
+  final VoidCallback onStop;
   final RoutePositionSource? positionSource;
   final RouteWindService? windService;
   final GhostPacerService? ghostPacerService;
@@ -51,6 +52,7 @@ class RouteGuidanceScreen extends StatelessWidget {
       },
       child: _RouteGuidanceView(
         route: route,
+        onStop: onStop,
         windService: windService,
         ghostPacerService: ghostPacerService,
       ),
@@ -61,11 +63,13 @@ class RouteGuidanceScreen extends StatelessWidget {
 class _RouteGuidanceView extends StatefulWidget {
   const _RouteGuidanceView({
     required this.route,
+    required this.onStop,
     this.windService,
     this.ghostPacerService,
   });
 
   final RouteRecord route;
+  final VoidCallback onStop;
   final RouteWindService? windService;
   final GhostPacerService? ghostPacerService;
 
@@ -183,7 +187,7 @@ class _RouteGuidanceViewState extends State<_RouteGuidanceView> {
                     '${state.nearestRouteIndex + 1}/${widget.route.points.length}',
                 onStop: () {
                   unawaited(context.read<RouteGuidanceCubit>().stop());
-                  context.pop();
+                  widget.onStop();
                 },
               ),
             ),

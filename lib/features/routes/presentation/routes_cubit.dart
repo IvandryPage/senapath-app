@@ -13,6 +13,7 @@ class RoutesState {
     this.isLoading = false,
     this.sessionRoute,
     this.sessionRouteSelected = false,
+    this.guidanceRoute,
     this.message,
   });
 
@@ -21,6 +22,7 @@ class RoutesState {
   final bool isLoading;
   final RouteRecord? sessionRoute;
   final bool sessionRouteSelected;
+  final RouteRecord? guidanceRoute;
   final String? message;
 
   RoutesState copyWith({
@@ -29,15 +31,20 @@ class RoutesState {
     bool? isLoading,
     RouteRecord? sessionRoute,
     bool? sessionRouteSelected,
+    RouteRecord? guidanceRoute,
     String? message,
     bool clearMessage = false,
     bool clearSessionRoute = false,
+    bool clearGuidanceRoute = false,
   }) => RoutesState(
     query: query ?? this.query,
     routes: routes ?? this.routes,
     isLoading: isLoading ?? this.isLoading,
     sessionRoute: clearSessionRoute ? null : sessionRoute ?? this.sessionRoute,
     sessionRouteSelected: sessionRouteSelected ?? this.sessionRouteSelected,
+    guidanceRoute: clearGuidanceRoute
+        ? null
+        : guidanceRoute ?? this.guidanceRoute,
     message: clearMessage ? null : message ?? this.message,
   );
 }
@@ -142,4 +149,14 @@ class RoutesCubit extends Cubit<RoutesState> {
   }
 
   void clearMessage() => emit(state.copyWith(clearMessage: true));
+
+  void startGuidance(RouteRecord route) {
+    emit(state.copyWith(guidanceRoute: route, clearMessage: true));
+    selectSessionRoute(route);
+  }
+
+  void endGuidance() {
+    if (state.guidanceRoute == null) return;
+    emit(state.copyWith(clearGuidanceRoute: true));
+  }
 }
