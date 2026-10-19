@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 const accessTokenLifetimeSeconds = 10 * 60;
 const refreshTokenLifetimeSeconds = 30 * 24 * 60 * 60;
-const passwordIterations = 210_000;
+const passwordIterations = 600_000;
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const jwtSecret = Deno.env.get("APP_AUTH_JWT_SECRET");
