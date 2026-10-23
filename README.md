@@ -185,7 +185,32 @@ Kartu **Pelatih AI saat gowes** di Beranda merupakan rekomendasi kontekstual yan
 
 Beranda menampilkan level, XP, dan gaya rider; gaya Sprinter, Climber, Explorer, atau Ace/All-rounder diatur di **Profil → Pengaturan → Preferensi**, lalu disinkronkan ke profil cloud ketika akun online tersedia dan tampil pada kartu anggota tim serta leaderboard. XP masih dihitung dari sesi lokal dan angka profil cloud berasal dari aplikasi, bukan verifikasi independen.
 
-Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi selesai tanpa koordinat GPS dan menyediakan pemeriksaan integritas. Dengan persetujuan pengguna, **Sinkronkan bukti** mengirim metadata minimum (indeks, waktu, jarak, durasi, dan hash) ke ledger append-only di database cloud Supabase; GPS, nama, dan email tidak dikirim. Tidak ada integrasi Ethereum, wallet, RPC, maupun biaya transaksi. Ini merupakan ledger hash tersinkron di cloud, bukan blockchain terdesentralisasi: operator database tetap mengelola penyimpanan, dan data perjalanan awal tetap berasal dari aplikasi pengguna, bukan diverifikasi independen.
+Detail **Bukti perjalanan** menyimpan hash berantai lokal untuk ringkasan sesi selesai tanpa koordinat GPS dan menyediakan pemeriksaan integritas. Dengan persetujuan pengguna, **Sinkronkan bukti** mengirim metadata minimum (indeks, waktu, jarak, durasi, dan hash) ke ledger append-only di database cloud Supabase; GPS, nama, dan email tidak dikirim.
+
+#### Anchor blockchain (JSON-RPC)
+
+Tombol **Catat ke blockchain** menyinkronkan ledger, lalu Edge Function `anchor-ride-proofs` mengirim transaksi EVM bernilai 0 dari wallet relayer (server-side) melalui JSON-RPC `eth_sendRawTransaction`. Calldata berisi teks `senapath:v1:<jumlah_blok>:<head_hash>`; tidak ada GPS, nama, email, maupun user id. Default jaringan adalah **Ethereum Sepolia (testnet)**, sehingga tanpa biaya nyata. ETH Sepolia hanya token uji dan tidak bernilai uang.
+
+- **Cek di explorer:** setiap anchor menampilkan hash transaksi dan tombol *Buka di explorer* (`<ANCHOR_EXPLORER_URL>/tx/<hash>`); Input Data (UTF-8) harus berisi teks di atas.
+- **Verifikasi independen di app:** *Verifikasi via RPC* membaca `eth_getTransactionByHash`/`eth_getTransactionReceipt` langsung dari RPC publik (bukan dari server Senapath), lalu mencocokkan chain id, pengirim relayer, status sukses, isi calldata, dan hash blok lokal.
+- Satu anchor per head hash (idempoten) dan jeda minimal 10 menit per akun untuk membatasi biaya gas relayer.
+
+Setup relayer Sepolia (sekali saja):
+
+```sh
+supabase db push
+supabase secrets set ANCHOR_PRIVATE_KEY="0x<private key wallet relayer khusus>" \
+  ANCHOR_RPC_URL="https://ethereum-sepolia-rpc.publicnode.com"
+# Opsional (default Ethereum Sepolia):
+supabase secrets set ANCHOR_CHAIN_ID=11155111 ANCHOR_CHAIN_NAME="Ethereum Sepolia (testnet)" \
+  ANCHOR_EXPLORER_URL=https://sepolia.etherscan.io \
+  ANCHOR_PUBLIC_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+supabase functions deploy anchor-ride-proofs
+```
+
+Danai alamat relayer dengan ETH Sepolia dari faucet gratis, misalnya [Google Cloud Web3 Faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia) atau [Alchemy Sepolia Faucet](https://www.alchemy.com/faucets/ethereum-sepolia). Cukup kirim sedikit ETH uji ke alamat relayer; saldo ini hanya untuk gas testnet. Gunakan wallet khusus tanpa dana lain; jangan memasukkan private key ke aplikasi atau Git. `ANCHOR_PUBLIC_RPC_URL` dikirim ke aplikasi sehingga tidak boleh berisi API key. Pindah ke mainnet hanya dengan mengganti variabel di atas, tetapi biaya gas riil dan kebijakan relayer perlu diputuskan lebih dulu.
+
+Batasan: yang tercatat di blockchain hanya head hash ledger; data perjalanan awal tetap berasal dari aplikasi pengguna dan tidak diverifikasi independen. Tidak ada smart contract maupun wallet pengguna.
 
 ### Seed data tim demo
 

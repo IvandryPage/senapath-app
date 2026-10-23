@@ -204,7 +204,7 @@ GPS tetap sumber utama lokasi/pergerakan sesuai requirement. Bila `Position.spee
 | Segment/klub    | Postgres + RLS; matching on-device; RPC `SECURITY DEFINER`           | Leaderboard segmen server-side, opt-in, alias publik (pola sama dengan leaderboard mingguan). |
 | Wearable        | Health Connect/HealthKit + impor FIT/TCX (Garmin menyusul)           | Gratis & on-device; Garmin hanya setelah approval partner, jangan klaim feed real-time. |
 | AI              | Backend REST ke provider LLM (Gemini free → Groq/OpenRouter)         | Jangan panggil provider ber-secret langsung dari aplikasi; fallback dipilih server-side. |
-| Blockchain      | EVM Polygon Amoy untuk staging; relayer server-side                   | Deploy/verifikasi kontrak dan transaksi testnet; produksi/mainnet dan batas biaya belum diputuskan. Key relayer hanya di secret manager. |
+| Blockchain      | EVM Ethereum Sepolia untuk staging; relayer server-side                   | Deploy/verifikasi kontrak dan transaksi testnet; produksi/mainnet dan batas biaya belum diputuskan. Key relayer hanya di secret manager. |
 | Cloud database  | Supabase dipilih                                                     | Konfigurasikan URL/key, schema/migrasi SQL, RLS, backup, dan strategi Drift outbox sebelum sync client.    |
 | Custom app auth | Email/password hash, custom JWT, refresh-token rotation | Kredensial/session dikelola Edge Function dan `public.app_users`; custom JWT harus memakai signing key yang dipercaya Supabase agar RLS `auth.uid()` bekerja. Refresh token disimpan di secure storage perangkat. Email verification dan reset memakai provider email yang dikonfigurasi di server. |
 | Cloud storage   | Belum diputuskan                                                     | Tentukan apakah foto/media perlu Supabase Storage, bucket private, policy, dan signed URL.                 |
@@ -286,6 +286,6 @@ Shell Sprint 1 tidak melakukan request jaringan dan tidak mengumpulkan data peng
 | Area | Keputusan | Prasyarat dan batas implementasi |
 | --- | --- | --- |
 | SOS remote | Tidak dipilih; pertahankan handoff manual melalui telepon/draft WhatsApp. | UI hanya boleh menyatakan handoff dibuka atau gagal dibuka; bukan terkirim/diterima. Sensor incident detection belum boleh aktif otomatis sebelum validasi keselamatan. |
-| Proof ledger | Polygon Amoy untuk staging, melalui relayer server-side. | Hash ringkasan saja; kontrak, RPC, retry, dan verifikasi testnet harus dibuat. Produksi/mainnet belum diputuskan. |
+| Proof ledger | Ethereum Sepolia untuk staging, melalui relayer server-side. | Hash ringkasan saja; kontrak, RPC, retry, dan verifikasi testnet harus dibuat. Produksi/mainnet belum diputuskan. |
 | Leaderboard | Supabase/Postgres + Edge Function, opt-in, alias publik, skor permainan saja. | RLS dan validasi server-side wajib; jangan publikasikan identitas akun, lokasi, atau telemetri. |
 | Garmin | Garmin Health API langsung. | Menunggu approval partner dan credentials. Sampai itu ada, tampilkan provider belum tersedia dan jangan meniru autentikasi. |

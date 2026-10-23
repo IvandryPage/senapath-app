@@ -31,7 +31,7 @@
 | Media/foto | **Supabase Storage** → opsi **Cloudflare R2** | Free tier |
 | Kurs mata uang | **Frankfurter** (ECB) | Gratis, tanpa key |
 | Kesehatan/wearable | **Health Connect** + **HealthKit** + impor FIT/GPX/TCX | Gratis |
-| Blockchain | **Ledger hash** tersinkron (bukan chain publik) untuk v1 | Gratis |
+| Blockchain | **Ledger hash** + anchor head hash ke EVM testnet (Ethereum Sepolia) via JSON-RPC & relayer Edge Function | Gas testnet gratis |
 | CI | **GitHub Actions** | Free tier |
 
 ## 2. Register Keputusan Provider
@@ -89,7 +89,7 @@
 | Area | Pilihan utama | Mengapa | Free tier / batas (indikatif) | Fallback | Status |
 | --- | --- | --- | --- | --- | --- |
 | Kurs mata uang | **Frankfurter** (ECB) | Gratis, tanpa key, cukup akurat harian | Fair use | Input manual (sudah ada) | Manual dipakai; otomatis rencana |
-| Blockchain publik | Ditunda; gunakan **ledger hash** tersinkron | Jujur soal biaya & privasi; chain publik belum perlu | — | Polygon Amoy (staging) bila PO memutuskan wajib | Ledger hash dipakai |
+| Blockchain publik | Ditunda; gunakan **ledger hash** tersinkron | Jujur soal biaya & privasi; chain publik belum perlu | — | Ethereum Sepolia (staging) bila PO memutuskan wajib | Ledger hash dipakai |
 | Analitik crash | **Sentry** free tier (opsional) | Redaksi data sensitif | Free: event terbatas | Log lokal / tanpa pihak ketiga | Belum |
 | CI/CD | **GitHub Actions** | Sudah dipakai | Free: menit/bulan terbatas | Build lokal | Dipakai |
 

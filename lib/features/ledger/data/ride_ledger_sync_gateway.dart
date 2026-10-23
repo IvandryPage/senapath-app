@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../authentication/data/custom_auth_session_manager.dart';
+import '../domain/ride_ledger_anchor.dart';
 import '../domain/ride_ledger_block.dart';
 
 abstract interface class RideLedgerSyncGateway {
@@ -8,6 +9,12 @@ abstract interface class RideLedgerSyncGateway {
   bool get isSignedIn;
 
   Future<RideLedgerSyncResult> sync(List<RideLedgerBlock> blocks);
+
+  /// Mencatat head hash cloud ke blockchain melalui relayer server-side.
+  Future<RideLedgerAnchorList> anchor();
+
+  /// Daftar anchor (status transaksi disegarkan dari node RPC oleh server).
+  Future<RideLedgerAnchorList> anchors();
 }
 
 class RideLedgerSyncResult {
@@ -72,5 +79,37 @@ class SupabaseRideLedgerSyncGateway implements RideLedgerSyncGateway {
       head: data['head'] as String,
       message: data['message'] as String,
     );
+  }
+
+  @override
+  Future<RideLedgerAnchorList> anchor() => _callAnchorFunction('anchor');
+
+  @override
+  Future<RideLedgerAnchorList> anchors() => _callAnchorFunction('list');
+
+  Future<RideLedgerAnchorList> _callAnchorFunction(String action) async {
+    if (_client == null) {
+      throw StateError('Supabase belum dikonfigurasi.');
+    }
+    if (!isSignedIn) {
+      throw StateError('Masuk ke akun online untuk memakai blockchain.');
+    }
+    final response = await _sessionManager.invokeAuthenticatedFunction(
+      'anchor-ride-proofs',
+      body: {'action': action, if (action == 'anchor') 'consent': true},
+    );
+    final data = response.data;
+    if (response.status < 200 || response.status >= 300) {
+      final message = data is Map ? data['error'] : null;
+      throw StateError(
+        message is String && message.isNotEmpty
+            ? message
+            : 'Pencatatan blockchain gagal (HTTP ${response.status}).',
+      );
+    }
+    if (data is! Map<String, dynamic>) {
+      throw const FormatException('Respons anchor blockchain tidak valid.');
+    }
+    return RideLedgerAnchorList.fromJson(data);
   }
 }

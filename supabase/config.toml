@@ -10,5 +10,8 @@ verify_jwt = false
 [functions.sync-ride-proofs]
 verify_jwt = false
 
+[functions.anchor-ride-proofs]
+verify_jwt = false
+
 [functions.submit-feedback]
 verify_jwt = true

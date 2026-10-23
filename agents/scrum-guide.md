@@ -156,7 +156,7 @@ Urutan berikut menempatkan pencatatan dan peninjauan latihan cyclist sebelum eks
 
 | ID | PBI | Hasil dan kriteria penerimaan |
 | --- | --- | --- |
-| SP-17 | **Proof perjalanan blockchain sederhana** | Target staging Polygon Amoy melalui relayer server-side. Dengan consent eksplisit, buat hash ringkasan terpilih (bukan lokasi mentah/identitas); simpan pending/confirmed/failed dan transaction reference. Uji kontrak, retry idempoten, dan verifikasi hash di Amoy. Produksi/mainnet menunggu uji biaya serta keputusan terpisah; tidak ada klaim immutable sebelum verifikasi. |
+| SP-17 | **Proof perjalanan blockchain sederhana** | Target staging Ethereum Sepolia melalui relayer server-side. Dengan consent eksplisit, buat hash ringkasan terpilih (bukan lokasi mentah/identitas); simpan pending/confirmed/failed dan transaction reference. Uji kontrak, retry idempoten, dan verifikasi hash di Sepolia. Produksi/mainnet menunggu uji biaya serta keputusan terpisah; tidak ada klaim immutable sebelum verifikasi. |
 | SP-18 | **Pengingat hidrasi dan peringatan perubahan ride** | Pengguna dapat memilih pengingat hidrasi lokal dan peringatan rute/cuaca hanya jika sumber data benar tersedia. Frekuensi, quiet hours, volume/audio, timezone, offline, dismiss, serta kondisi ride diuji; data stale diberi label dan notifikasi tidak mengklaim incident/SOS delivery. |
 | SP-19 | **Peningkatan peta dan layanan perjalanan** | Tambahkan POI/rute/fitur provider (misalnya geocoding, elevasi, atau reroute) hanya jika lisensi, biaya, kuota, atribusi, kualitas, dan cache/offline policy disetujui dan diuji. Evaluasi provider tile khusus sebelum trafik produksi; layanan tile publik tidak dianggap komitmen produksi. GPX offline tetap tersedia bila provider gagal. |
 | SP-20 | **Leaderboard sesi mingguan opt-in** | Supabase/Postgres menyajikan dua peringkat Senin–Minggu UTC: durasi aktif terlama dan jarak terjauh dari sesi yang selesai. Fungsi PostgreSQL `SECURITY DEFINER` memvalidasi auth, consent, dan mengambil nilai hanya dari ringkasan milik pengguna yang telah tersinkron. Pengguna memilih opt-in dan alias publik. Hanya alias dan nilai kategori minggu berjalan yang dipublikasikan—tanpa email, lokasi, kontak, atau telemetri mentah. Tandai data sebagai laporan pengguna yang belum diverifikasi; uji RLS, opt-out/penghapusan, dan submission duplikat. |
@@ -178,7 +178,7 @@ PBI ini mewujudkan [vision.md](vision.md) Pilar 2 dan 4. Provider dan free tier 
 ### Keputusan provider yang disepakati
 
 - **SOS:** pertahankan telepon/WhatsApp manual; aplikasi tidak mengklaim pesan terkirim. Deteksi insiden otomatis tetap nonaktif sampai model sensor divalidasi.
-- **Proof blockchain:** Polygon Amoy untuk staging melalui relayer server-side; jaringan produksi dan batas biaya belum diputuskan.
+- **Proof blockchain:** Ethereum Sepolia untuk staging melalui relayer server-side; jaringan produksi dan batas biaya belum diputuskan.
 - **Leaderboard:** Supabase/Postgres, fungsi RPC server-side, opt-in, alias publik, dan metrik sesi bersepeda mingguan (durasi serta jarak; minggu UTC).
 - **Wearable:** adapter langsung Garmin Health API, tetapi tidak diaktifkan sebelum approval partner dan credentials resmi tersedia.
 - **Sensor sepeda eksternal:** tetapkan perangkat/OS sasaran dan profil BLE yang diuji sebelum menjanjikan dukungan; sensor optional dan tidak boleh menjadi dependensi rekaman GPS.
@@ -246,7 +246,7 @@ Sprint adalah wadah perencanaan, bukan komitmen tanggal. Durasi tim ditetapkan t
 **Sprint Goal:** alur navigasi lengkap dan fitur tambahan dapat dikontrol pengguna dengan aman.
 
 - Selesaikan profil/feedback, notifikasi opt-in dan pengingat ride (SP-14/SP-15/SP-18).
-- Integrasikan mini-game strategi yang aman saat berhenti (SP-16), leaderboard bersepeda opt-in (SP-20), sensor eksternal (SP-26) setelah protokol/perangkat disepakati, wearable (SP-27) hanya setelah approval, dan proof Amoy (SP-17) sesuai gate masing-masing.
+- Integrasikan mini-game strategi yang aman saat berhenti (SP-16), leaderboard bersepeda opt-in (SP-20), sensor eksternal (SP-26) setelah protokol/perangkat disepakati, wearable (SP-27) hanya setelah approval, dan proof Sepolia (SP-17) sesuai gate masing-masing.
 - Hasil Review: kegagalan/opt-out ekstensi tidak memengaruhi rekaman, summary, atau histori cyclist; uji izin ditolak, data sensitif dan biaya.
 
 ### Sprint H — Hardening dan release candidate
@@ -372,7 +372,7 @@ Setiap PBI yang menyentuh ancaman di bawah harus menautkan test/evidence dan own
 | Storage exhaustion / payload mahal | Kuota, batas ukuran, rate limit, timeout, backpressure | Load/boundary/rate-limit tests dan alert | Developers + PO (biaya) |
 | Abuse token push | Binding token ke akun, rotate/delete saat logout, minimal payload | Token stale/reused, cross-account dan logout test | Developers |
 | Sensor spoof/stale data | Tandai source/quality/staleness; jangan klaim measurement verified | Missing, stale, out-of-range dan duplicate sample test | Developers |
-| Proof blockchain palsu/privasi | Hash ringkasan minimal, consent, relayer terkontrol, verifikasi tx/hash | Test Amoy dan bukti tanpa raw location/account data | Developers + PO |
+| Proof blockchain palsu/privasi | Hash ringkasan minimal, consent, relayer terkontrol, verifikasi tx/hash | Test Sepolia dan bukti tanpa raw location/account data | Developers + PO |
 
 Threat model diperbarui saat provider, skema, atau data flow berubah; temuan high-risk yang belum dimitigasi memblokir release terkait atau harus dikecualikan eksplisit oleh PO dengan mitigasi dan pembatasan distribusi.
 
@@ -460,7 +460,7 @@ Daftar berikut adalah starter register berdasarkan bukti repo saat ini. Probabil
 | Provider map/tile production, kurs, LLM, push | PO | Sebelum scope production fitur provider | Lisensi, wilayah, kuota, biaya, privacy | Belum seluruhnya diputuskan |
 | Sensor sepeda dan profil BLE | PO + Developers | Sebelum SP-26 | Hardware reference dan OS permissions | TBD |
 | Garmin Health approval | PO | Sebelum SP-27 | Persetujuan partner + credential resmi | Blocked sampai tersedia |
-| Polygon Amoy relayer/biaya | PO + Developers | Sebelum SP-17 | RPC/relayer, threat model, consent | Staging target; deployment belum dibuktikan |
+| Ethereum Sepolia relayer/biaya | PO + Developers | Sebelum SP-17 | RPC/relayer, threat model, consent | Staging target; deployment belum dibuktikan |
 | App signing, release account, monitoring/support owner | PO/Release owner | Sebelum release candidate | Store accounts/certificates, budget, runbook | TBD |
 
 Keputusan yang mengubah scope/biaya/privacy dicatat dengan tanggal, opsi yang ditolak, alasan, approver, dan dampak backlog. Jangan memasukkan nilai secret ke register; referensikan secret manager/environment secara aman.

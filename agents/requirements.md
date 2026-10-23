@@ -100,7 +100,7 @@ Jika layanan AI non-generatif tersedia dan pengguna menyetujui, sistem dapat men
 Setelah sesi diakhiri, sistem harus menyajikan detail/summary aktivitas yang tersedia: waktu, jenis sesi, jarak, durasi aktif, elevasi, grafik kecepatan, kualitas GPS, sumber sensor, dan status sync. Metrik yang tidak cukup datanya disembunyikan atau diberi label tidak tersedia; metrik turunan/estimasi diberi sumber dan kualitas. Dari summary pengguna dapat membuka sesi pada peta, ekspor data, atau memulai aksi lanjutan dengan consent.
 
 **FR-14 — Proof of Completion berbasis blockchain**  
-Target staging yang dipilih adalah jaringan EVM Polygon Amoy. Dengan persetujuan pengguna, sistem harus dapat mengirim hash kriptografis dari berkas/ringkasan sesi melalui relayer server-side dan menyimpan referensi transaksi serta statusnya. Data pribadi dan rute rinci tidak boleh ditulis ke ledger publik. Produksi/mainnet belum diputuskan; deploy kontrak, RPC, key relayer, batas biaya, dan verifikasi testnet masih prasyarat implementasi.
+Target staging yang dipilih adalah jaringan EVM Ethereum Sepolia. Dengan persetujuan pengguna, sistem harus dapat mengirim hash kriptografis dari berkas/ringkasan sesi melalui relayer server-side dan menyimpan referensi transaksi serta statusnya. Data pribadi dan rute rinci tidak boleh ditulis ke ledger publik. Produksi/mainnet belum diputuskan; deploy kontrak, RPC, key relayer, batas biaya, dan verifikasi testnet masih prasyarat implementasi.
 
 Proof of Completion membuktikan integritas berkas yang didaftarkan, bukan dengan sendirinya membuktikan bahwa data sensor atau kejadian balapan benar secara fisik.
 
@@ -279,7 +279,7 @@ Keputusan provider yang sudah diambil (ringkas; detail, free tier, dan fallback 
 - **Backend/auth:** Supabase (Postgres/Edge/Storage) + custom email auth; Drift/SQLite lokal. SOS tetap handoff manual tanpa klaim delivery.
 - **Leaderboard & segmen:** Supabase/Postgres dengan opt-in, alias publik, dan RPC `SECURITY DEFINER`.
 - **Kesehatan:** Health Connect/HealthKit + impor FIT/GPX/TCX; Garmin Health API diblokir sampai approval partner.
-- **Proof:** ledger hash tersinkron (bukan chain publik) untuk v1; Polygon Amoy hanya bila PO memutuskan wajib.
+- **Proof:** ledger hash tersinkron; head hash dicatat ke Ethereum Sepolia (testnet) lewat relayer server-side dan JSON-RPC. Mainnet belum diputuskan.
 
 Yang masih terbuka:
 
