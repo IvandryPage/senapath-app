@@ -8,8 +8,10 @@ import '../../session/presentation/session_cubit.dart';
 import 'leaderboard_cubit.dart';
 
 class LeaderboardSettingsSection extends StatefulWidget {
+  /// Membuat bagian pengaturan keikutsertaan papan peringkat.
   const LeaderboardSettingsSection({super.key});
 
+  /// Membuat state untuk memuat data leaderboard sekali saat halaman dibuka.
   @override
   State<LeaderboardSettingsSection> createState() =>
       _LeaderboardSettingsSectionState();
@@ -19,6 +21,7 @@ class _LeaderboardSettingsSectionState
     extends State<LeaderboardSettingsSection> {
   bool _loaded = false;
 
+  /// Memuat data leaderboard sekali setelah dependensi widget tersedia.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -27,6 +30,7 @@ class _LeaderboardSettingsSectionState
     unawaited(_loadLeaderboardAndRecords());
   }
 
+  /// Menyiapkan sesi, mengirim rekor lokal, lalu memuat pengaturan leaderboard.
   Future<void> _loadLeaderboardAndRecords() async {
     final sessionCubit = context.read<RideSessionCubit>();
     await sessionCubit.initialize();
@@ -37,6 +41,7 @@ class _LeaderboardSettingsSectionState
     await context.read<LeaderboardCubit>().load();
   }
 
+  /// Menampilkan saklar keikutsertaan beserta informasi nama dan privasi.
   @override
   Widget build(
     BuildContext context,

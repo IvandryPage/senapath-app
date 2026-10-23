@@ -23,6 +23,7 @@ import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 class SenapathApp extends StatelessWidget {
+  /// Membuat root widget dengan seluruh cubit yang dibagikan ke pohon widget.
   const SenapathApp({
     required this.cloudAccountCubit,
     required this.emergencyCubit,
@@ -60,6 +61,8 @@ class SenapathApp extends StatelessWidget {
   final RideCoachCubit rideCoachCubit;
   final IntervalWorkoutCubit intervalWorkoutCubit;
 
+  /// Menyediakan cubit aplikasi, menyinkronkan data saat akun berubah, lalu
+  /// menampilkan MaterialApp dengan tema yang mengikuti cahaya sekitar.
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -83,21 +86,31 @@ class SenapathApp extends StatelessWidget {
       ],
       child: BlocListener<CloudAccountCubit, CloudAccountState>(
         listenWhen: (previous, current) => previous.email != current.email,
-        listener: (context, state) {
+        listener: (context, state) async {
           aiChatCubit.clearConversation();
           sessionCubit.cancelPendingSync();
           leaderboardCubit.clearForAccountChange();
           cyclingTeamCubit.clearForAccountChange();
           riderGamificationCubit.clearForAccountChange();
+          
+          // Clear unsynced sessions when signing out to prevent data leakage
+          if (!state.isSignedIn && state.email != null) {
+            unawaited(sessionCubit.clearUnsyncedSessions());
+          }
+          
           unawaited(profileCubit.reloadProfile());
           if (state.isSignedIn) {
             unawaited(leaderboardCubit.load());
+            // Pull cloud data immediately after sign-in, regardless of autoSyncEnabled setting
             unawaited(
               sessionCubit.initialize().then((_) async {
+                // This will restore all cloud sessions to local device
                 await sessionCubit.syncCloudSessions();
+                // Update gamification with restored sessions
                 await riderGamificationCubit.load(
                   sessionCubit.state.completedSessions,
                 );
+                // Push any local-only sessions if auto-sync is enabled
                 await sessionCubit.syncPendingSessions();
               }),
             );

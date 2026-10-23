@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../domain/route_wind.dart';
 
 abstract interface class RouteWindService {
+  /// Mengambil arah angin terkini pada koordinat yang diberikan.
   Future<RouteWindObservation> fetchCurrentWind({
     required double latitude,
     required double longitude,
@@ -12,12 +13,14 @@ abstract interface class RouteWindService {
 }
 
 class OpenMeteoRouteWindService implements RouteWindService {
+  /// Membuat layanan angin dengan klien HTTP opsional.
   OpenMeteoRouteWindService({this.client});
 
   static final _endpoint = Uri.https('api.open-meteo.com', '/v1/forecast');
 
   final http.Client? client;
 
+  /// Mengambil dan memvalidasi arah angin terkini dari Open-Meteo.
   @override
   Future<RouteWindObservation> fetchCurrentWind({
     required double latitude,

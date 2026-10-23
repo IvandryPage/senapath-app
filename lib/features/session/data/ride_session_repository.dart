@@ -6,23 +6,37 @@ import '../../../core/storage/app_database.dart';
 import '../domain/ride_session.dart';
 import 'encrypted_telemetry_codec.dart';
 
+/// Antarmuka repositori sesi berkendara.
 abstract interface class RideSessionRepository {
+  /// Memulihkan sesi yang sedang berjalan jika ada.
   Future<RideSessionSnapshot?> recoverCurrentSession();
+  /// Memuat daftar sesi selesai.
   Future<List<RideSessionSnapshot>> loadCompletedSessions();
+  /// Memuat ringkasan sesi tertentu.
   Future<RideSessionSummary> loadSummary(String sessionId);
+  /// Memperbarui status sinkronisasi sesi.
   Future<void> updateSyncStatus(String sessionId, String status);
+  /// Memperbarui metadata aktivitas sesi.
   Future<RideSessionSnapshot> updateActivityMetadata({
     required String sessionId,
     required String title,
     required RideActivityType activityType,
   });
+  /// Menghapus sesi yang telah selesai.
   Future<void> deleteCompletedSession(String sessionId);
+  /// Memuat lokasi telemetri untuk sesi tertentu.
   Future<List<TelemetryLocation>> loadTelemetryLocations(String sessionId);
+  /// Memulai sesi baru.
   Future<RideSessionSnapshot> start(DateTime now);
+  /// Menjeda sesi yang sedang berjalan.
   Future<RideSessionSnapshot> pause(String sessionId, DateTime now);
+  /// Melanjutkan sesi yang dijeda.
   Future<RideSessionSnapshot> resume(String sessionId, DateTime now);
+  /// Menyelesaikan sesi.
   Future<RideSessionSnapshot> finish(String sessionId, DateTime now);
+  /// Mengambil lokasi telemetri terakhir.
   Future<TelemetryLocation?> latestLocation(String sessionId);
+  /// Mencatat lokasi telemetri baru.
   Future<RideSessionSnapshot?> recordLocation({
     required String sessionId,
     required TelemetryLocation location,
@@ -30,7 +44,9 @@ abstract interface class RideSessionRepository {
   });
 }
 
+/// Implementasi repositori sesi menggunakan Drift.
 class DriftRideSessionRepository implements RideSessionRepository {
+  /// Membuat repositori sesi Drift.
   DriftRideSessionRepository({
     required this.database,
     required this.telemetryCodec,
@@ -40,6 +56,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   final EncryptedTelemetryCodec telemetryCodec;
 
   @override
+  /// Memulihkan sesi yang belum selesai dari penyimpanan.
   Future<RideSessionSnapshot?> recoverCurrentSession() async {
     final row =
         await (database.select(database.rideSessions)
@@ -74,6 +91,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Memuat semua sesi yang telah selesai.
   Future<List<RideSessionSnapshot>> loadCompletedSessions() async {
     final rows =
         await (database.select(database.rideSessions)
@@ -87,6 +105,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Memuat ringkasan sesi beserta sampel kecepatan dan elevasi.
   Future<RideSessionSummary> loadSummary(String sessionId) async {
     final row = await _getSession(sessionId);
     final session = _toSnapshot(row);
@@ -175,6 +194,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Memperbarui status sinkronisasi sesi selesai.
   Future<void> updateSyncStatus(String sessionId, String status) async {
     const supportedStatuses = {'pending', 'syncing', 'synced', 'failed'};
     if (!supportedStatuses.contains(status)) {
@@ -194,6 +214,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Memperbarui judul dan jenis aktivitas sesi selesai.
   Future<RideSessionSnapshot> updateActivityMetadata({
     required String sessionId,
     required String title,
@@ -233,6 +254,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
     );
   }
 
+  /// Menyimpan atau memperbarui sesi dari cloud.
   Future<void> upsertCloudSession(
     RideSessionSnapshot session,
     List<TelemetryLocation> points,
@@ -277,6 +299,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Menghapus sesi selesai beserta telemetri terkait.
   Future<void> deleteCompletedSession(String sessionId) async {
     final row = await _getSession(sessionId);
     if (row.status != RideSessionStatus.completed.name) {
@@ -294,8 +317,35 @@ class DriftRideSessionRepository implements RideSessionRepository {
       )..where((session) => session.id.equals(sessionId))).go();
     });
   }
+  
+  /// Menghapus semua sesi yang belum tersinkron ke cloud.
+  /// Dipanggil saat logout untuk mencegah data bocor antar akun.
+  Future<void> deleteUnsyncedSessions() async {
+    final rows = await (database.select(database.rideSessions)).get();
+    final sessionIds = rows
+        .where((row) => row.syncStatus != 'synced')
+        .map((row) => row.id)
+        .toList(growable: false);
+    
+    await database.transaction(() async {
+      for (final sessionId in sessionIds) {
+        await (database.delete(
+          database.rideHistory,
+        )..where((entry) => entry.sessionId.equals(sessionId))).go();
+        
+        await (database.delete(
+          database.telemetryPoints,
+        )..where((point) => point.sessionId.equals(sessionId))).go();
+        
+        await (database.delete(
+          database.rideSessions,
+        )..where((session) => session.id.equals(sessionId))).go();
+      }
+    });
+  }
 
   @override
+  /// Memuat lokasi telemetri terenkripsi untuk sesi tertentu.
   Future<List<TelemetryLocation>> loadTelemetryLocations(
     String sessionId,
   ) async {
@@ -307,6 +357,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
     return _decodePoints(points);
   }
 
+  /// Mendekripsi daftar titik telemetri.
   Future<List<TelemetryLocation>> _decodePoints(
     List<TelemetryPoint> points,
   ) async {
@@ -323,6 +374,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Memulai sesi baru.
   Future<RideSessionSnapshot> start(DateTime now) async {
     final session = RideSessionsCompanion.insert(
       id: _newSessionId(),
@@ -338,6 +390,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Menjeda sesi yang sedang merekam.
   Future<RideSessionSnapshot> pause(String sessionId, DateTime now) async {
     final row = await _getSession(sessionId);
     if (row.status != RideSessionStatus.recording.name) {
@@ -360,6 +413,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Melanjutkan sesi yang dijeda.
   Future<RideSessionSnapshot> resume(String sessionId, DateTime now) async {
     final row = await _getSession(sessionId);
     if (row.status != RideSessionStatus.paused.name || row.pausedAt == null) {
@@ -388,6 +442,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Menyelesaikan sesi yang sedang berjalan.
   Future<RideSessionSnapshot> finish(String sessionId, DateTime now) async {
     final row = await _getSession(sessionId);
     if (row.status == RideSessionStatus.completed.name) {
@@ -419,6 +474,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Mengambil lokasi terakhir dari sesi.
   Future<TelemetryLocation?> latestLocation(String sessionId) async {
     final point =
         await (database.select(database.telemetryPoints)
@@ -434,6 +490,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
   }
 
   @override
+  /// Mencatat lokasi dan memperbarui jarak/kecepatan sesi.
   Future<RideSessionSnapshot?> recordLocation({
     required String sessionId,
     required TelemetryLocation location,
@@ -481,10 +538,12 @@ class DriftRideSessionRepository implements RideSessionRepository {
     });
   }
 
+  /// Mengambil baris sesi dari database.
   Future<RideSession> _getSession(String id) => (database.select(
     database.rideSessions,
   )..where((session) => session.id.equals(id))).getSingle();
 
+  /// Mengonversi baris database ke snapshot sesi.
   RideSessionSnapshot _toSnapshot(
     RideSession row, {
     RideSessionStatus? status,
@@ -514,6 +573,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
     );
   }
 
+  /// Menghitung total kenaikan elevasi dari tekanan atau ketinggian GPS.
   double _calculateElevationGain(
     List<double> values, {
     required double minimumStepMeters,
@@ -539,6 +599,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
     return totalAscent;
   }
 
+  /// Mengonversi string status ke enum.
   RideSessionStatus _parseStatus(String value) => switch (value) {
     'recording' => RideSessionStatus.recording,
     'paused' => RideSessionStatus.paused,
@@ -546,6 +607,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
     _ => throw StateError('Unknown ride session status.'),
   };
 
+  /// Mengonversi string jenis aktivitas ke enum.
   RideActivityType _parseActivityType(String value) => switch (value) {
     'commute' => RideActivityType.commute,
     'training' => RideActivityType.training,
@@ -553,6 +615,7 @@ class DriftRideSessionRepository implements RideSessionRepository {
     _ => RideActivityType.ride,
   };
 
+  /// Membuat ID sesi baru.
   String _newSessionId() {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));

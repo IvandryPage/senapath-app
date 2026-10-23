@@ -7,6 +7,7 @@ import '../domain/leaderboard_models.dart';
 import '../../session/domain/ride_session.dart';
 
 class LeaderboardState {
+  /// Membuat state leaderboard dengan kategori dan data awal opsional.
   const LeaderboardState({
     this.category = LeaderboardCategory.duration,
     this.settings,
@@ -25,6 +26,7 @@ class LeaderboardState {
   final String? error;
   final String? message;
 
+  /// Menyalin state dengan nilai baru dan opsi menghapus pesan atau error.
   LeaderboardState copyWith({
     LeaderboardCategory? category,
     LeaderboardSettings? settings,
@@ -47,6 +49,7 @@ class LeaderboardState {
 }
 
 class LeaderboardCubit extends Cubit<LeaderboardState> {
+  /// Membuat cubit leaderboard dengan gateway sebagai sumber data.
   LeaderboardCubit(this._gateway) : super(const LeaderboardState());
 
   final LeaderboardGateway _gateway;
@@ -55,6 +58,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
   double _longestDistanceMeters = 0;
   bool _isSyncingRecords = false;
 
+  /// Memuat pengaturan dan entri leaderboard sesuai kategori aktif.
   Future<void> load() async {
     final generation = ++_requestGeneration;
     if (!_gateway.isConfigured || !_gateway.isSignedIn) {
@@ -91,12 +95,14 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     }
   }
 
+  /// Mengganti kategori peringkat aktif lalu memuat ulang datanya.
   Future<void> selectCategory(LeaderboardCategory category) async {
     if (state.category == category) return;
     emit(state.copyWith(category: category));
     await load();
   }
 
+  /// Menyimpan persetujuan leaderboard lalu memuat ulang pengaturan dan entri.
   Future<void> saveConsent({required bool isOptedIn}) async {
     if (!_gateway.isConfigured || !_gateway.isSignedIn) {
       await load();
@@ -134,6 +140,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     }
   }
 
+  /// Menghitung rekor durasi dan jarak terbaik dari sesi yang selesai.
   void updateLocalRecords(List<RideSessionSnapshot> sessions) {
     var longestDuration = 0;
     var longestDistance = 0.0;
@@ -156,6 +163,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     unawaited(_syncPersonalBest());
   }
 
+  /// Menyinkronkan rekor terbaik ke server, mencegah pengiriman bersamaan.
   Future<void> _syncPersonalBest() async {
     if (_isSyncingRecords ||
         !_gateway.isConfigured ||
@@ -200,6 +208,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     }
   }
 
+  /// Membatalkan permintaan lama dan mereset state saat akun berganti.
   void clearForAccountChange() {
     _requestGeneration++;
     emit(const LeaderboardState());

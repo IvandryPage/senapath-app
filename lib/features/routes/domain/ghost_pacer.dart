@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'saved_route.dart';
 
 class GhostPacerSample {
+  /// Membuat sampel posisi ghost pacer pada [elapsed] dan jarak tertentu.
   const GhostPacerSample({required this.elapsed, required this.distanceMeters});
 
   final Duration elapsed;
@@ -10,6 +11,7 @@ class GhostPacerSample {
 }
 
 class GhostPacerPerformance {
+  /// Membuat performa ghost pacer dari sampel sesi terpilih.
   const GhostPacerPerformance({
     required this.sessionId,
     required this.duration,
@@ -20,6 +22,7 @@ class GhostPacerPerformance {
   final Duration duration;
   final List<GhostPacerSample> samples;
 
+  /// Menginterpolasi jarak tempuh ghost pacer pada [elapsed].
   double distanceAt(Duration elapsed) {
     if (samples.isEmpty || elapsed <= samples.first.elapsed) {
       return samples.isEmpty ? 0 : samples.first.distanceMeters;
@@ -43,6 +46,7 @@ class GhostPacerPerformance {
 }
 
 class GhostPacerMapPosition {
+  /// Membuat posisi ghost pacer di peta beserta arah hadapnya.
   const GhostPacerMapPosition({
     required this.point,
     required this.headingDegrees,
@@ -52,6 +56,7 @@ class GhostPacerMapPosition {
   final double headingDegrees;
 }
 
+/// Menghitung posisi dan arah ghost pacer pada [distanceMeters] di sepanjang rute.
 GhostPacerMapPosition? ghostPacerMapPositionAt(
   List<RoutePoint> route,
   double distanceMeters,
@@ -84,6 +89,7 @@ GhostPacerMapPosition? ghostPacerMapPositionAt(
   return null;
 }
 
+/// Menghitung jarak meter antara dua titik dengan formula haversine.
 double _distanceBetween(RoutePoint first, RoutePoint second) {
   const earthRadiusMeters = 6371000.0;
   final latitudeDelta = _radians(second.latitude - first.latitude);
@@ -96,6 +102,7 @@ double _distanceBetween(RoutePoint first, RoutePoint second) {
   return earthRadiusMeters * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }
 
+/// Menghitung arah hadap derajat dari titik pertama ke titik kedua.
 double _headingBetween(RoutePoint first, RoutePoint second) {
   final latitude1 = _radians(first.latitude);
   final latitude2 = _radians(second.latitude);
@@ -107,4 +114,5 @@ double _headingBetween(RoutePoint first, RoutePoint second) {
   return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
 }
 
+/// Mengonversi sudut derajat menjadi radian.
 double _radians(double degrees) => degrees * math.pi / 180;

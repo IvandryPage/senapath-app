@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'ride_history_entry.dart';
 
 class RideTimePrediction {
+  /// Membuat hasil prediksi durasi beserta sesi tetangga yang dipakai.
   const RideTimePrediction({
     required this.durationMinutes,
     required this.neighborCount,
@@ -15,10 +16,12 @@ class RideTimePrediction {
 }
 
 class RideTimePredictor {
+  /// Membuat prediktor dengan jumlah [neighborCount] tetangga terdekat.
   const RideTimePredictor({this.neighborCount = 3});
 
   final int neighborCount;
 
+  /// Memprediksi durasi dari rata-rata riwayat yang paling mirip.
   RideTimePrediction? predict({
     required double distanceKm,
     required double elevationGainMeters,
@@ -70,6 +73,7 @@ class RideTimePredictor {
     );
   }
 
+  /// Menghitung jarak ternormalisasi antara rute target dan satu entri riwayat.
   double _distance({
     required double distanceKm,
     required double elevationGainMeters,
@@ -90,6 +94,7 @@ class RideTimePredictor {
 }
 
 class _Neighbor {
+  /// Menyimpan entri riwayat beserta jarak kemiripannya.
   const _Neighbor({required this.entry, required this.distance});
 
   final RideHistoryEntry entry;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 enum FeatureStateKind { loading, empty, error }
 
 class FeatureStateView extends StatelessWidget {
+  /// Membuat tampilan status memuat dengan pesan yang dapat disesuaikan.
   const FeatureStateView.loading({super.key, this.message = 'Memuat data...'})
     : kind = FeatureStateKind.loading,
       title = '',
@@ -10,6 +11,7 @@ class FeatureStateView extends StatelessWidget {
       actionLabel = null,
       onAction = null;
 
+  /// Membuat tampilan keadaan kosong dengan judul, pesan, ikon, dan aksi.
   const FeatureStateView.empty({
     super.key,
     required this.title,
@@ -19,6 +21,7 @@ class FeatureStateView extends StatelessWidget {
     this.onAction,
   }) : kind = FeatureStateKind.empty;
 
+  /// Membuat tampilan galat dengan tombol coba lagi opsional.
   const FeatureStateView.error({
     super.key,
     this.title = 'Terjadi kendala',
@@ -35,6 +38,8 @@ class FeatureStateView extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Membangun indikator muat, atau tampilan ikon, judul, pesan, dan aksi
+  /// sesuai jenis state.
   @override
   Widget build(BuildContext context) {
     if (kind == FeatureStateKind.loading) {

@@ -11,19 +11,23 @@ import '../domain/interval_workout.dart';
 import 'interval_workout_cubit.dart';
 
 class IntervalWorkoutScreen extends StatefulWidget {
+  /// Membuat layar pengelolaan workout interval.
   const IntervalWorkoutScreen({super.key});
 
+  /// Membuat state layar pengelolaan workout.
   @override
   State<IntervalWorkoutScreen> createState() => _IntervalWorkoutScreenState();
 }
 
 class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
+  /// Memuat daftar workout saat layar dibuka.
   @override
   void initState() {
     super.initState();
     context.read<IntervalWorkoutCubit>().load();
   }
 
+  /// Membangun daftar workout, tombol buat, dan pesan status.
   @override
   Widget build(BuildContext context) {
     final session = context.watch<RideSessionCubit>().state.session;
@@ -149,6 +153,7 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
     );
   }
 
+  /// Membuka dialog editor dan menyimpan workout yang dihasilkan.
   Future<void> _createWorkout(BuildContext context) async {
     final workout = await showDialog<IntervalWorkout>(
       context: context,
@@ -160,8 +165,10 @@ class _IntervalWorkoutScreenState extends State<IntervalWorkoutScreen> {
 }
 
 class _WorkoutEditorDialog extends StatefulWidget {
+  /// Membuat dialog editor workout interval.
   const _WorkoutEditorDialog();
 
+  /// Membuat state dialog editor workout.
   @override
   State<_WorkoutEditorDialog> createState() => _WorkoutEditorDialogState();
 }
@@ -174,6 +181,7 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
   bool _hapticCueEnabled = true;
   bool _visualCueEnabled = true;
 
+  /// Melepas seluruh pengendali teks milik dialog editor.
   @override
   void dispose() {
     _nameController.dispose();
@@ -183,6 +191,7 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
     super.dispose();
   }
 
+  /// Membangun form editor berisi nama, interval, dan pilihan pemberitahuan.
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -266,6 +275,7 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
     );
   }
 
+  /// Membangun editor untuk interval pada posisi [index].
   Widget _buildIntervalEditor(int index) {
     final draft = _intervals[index];
     return Card(
@@ -364,6 +374,7 @@ class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
     );
   }
 
+  /// Memvalidasi form lalu menutup dialog dengan workout yang dibuat.
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     try {
@@ -399,6 +410,7 @@ class _IntervalDraft {
   WorkoutTargetType targetType = WorkoutTargetType.duration;
   bool isRecovery = false;
 
+  /// Melepas pengendali teks milik draf interval.
   void dispose() {
     nameController.dispose();
     targetController.dispose();

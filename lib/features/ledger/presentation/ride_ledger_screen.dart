@@ -9,17 +9,22 @@ import '../domain/ride_ledger_anchor.dart';
 import '../domain/ride_ledger_block.dart';
 import 'ride_ledger_cubit.dart';
 
+/// Layar tampilan buku besar bukti perjalanan.
 class RideLedgerScreen extends StatefulWidget {
+  /// Membuat layar buku besar bukti perjalanan.
   const RideLedgerScreen({super.key});
 
+  /// Membuat state untuk layar buku besar.
   @override
   State<RideLedgerScreen> createState() => _RideLedgerScreenState();
 }
 
+/// State untuk layar buku besar bukti perjalanan.
 class _RideLedgerScreenState extends State<RideLedgerScreen> {
   bool _loaded = false;
   final Set<String> _visibleHashSessionIds = {};
 
+  /// Memuat data buku besar saat dependensi berubah.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -28,6 +33,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     unawaited(context.read<RideLedgerCubit>().load());
   }
 
+  /// Membangun tampilan buku besar bukti perjalanan.
   @override
   Widget build(
     BuildContext context,
@@ -141,6 +147,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     },
   );
 
+  /// Membangun kartu tampilan blok bukti perjalanan.
   Widget _buildBlockCard(BuildContext context, RideLedgerBlock block) {
     final showHashes = _visibleHashSessionIds.contains(block.sessionId);
     return SenapathCard(
@@ -202,6 +209,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     );
   }
 
+  /// Membangun kartu tampilan anchor blockchain.
   Widget _buildAnchorCard(BuildContext context, RideLedgerState state) {
     final cubit = context.read<RideLedgerCubit>();
     final textTheme = Theme.of(context).textTheme;
@@ -273,6 +281,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     );
   }
 
+  /// Membangun item tampilan anchor blockchain.
   Widget _buildAnchorTile(
     BuildContext context,
     RideLedgerState state,
@@ -353,6 +362,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     );
   }
 
+  /// Menampilkan konfirmasi pencatatan ke blockchain.
   Future<void> _confirmAnchor(BuildContext context) async {
     final approved = await showDialog<bool>(
       context: context,
@@ -380,6 +390,7 @@ class _RideLedgerScreenState extends State<RideLedgerScreen> {
     }
   }
 
+  /// Menampilkan konfirmasi penyimpanan salinan online.
   Future<void> _confirmSync(BuildContext context) async {
     final approved = await showDialog<bool>(
       context: context,

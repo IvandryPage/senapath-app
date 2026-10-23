@@ -5,18 +5,22 @@ import '../domain/ride_session.dart';
 import 'session_sync_gateway.dart';
 
 class SupabaseSessionSyncGateway implements SessionSyncGateway {
+  /// Membuat gateway sinkronisasi Supabase.
   const SupabaseSessionSyncGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
   final CustomAuthSessionManager _sessionManager;
 
   @override
+  /// Menentukan apakah klien Supabase dikonfigurasi.
   bool get isConfigured => _client != null;
 
   @override
+  /// Menentukan apakah pengguna masuk ke sesi.
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
   @override
+  /// Mengunggah ringkasan sesi ke Supabase.
   Future<void> uploadSummary(
     RideSessionSummary summary, {
     String? shareWithTeamId,

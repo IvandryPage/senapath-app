@@ -57,6 +57,8 @@ import 'features/ride_prediction/data/ride_history_repository.dart';
 import 'features/workouts/data/interval_workout_repository.dart';
 import 'features/workouts/presentation/interval_workout_cubit.dart';
 
+/// Titik masuk aplikasi yang menyiapkan konfigurasi, basis data, dan semua
+/// dependensi sebelum menjalankan antarmuka Senapath.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   var supabaseUrl = '';

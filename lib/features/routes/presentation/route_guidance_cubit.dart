@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../domain/saved_route.dart';
 
 class RoutePosition {
+  /// Membuat posisi perangkat beserta tingkat akurasinya.
   const RoutePosition({
     required this.latitude,
     required this.longitude,
@@ -19,13 +20,18 @@ class RoutePosition {
 }
 
 abstract interface class RoutePositionSource {
+  /// Meminta izin lokasi dan mengembalikan status diterima.
   Future<bool> requestPermission();
+
+  /// Mengalirkan pembaruan posisi perangkat.
   Stream<RoutePosition> watch();
 }
 
 class GeolocatorRoutePositionSource implements RoutePositionSource {
+  /// Membuat sumber posisi berbasis Geolocator.
   const GeolocatorRoutePositionSource();
 
+  /// Memeriksa layanan lokasi dan meminta izin yang diperlukan.
   @override
   Future<bool> requestPermission() async {
     if (!await Geolocator.isLocationServiceEnabled()) return false;
@@ -37,6 +43,7 @@ class GeolocatorRoutePositionSource implements RoutePositionSource {
         permission == LocationPermission.always;
   }
 
+  /// Mengirim posisi awal lalu melanjutkan dengan aliran posisi terkini.
   @override
   Stream<RoutePosition> watch() async* {
     try {
@@ -53,6 +60,7 @@ class GeolocatorRoutePositionSource implements RoutePositionSource {
     ).map(_toRoutePosition);
   }
 
+  /// Mengubah posisi Geolocator menjadi [RoutePosition].
   RoutePosition _toRoutePosition(Position position) => RoutePosition(
     latitude: position.latitude,
     longitude: position.longitude,
@@ -61,6 +69,7 @@ class GeolocatorRoutePositionSource implements RoutePositionSource {
 }
 
 class RouteGuidanceState {
+  /// Membuat status panduan rute berisi posisi dan progres.
   const RouteGuidanceState({
     this.route,
     this.currentPosition,
@@ -83,15 +92,18 @@ class RouteGuidanceState {
   final bool hasReachedEnd;
   final String? error;
 
+  /// Menandakan posisi saat ini cukup akurat untuk panduan.
   bool get hasAccurateFix =>
       currentPosition != null && currentPosition!.accuracyMeters <= 80;
 
+  /// Menandakan posisi berada di luar toleransi jalur rute.
   bool get isOffRoute =>
       hasAccurateFix &&
       distanceToRouteMeters != null &&
       distanceToRouteMeters! >
           math.max(35, currentPosition!.accuracyMeters * 2);
 
+  /// Menyalin status dengan nilai baru dan opsi pengosongan posisi atau galat.
   RouteGuidanceState copyWith({
     RouteRecord? route,
     RoutePosition? currentPosition,
@@ -121,12 +133,14 @@ class RouteGuidanceState {
 }
 
 class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
+  /// Membuat cubit panduan dengan sumber posisi [RoutePositionSource].
   RouteGuidanceCubit(this._positionSource) : super(const RouteGuidanceState());
 
   final RoutePositionSource _positionSource;
   StreamSubscription<RoutePosition>? _positionSubscription;
   List<double> _distanceRemainingByIndex = const [];
 
+  /// Meminta izin lokasi dan mulai mengikuti [route].
   Future<void> start(RouteRecord route) async {
     if (state.isStarting || state.isRunning) return;
     if (route.points.length < 2) {
@@ -174,6 +188,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
     }
   }
 
+  /// Menghitung sisa jarak dari setiap titik rute sampai titik akhir.
   void _prepareRemainingDistances(List<RoutePoint> points) {
     _distanceRemainingByIndex = List<double>.filled(points.length, 0);
     for (var index = points.length - 2; index >= 0; index--) {
@@ -183,6 +198,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
     }
   }
 
+  /// Memperbarui titik terdekat, sisa jarak, dan status akhir rute.
   void _onPosition(RoutePosition position) {
     final route = state.route;
     if (route == null || route.points.isEmpty) return;
@@ -209,6 +225,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
     );
   }
 
+  /// Menghitung jarak meter antara posisi perangkat dan satu titik rute.
   double _distanceToPosition(RoutePosition position, RoutePoint point) =>
       Geolocator.distanceBetween(
         position.latitude,
@@ -217,6 +234,7 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
         point.longitude,
       );
 
+  /// Menghitung jarak meter antara dua titik rute.
   double _distanceBetween(RoutePoint first, RoutePoint second) =>
       Geolocator.distanceBetween(
         first.latitude,
@@ -225,12 +243,14 @@ class RouteGuidanceCubit extends Cubit<RouteGuidanceState> {
         second.longitude,
       );
 
+  /// Menghentikan langganan posisi dan menandai panduan tidak berjalan.
   Future<void> stop() async {
     await _positionSubscription?.cancel();
     _positionSubscription = null;
     if (!isClosed) emit(state.copyWith(isRunning: false, isStarting: false));
   }
 
+  /// Membatalkan langganan posisi sebelum menutup cubit.
   @override
   Future<void> close() async {
     await _positionSubscription?.cancel();

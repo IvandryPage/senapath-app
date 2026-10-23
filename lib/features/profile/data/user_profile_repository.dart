@@ -10,33 +10,46 @@ import '../domain/user_profile.dart';
 import 'encrypted_avatar_store.dart';
 
 abstract interface class UserProfileRepository {
+  /// Memuat profil pengguna yang tersimpan.
   Future<UserProfile> loadProfile();
+  /// Menyimpan profil pengguna.
   Future<void> saveProfile(UserProfile profile);
+  /// Memuat daftar kontak darurat.
   Future<List<EmergencyContact>> loadContacts();
+  /// Menyimpan daftar kontak darurat.
   Future<void> saveContacts(List<EmergencyContact> contacts);
+  /// Memuat byte avatar pengguna bila ada.
   Future<Uint8List?> loadAvatar();
+  /// Menyimpan byte avatar pengguna.
   Future<void> saveAvatar(Uint8List imageBytes);
 }
 
 abstract interface class CloudUserProfileRepository {
+  /// Menandakan apakah pengguna sedang masuk ke akun cloud.
   bool get isCloudSignedIn;
+  /// Memuat profil dari akun cloud, atau null bila belum tersedia.
   Future<UserProfile?> loadCloudProfile();
+  /// Menyimpan profil ke akun cloud.
   Future<void> saveCloudProfile(UserProfile profile);
 }
 
 /// Optional capability for repositories that persist emergency contacts to the
 /// account cloud, keeping them in sync across signed-in devices.
 abstract interface class CloudContactsRepository {
+  /// Memuat kontak darurat dari akun cloud, atau null bila tidak tersedia.
   Future<List<EmergencyContact>?> loadCloudContacts();
+  /// Menyimpan kontak darurat ke akun cloud.
   Future<void> saveCloudContacts(List<EmergencyContact> contacts);
 }
 
 class CloudProfileSyncException implements Exception {
+  /// Membungkus kesalahan sinkronisasi profil cloud beserta penyebabnya.
   const CloudProfileSyncException(this.cause);
 
   final Object cause;
 
   @override
+  /// Menampilkan pesan kesalahan dari penyebab aslinya.
   String toString() => cause.toString();
 }
 
@@ -45,6 +58,7 @@ class SecureUserProfileRepository
         UserProfileRepository,
         CloudUserProfileRepository,
         CloudContactsRepository {
+  /// Membuat repositori profil yang memakai vault lokal dan sinkronisasi cloud.
   SecureUserProfileRepository({
     required this.secureVault,
     required this.avatarStore,
@@ -63,10 +77,12 @@ class SecureUserProfileRepository
   final CustomAuthSessionManager? sessionManager;
 
   @override
+  /// Mengecek ketersediaan klien cloud dan sesi pengguna yang aktif.
   bool get isCloudSignedIn =>
       cloudClient != null && sessionManager?.currentUserId != null;
 
   @override
+  /// Memuat profil untuk pengguna aktif, memigrasikan data lama bila perlu.
   Future<UserProfile> loadProfile() async {
     final userId = sessionManager?.currentUserId;
     if (userId != null) {
@@ -98,6 +114,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Menyimpan profil secara lokal dan menautkannya ke akun aktif.
   Future<void> saveProfile(UserProfile profile) async {
     final encoded = jsonEncode(profile.toJson());
     await secureVault.write(_profileKey, encoded);
@@ -109,6 +126,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Mengambil profil dari tabel cloud pengguna yang sedang masuk.
   Future<UserProfile?> loadCloudProfile() async {
     final manager = sessionManager;
     final client = cloudClient;
@@ -135,6 +153,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Menyimpan profil ke akun cloud melalui RPC dengan verifikasi sesi.
   Future<void> saveCloudProfile(UserProfile profile) async {
     final manager = sessionManager;
     final client = cloudClient;
@@ -158,6 +177,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Mengambil dan memvalidasi kontak darurat dari pengaturan akun cloud.
   Future<List<EmergencyContact>?> loadCloudContacts() async {
     final manager = sessionManager;
     final client = cloudClient;
@@ -187,6 +207,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Menyimpan kontak darurat ke pengaturan akun cloud.
   Future<void> saveCloudContacts(List<EmergencyContact> contacts) async {
     final manager = sessionManager;
     final client = cloudClient;
@@ -206,6 +227,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Membaca dan mengurai kontak darurat dari vault lokal.
   Future<List<EmergencyContact>> loadContacts() async {
     final value = await secureVault.read(_contactsKey);
     if (value == null) return const [];
@@ -218,6 +240,7 @@ class SecureUserProfileRepository
   }
 
   @override
+  /// Menyimpan kontak darurat terenkode ke vault lokal.
   Future<void> saveContacts(List<EmergencyContact> contacts) =>
       secureVault.write(
         _contactsKey,
@@ -225,10 +248,13 @@ class SecureUserProfileRepository
       );
 
   @override
+  /// Meneruskan pembacaan avatar ke penyimpanan terenkripsi.
   Future<Uint8List?> loadAvatar() => avatarStore.load();
 
   @override
+  /// Meneruskan penyimpanan avatar ke penyimpanan terenkripsi.
   Future<void> saveAvatar(Uint8List imageBytes) => avatarStore.save(imageBytes);
 
+  /// Menyusun kunci vault profil khusus untuk id pengguna.
   String _accountProfileKey(String userId) => '$_profileKey.$userId';
 }

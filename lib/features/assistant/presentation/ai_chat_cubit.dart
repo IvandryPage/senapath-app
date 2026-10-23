@@ -7,6 +7,7 @@ import '../data/ai_chat_gateway.dart';
 import '../domain/ai_chat_message.dart';
 
 class AiChatState {
+  /// Membuat state chat AI dengan daftar pesan dan status awal opsional.
   const AiChatState({
     this.messages = const [],
     this.isSending = false,
@@ -19,6 +20,7 @@ class AiChatState {
   final bool isConfigured;
   final String? error;
 
+  /// Menyalin state dengan pesan, status pengiriman, atau error baru.
   AiChatState copyWith({
     List<AiChatMessage>? messages,
     bool? isSending,
@@ -34,6 +36,7 @@ class AiChatState {
 }
 
 class AiChatCubit extends Cubit<AiChatState> {
+  /// Membuat cubit chat AI dengan gateway sebagai sumber respon.
   AiChatCubit(this._gateway)
     : super(AiChatState(isConfigured: _gateway.isConfigured));
 
@@ -42,6 +45,7 @@ class AiChatCubit extends Cubit<AiChatState> {
 
   bool get isConfigured => _gateway.isConfigured;
 
+  /// Menghapus seluruh percakapan dan mereset status pengiriman.
   void clearConversation() {
     if (isClosed) return;
     _requestGeneration++;
@@ -50,6 +54,7 @@ class AiChatCubit extends Cubit<AiChatState> {
     );
   }
 
+  /// Mengirim pesan ke asisten, menambahkan balasan, dan menangani error.
   Future<void> sendMessage({
     required String content,
     Map<String, Object?> context = const {},

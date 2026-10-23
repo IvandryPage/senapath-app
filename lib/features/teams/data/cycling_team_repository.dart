@@ -5,35 +5,51 @@ import '../../gamification/domain/rider_progress.dart';
 import '../domain/cycling_team.dart';
 
 abstract interface class CyclingTeamRepository {
+  /// Menandakan layanan tim sudah dikonfigurasi pada aplikasi.
   bool get isConfigured;
+  /// Menandakan pengguna sudah masuk ke akun online.
   bool get isSignedIn;
+  /// Mengembalikan ID pengguna yang sedang masuk, bila ada.
   String? get currentUserId;
 
+  /// Memuat daftar tim yang diikuti pengguna.
   Future<List<CyclingTeam>> loadTeams();
+  /// Membuat tim baru dan mengembalikan data tim yang terbentuk.
   Future<CyclingTeam> createTeam(String name, String displayName);
+  /// Bergabung ke tim memakai kode undangan dan nama tampilan.
   Future<CyclingTeam> joinTeam(String inviteCode, String displayName);
+  /// Memuat detail tim, anggota, dan perjalanan yang dibagikan.
   Future<CyclingTeamDashboard> loadDashboard(String teamId);
+  /// Mengeluarkan pengguna dari tim tertentu.
   Future<void> leaveTeam(String teamId);
+  /// Menghapus tim beserta keanggotaannya.
   Future<void> deleteTeam(String teamId);
+  /// Menarik ringkasan perjalanan pengguna dari tim.
   Future<void> unshareSession(String teamId, String sessionId);
+  /// Mengubah peran anggota tim menjadi ketua atau anggota.
   Future<void> setMemberRole(String teamId, String userId, String role);
 }
 
 class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
+  /// Membuat repositori tim berbasis Supabase dengan manajer sesi.
   const SupabaseCyclingTeamRepository(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
   final CustomAuthSessionManager _sessionManager;
 
+  /// Menandakan klien Supabase tersedia untuk mengakses fitur tim.
   @override
   bool get isConfigured => _client != null;
 
+  /// Menandakan pengguna memiliki sesi akun online aktif.
   @override
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
+  /// Mengembalikan ID pengguna yang sedang masuk, bila ada.
   @override
   String? get currentUserId => _sessionManager.currentUserId;
 
+  /// Memastikan klien dan sesi tersedia, lalu mengembalikan klien Supabase.
   Future<SupabaseClient> _requireClient() async {
     final client = _client;
     if (client == null) {
@@ -46,6 +62,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     return client;
   }
 
+  /// Memuat tim yang diikuti beserta peran dan jumlah anggotanya.
   @override
   Future<List<CyclingTeam>> loadTeams() async {
     final client = await _requireClient();
@@ -89,6 +106,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     ];
   }
 
+  /// Membuat tim melalui RPC lalu mengembalikan data tim yang baru dibuat.
   @override
   Future<CyclingTeam> createTeam(String name, String displayName) async {
     final client = await _requireClient();
@@ -101,6 +119,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     return teams.firstWhere((team) => team.id == row['team_id']);
   }
 
+  /// Bergabung ke tim melalui RPC lalu mengembalikan data timnya.
   @override
   Future<CyclingTeam> joinTeam(String inviteCode, String displayName) async {
     final client = await _requireClient();
@@ -113,6 +132,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     return teams.firstWhere((team) => team.id == row['team_id']);
   }
 
+  /// Memuat tim, anggota, profil rider, dan ringkasan perjalanan bersama.
   @override
   Future<CyclingTeamDashboard> loadDashboard(String teamId) async {
     final client = await _requireClient();
@@ -241,18 +261,21 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
     );
   }
 
+  /// Mengeluarkan pengguna dari tim melalui RPC Supabase.
   @override
   Future<void> leaveTeam(String teamId) async {
     final client = await _requireClient();
     await client.rpc('leave_cycling_team', params: {'p_team_id': teamId});
   }
 
+  /// Menghapus tim beserta keanggotaannya melalui RPC Supabase.
   @override
   Future<void> deleteTeam(String teamId) async {
     final client = await _requireClient();
     await client.rpc('delete_cycling_team', params: {'p_team_id': teamId});
   }
 
+  /// Menghapus tautan ringkasan sesi pengguna dari tim.
   @override
   Future<void> unshareSession(String teamId, String sessionId) async {
     final client = await _requireClient();
@@ -264,6 +287,7 @@ class SupabaseCyclingTeamRepository implements CyclingTeamRepository {
         .eq('session_id', sessionId);
   }
 
+  /// Mengubah peran anggota tim melalui RPC Supabase.
   @override
   Future<void> setMemberRole(String teamId, String userId, String role) async {
     final client = await _requireClient();

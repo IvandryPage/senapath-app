@@ -7,6 +7,7 @@ import '../data/user_profile_repository.dart';
 import '../domain/user_profile.dart';
 
 class ProfileState {
+  /// Membuat keadaan awal profil dengan data kosong dan status belum dimuat.
   const ProfileState({
     this.profile = const UserProfile(),
     this.contacts = const [],
@@ -23,6 +24,7 @@ class ProfileState {
   final bool isSaving;
   final String? message;
 
+  /// Menyalin keadaan dengan perubahan opsional, termasuk penghapusan avatar/pesan.
   ProfileState copyWith({
     UserProfile? profile,
     List<EmergencyContact>? contacts,
@@ -45,26 +47,31 @@ class ProfileState {
 }
 
 class ProfileCubit extends Cubit<ProfileState> {
+  /// Membuat cubit profil dengan repositori penyimpanan yang diberikan.
   ProfileCubit(this._repository) : super(const ProfileState());
 
   static const maximumContacts = 3;
   final UserProfileRepository _repository;
   int _loadGeneration = 0;
+  /// Mengembalikan repositori cloud bila didukung, atau null.
   CloudUserProfileRepository? get _cloudRepository {
     if (_repository is! CloudUserProfileRepository) return null;
     return _repository as CloudUserProfileRepository;
   }
 
+  /// Mengembalikan repositori kontak cloud bila didukung, atau null.
   CloudContactsRepository? get _cloudContactsRepository {
     if (_repository is! CloudContactsRepository) return null;
     return _repository as CloudContactsRepository;
   }
 
+  /// Mengatur ulang status muat lalu memuat profil kembali dari sumbernya.
   Future<void> reloadProfile() async {
     emit(state.copyWith(isLoaded: false, clearMessage: true));
     await load();
   }
 
+  /// Memuat profil, kontak, avatar, dan menyinkronkannya dengan cloud.
   Future<void> load() async {
     if (state.isLoaded) return;
     final generation = ++_loadGeneration;
@@ -141,6 +148,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
+  /// Memvalidasi lalu menyimpan profil lokal dan cloud, mengembalikan keberhasilan.
   Future<bool> saveProfile(UserProfile profile) async {
     final cleanedName = TextValidators.sanitizeSingleLine(profile.displayName);
     if (cleanedName.isEmpty) {
@@ -201,6 +209,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     return true;
   }
 
+  /// Memvalidasi, menambah atau memperbarui kontak, lalu menyinkronkan cloud.
   Future<void> saveContact(EmergencyContact contact) async {
     final cleanedName = TextValidators.sanitizeSingleLine(contact.name);
     if (cleanedName.isEmpty ||
@@ -246,6 +255,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     await _syncContactsCloud(updated);
   }
 
+  /// Menghapus kontak berdasarkan id lalu menyinkronkan perubahan ke cloud.
   Future<void> removeContact(String contactId) async {
     final updated = state.contacts
         .where((contact) => contact.id != contactId)
@@ -260,6 +270,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     await _syncContactsCloud(updated);
   }
 
+  /// Menyimpan avatar baru dan memperbarui byte avatar pada keadaan.
   Future<void> saveAvatar(Uint8List imageBytes) async {
     await _save(
       () => _repository.saveAvatar(imageBytes),
@@ -270,8 +281,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
+  /// Menghapus pesan status agar tidak ditampilkan kembali.
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 
+  /// Mengirim kontak ke cloud bila pengguna masuk, atau melaporkan kegagalan.
   Future<void> _syncContactsCloud(List<EmergencyContact> contacts) async {
     final cloudContactsRepository = _cloudContactsRepository;
     if (cloudContactsRepository == null ||
@@ -291,6 +304,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
+  /// Menjalankan operasi simpan sambil mengatur status dan pesan hasilnya.
   Future<void> _save(
     Future<void> Function() operation, {
     required String successMessage,

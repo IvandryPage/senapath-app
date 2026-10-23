@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/senapath_design.dart';
 
 class FeedbackScreen extends StatelessWidget {
+  /// Membuat layar saran dan kesan dengan key opsional.
   const FeedbackScreen({super.key});
 
   @override
+  /// Membangun daftar berisi judul, saran, dan kesan mata kuliah.
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
     children: [
@@ -34,6 +36,7 @@ class FeedbackScreen extends StatelessWidget {
 }
 
 class _FeedbackNoteCard extends StatelessWidget {
+  /// Membuat kartu catatan dengan ikon, judul, dan isi pesan.
   const _FeedbackNoteCard({
     required this.icon,
     required this.title,
@@ -45,6 +48,7 @@ class _FeedbackNoteCard extends StatelessWidget {
   final String message;
 
   @override
+  /// Membangun kartu catatan berisi ikon, judul, dan teks pesan.
   Widget build(BuildContext context) => SenapathCard(
     child: Padding(
       padding: const EdgeInsets.all(16),

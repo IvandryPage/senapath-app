@@ -43,6 +43,7 @@ import '../../session/presentation/session_screen.dart';
 import '../../workouts/presentation/interval_workout_cubit.dart';
 
 class RoutesScreen extends StatefulWidget {
+  /// Membuat layar jelajah rute dengan layanan opsional untuk pengujian.
   const RoutesScreen({
     this.routePlacesService,
     this.preRideWeatherService,
@@ -54,6 +55,7 @@ class RoutesScreen extends StatefulWidget {
   final PreRideWeatherService? preRideWeatherService;
   final RideCoachCubit? rideCoachCubit;
 
+  /// Membuat state layar jelajah rute.
   @override
   State<RoutesScreen> createState() => _RoutesScreenState();
 }
@@ -73,12 +75,14 @@ class _RoutesScreenState extends State<RoutesScreen> {
   DateTime? _guidanceStartedAt;
   Timer? _ghostClock;
 
+  /// Memulai inisialisasi layar saat widget dipasang.
   @override
   void initState() {
     super.initState();
     unawaited(_initializeScreen());
   }
 
+  /// Menghentikan timer ghost pacer dan wakelock saat layar dilepas.
   @override
   void dispose() {
     _ghostClock?.cancel();
@@ -86,6 +90,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     super.dispose();
   }
 
+  /// Memperbarui status aktifnya cabang navigasi jelajah.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -93,6 +98,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
         ActiveNavigationBranch.of(context)?.isActive(1) ?? true;
   }
 
+  /// Memuat sesi, profil, dan daftar rute lalu menetapkan rute aktif.
   Future<void> _initializeScreen() async {
     final sessionCubit = context.read<RideSessionCubit>();
     final routesCubit = context.read<RoutesCubit>();
@@ -101,6 +107,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     if (mounted) sessionCubit.setActiveRoute(routesCubit.state.sessionRoute);
   }
 
+  /// Mengaktifkan wakelock, memuat ghost pacer, dan memulai timer pembaruan.
   Future<void> _startGuidanceExtras(RouteRecord route) async {
     unawaited(WakelockPlus.enable());
     _ghostClock?.cancel();
@@ -125,6 +132,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     });
   }
 
+  /// Menghentikan timer ghost pacer, melepas wakelock, dan membersihkan status.
   void _stopGuidanceExtras() {
     _ghostClock?.cancel();
     _ghostClock = null;
@@ -138,6 +146,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     }
   }
 
+  /// Membangun peta utama, kontrol rute, metrik sesi, dan aksi darurat.
   @override
   Widget build(BuildContext context) {
     return BlocListener<RoutesCubit, RoutesState>(
@@ -533,6 +542,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
+  /// Meminta persetujuan lalu mencari fasilitas di sekitar [route].
   Future<void> _confirmAndLoadNearbyPlaces(RouteRecord route) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -594,6 +604,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     }
   }
 
+  /// Menampilkan daftar fasilitas sekitar rute dalam bottom sheet.
   Future<void> _showNearbyPlaces(
     List<NearbyRoutePlace> places,
   ) => showModalBottomSheet<void>(
@@ -665,6 +676,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     ),
   );
 
+  /// Memilih ikon daftar sesuai kategori fasilitas.
   IconData _placeIcon(NearbyRoutePlaceCategory category) => switch (category) {
     NearbyRoutePlaceCategory.trainStation => Icons.train,
     NearbyRoutePlaceCategory.busTerminal => Icons.directions_bus,
@@ -672,6 +684,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     NearbyRoutePlaceCategory.bicycleRepair => Icons.pedal_bike,
   };
 
+  /// Menghubungi kontak darurat lewat telepon lalu menampilkan hasilnya.
   Future<void> _callEmergencyContact(EmergencyContact contact) async {
     final emergencyCubit = context.read<EmergencyCubit>();
     emergencyCubit.clearMessage();
@@ -679,6 +692,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     _showEmergencyResult(emergencyCubit);
   }
 
+  /// Mengirim pesan WhatsApp ke kontak darurat beserta lokasi terakhir.
   Future<void> _messageEmergencyContact(
     EmergencyContact contact,
     TelemetryLocation? lastLocation,
@@ -689,6 +703,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     _showEmergencyResult(emergencyCubit);
   }
 
+  /// Menampilkan pilihan menghubungi kontak darurat lewat telepon atau WhatsApp.
   Future<void> _showEmergencyOptions(
     EmergencyContact contact,
     TelemetryLocation? lastLocation,
@@ -737,6 +752,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     ),
   );
 
+  /// Menampilkan pesan hasil aksi darurat lalu membersihkannya.
   void _showEmergencyResult(EmergencyCubit emergencyCubit) {
     if (!mounted) return;
     final message = emergencyCubit.state.message;
@@ -747,6 +763,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     emergencyCubit.clearMessage();
   }
 
+  /// Membuka sheet cache logistik untuk [checkpoint] pada [route].
   void _showResupplyCache(RouteRecord route, RouteCheckpoint checkpoint) {
     unawaited(context.read<LogisticsCubit>().load());
     showModalBottomSheet<void>(
@@ -760,6 +777,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
+  /// Membuka layar detail perjalanan dengan provider yang diperlukan.
   Future<void> _openSessionDetails(BuildContext context) =>
       Navigator.of(context).push<void>(
         MaterialPageRoute(
@@ -788,6 +806,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
 }
 
 class _SelectedRouteControl extends StatelessWidget {
+  /// Membuat kontrol rute terpilih dengan aksi ganti dan hapus.
   const _SelectedRouteControl({
     required this.route,
     required this.onChange,
@@ -800,6 +819,7 @@ class _SelectedRouteControl extends StatelessWidget {
   final VoidCallback? onRemove;
   final Widget? statusLine;
 
+  /// Membangun kartu rute terpilih beserta baris status opsional.
   @override
   Widget build(BuildContext context) => SenapathCard(
     child: Padding(
@@ -845,6 +865,7 @@ class _SelectedRouteControl extends StatelessWidget {
 }
 
 class _SessionMetricsOverlay extends StatelessWidget {
+  /// Membuat overlay metrik kecepatan dan jarak sesi.
   const _SessionMetricsOverlay({
     required this.speedMetersPerSecond,
     required this.distanceMeters,
@@ -855,6 +876,7 @@ class _SessionMetricsOverlay extends StatelessWidget {
   final double distanceMeters;
   final UnitSystem unitSystem;
 
+  /// Membangun tampilan kecepatan dan jarak sesuai [unitSystem].
   @override
   Widget build(BuildContext context) {
     final metric = unitSystem == UnitSystem.metric;
@@ -914,6 +936,7 @@ class _SessionMetricsOverlay extends StatelessWidget {
 }
 
 class SavedRoutesScreen extends StatefulWidget {
+  /// Membuat layar daftar rute tersimpan dengan layanan opsional.
   const SavedRoutesScreen({
     this.preRideWeatherService,
     this.rideCoachCubit,
@@ -925,6 +948,7 @@ class SavedRoutesScreen extends StatefulWidget {
   final RideCoachCubit? rideCoachCubit;
   final RideHistoryRepository? rideHistoryRepository;
 
+  /// Membuat state layar daftar rute tersimpan.
   @override
   State<SavedRoutesScreen> createState() => _SavedRoutesScreenState();
 }
@@ -933,12 +957,14 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   bool _loaded = false;
   final _searchController = TextEditingController();
 
+  /// Melepas pengendali teks pencarian.
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
+  /// Memuat rute sekali saat dependensi layar siap.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -947,6 +973,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
     context.read<RoutesCubit>().load();
   }
 
+  /// Membangun daftar rute, kolom pencarian, dan tombol impor GPX.
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<RoutesCubit, RoutesState>(
@@ -1038,6 +1065,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
 }
 
 class _PreRideBriefing extends StatefulWidget {
+  /// Membuat bagian briefing pra-perjalanan untuk [route].
   const _PreRideBriefing({
     required this.route,
     required this.weatherService,
@@ -1048,6 +1076,7 @@ class _PreRideBriefing extends StatefulWidget {
   final PreRideWeatherService weatherService;
   final RideCoachCubit rideCoachCubit;
 
+  /// Membuat state bagian briefing pra-perjalanan.
   @override
   State<_PreRideBriefing> createState() => _PreRideBriefingState();
 }
@@ -1056,6 +1085,7 @@ class _PreRideBriefingState extends State<_PreRideBriefing> {
   bool _isLoadingWeather = false;
   String? _weatherError;
 
+  /// Meminta izin, mengambil cuaca, lalu mengirim briefing ke AI.
   Future<void> _requestBriefing() async {
     final coach = widget.rideCoachCubit;
     if (!coach.isConfigured) {
@@ -1151,6 +1181,7 @@ class _PreRideBriefingState extends State<_PreRideBriefing> {
     }
   }
 
+  /// Membangun kartu briefing dengan status muat, hasil, dan kesalahan.
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<RideCoachCubit, RideCoachState>(
@@ -1238,6 +1269,7 @@ class _PreRideBriefingState extends State<_PreRideBriefing> {
 }
 
 class _RouteTimePredictionPreview extends StatefulWidget {
+  /// Membuat pratinjau estimasi durasi untuk [route].
   const _RouteTimePredictionPreview({
     required this.route,
     required this.repository,
@@ -1246,6 +1278,7 @@ class _RouteTimePredictionPreview extends StatefulWidget {
   final RouteRecord route;
   final RideHistoryRepository repository;
 
+  /// Membuat state pratinjau estimasi durasi.
   @override
   State<_RouteTimePredictionPreview> createState() =>
       _RouteTimePredictionPreviewState();
@@ -1257,12 +1290,14 @@ class _RouteTimePredictionPreviewState
   double? _distanceKm;
   double? _routeAscentMeters;
 
+  /// Memuat prediksi durasi saat widget dipasang.
   @override
   void initState() {
     super.initState();
     _loadPrediction();
   }
 
+  /// Menghitung fitur rute lalu memulai prediksi dari riwayat lokal.
   void _loadPrediction() {
     final route = widget.route;
     final routeDistanceMeters = route.distanceMeters;
@@ -1294,6 +1329,7 @@ class _RouteTimePredictionPreviewState
     );
   }
 
+  /// Membangun pratinjau estimasi durasi beserta status pemuatannya.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -1396,6 +1432,7 @@ class _RouteTimePredictionPreviewState
   }
 }
 
+/// Memformat estimasi durasi menit menjadi teks jam dan menit.
 String _formatPredictedDuration(double durationMinutes) {
   if (!durationMinutes.isFinite || durationMinutes <= 0) {
     return 'Estimasi tidak tersedia';
@@ -1408,6 +1445,7 @@ String _formatPredictedDuration(double durationMinutes) {
   return '≈ $hours jam $minutes menit';
 }
 
+/// Membuat profil elevasi sampel rute untuk briefing.
 List<Map<String, double>> _elevationProfile(List<RoutePoint> points) {
   if (points.length < 2 ||
       points.any((point) => !point.elevationMeters.isFinite)) {
@@ -1432,6 +1470,7 @@ List<Map<String, double>> _elevationProfile(List<RoutePoint> points) {
   ];
 }
 
+/// Menghitung total pendakian elevasi sepanjang rute.
 double _ascentMeters(List<RoutePoint> points) {
   var ascent = 0.0;
   for (var index = 1; index < points.length; index++) {
@@ -1442,11 +1481,13 @@ double _ascentMeters(List<RoutePoint> points) {
   return ascent;
 }
 
+/// Menghitung total panjang rute dalam meter.
 double _distanceMeters(List<RoutePoint> points) {
   final distances = _cumulativeRouteDistances(points);
   return distances.isEmpty ? 0 : distances.last;
 }
 
+/// Menghitung jarak kumulatif setiap titik rute memakai formula haversine.
 List<double> _cumulativeRouteDistances(List<RoutePoint> points) {
   final distances = <double>[0];
   for (var index = 1; index < points.length; index++) {
@@ -1468,6 +1509,7 @@ List<double> _cumulativeRouteDistances(List<RoutePoint> points) {
 }
 
 class _RouteTile extends StatelessWidget {
+  /// Membuat baris daftar untuk satu [route] tersimpan.
   const _RouteTile({
     required this.route,
     required this.unitSystem,
@@ -1482,6 +1524,7 @@ class _RouteTile extends StatelessWidget {
   final RideCoachCubit? rideCoachCubit;
   final RideHistoryRepository? rideHistoryRepository;
 
+  /// Membangun kartu rute dengan metrik, aksi detail, dan hapus.
   @override
   Widget build(BuildContext context) {
     final distance = route.distanceMeters == null
@@ -1550,6 +1593,7 @@ class _RouteTile extends StatelessWidget {
     );
   }
 
+  /// Meminta konfirmasi lalu menghapus rute impor ini.
   Future<void> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1577,6 +1621,7 @@ class _RouteTile extends StatelessWidget {
     }
   }
 
+  /// Menampilkan pratinjau rute lengkap dengan peta dan aksi lanjutan.
   void _showRoutePreview(BuildContext context) {
     final distance = route.distanceMeters == null
         ? 'Jarak tidak tersedia'
@@ -1710,6 +1755,7 @@ class _RouteTile extends StatelessWidget {
     );
   }
 
+  /// Memformat jarak meter menjadi km/m atau mi/ft sesuai [unitSystem].
   String _formatDistance(double meters, UnitSystem unitSystem) {
     if (unitSystem == UnitSystem.metric) {
       return meters >= 1000
@@ -1721,6 +1767,7 @@ class _RouteTile extends StatelessWidget {
         : '${(meters * 3.28084).toStringAsFixed(0)} ft';
   }
 
+  /// Memformat elevasi meter menjadi satuan metrik atau imperial.
   String _formatElevation(double meters, UnitSystem unitSystem) =>
       unitSystem == UnitSystem.metric
       ? '${meters.toStringAsFixed(0)} m'
@@ -1728,6 +1775,7 @@ class _RouteTile extends StatelessWidget {
 }
 
 class RouteMapPreview extends StatefulWidget {
+  /// Membuat pratinjau peta rute dari [points] dengan sumber dan tinggi opsional.
   const RouteMapPreview({
     required this.points,
     this.source = 'GPX lokal',
@@ -1739,6 +1787,7 @@ class RouteMapPreview extends StatefulWidget {
   final String source;
   final double? height;
 
+  /// Membuat state pratinjau peta rute.
   @override
   State<RouteMapPreview> createState() => _RouteMapPreviewState();
 }
@@ -1746,6 +1795,7 @@ class RouteMapPreview extends StatefulWidget {
 class _RouteMapPreviewState extends State<RouteMapPreview> {
   bool _hasTileError = false;
 
+  /// Membangun peta rute beserta garis, penanda, dan pesan galat ubin.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

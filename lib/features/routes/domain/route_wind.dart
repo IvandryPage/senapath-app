@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'saved_route.dart';
 
 class RouteWindObservation {
+  /// Membuat observasi arah angin pada waktu tertentu.
   const RouteWindObservation({
     required this.directionFromDegrees,
     required this.observedAt,
@@ -11,6 +12,7 @@ class RouteWindObservation {
   final int directionFromDegrees;
   final DateTime observedAt;
 
+  /// Membangun observasi angin dari respons JSON Open-Meteo.
   factory RouteWindObservation.fromJson(Map<String, Object?> json) {
     final current = json['current'];
     if (current is! Map) {
@@ -32,6 +34,7 @@ class RouteWindObservation {
   }
 }
 
+/// Menghitung arah rute derajat di sekitar indeks titik terdekat.
 double routeHeadingDegrees(List<RoutePoint> points, int nearestPointIndex) {
   if (points.length < 2) {
     throw ArgumentError.value(points.length, 'points');
@@ -65,9 +68,11 @@ double routeHeadingDegrees(List<RoutePoint> points, int nearestPointIndex) {
   return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
 }
 
+/// Memeriksa apakah dua titik memiliki koordinat yang sama.
 bool _sameCoordinate(RoutePoint first, RoutePoint second) =>
     first.latitude == second.latitude && first.longitude == second.longitude;
 
+/// Menjelaskan posisi angin relatif terhadap arah rute.
 String relativeWindDescription({
   required int windFromDegrees,
   required double routeHeadingDegrees,
@@ -78,6 +83,7 @@ String relativeWindDescription({
   return difference < 180 ? 'angin dari kanan' : 'angin dari kiri';
 }
 
+/// Menghitung rotasi panah angin relatif terhadap arah rute.
 double windArrowRotationRadians({
   required int windFromDegrees,
   required double routeHeadingDegrees,

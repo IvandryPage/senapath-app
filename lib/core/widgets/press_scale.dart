@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PressScale extends StatefulWidget {
+  /// Membuat pembungkus yang memperkecil child saat ditekan.
   const PressScale({
     required this.child,
     this.onTap,
@@ -12,6 +13,7 @@ class PressScale extends StatefulWidget {
   final VoidCallback? onTap;
   final bool enabled;
 
+  /// Membuat state yang melacak kondisi tekan.
   @override
   State<PressScale> createState() => _PressScaleState();
 }
@@ -19,6 +21,7 @@ class PressScale extends StatefulWidget {
 class _PressScaleState extends State<PressScale> {
   bool _isPressed = false;
 
+  /// Membangun GestureDetector dengan animasi skala saat ditekan dan dilepas.
   @override
   Widget build(BuildContext context) => GestureDetector(
     behavior: HitTestBehavior.opaque,

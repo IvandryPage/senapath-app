@@ -4,6 +4,7 @@ import '../../../core/storage/app_database.dart';
 import '../domain/interval_workout.dart';
 
 class IntervalWorkoutRepository {
+  /// Membuat repositori penyimpanan workout interval pada [database].
   const IntervalWorkoutRepository(this._database);
 
   static const _workoutsKey = 'interval_workouts_v1';
@@ -12,6 +13,7 @@ class IntervalWorkoutRepository {
 
   final AppDatabase _database;
 
+  /// Memuat daftar workout interval yang tersimpan di perangkat.
   Future<List<IntervalWorkout>> loadWorkouts() async {
     final value = await _read(_workoutsKey);
     if (value == null) return const [];
@@ -29,8 +31,10 @@ class IntervalWorkoutRepository {
         .toList(growable: false);
   }
 
+  /// Memuat ID workout interval yang sedang dipilih.
   Future<String?> loadSelectedWorkoutId() => _read(_selectedWorkoutKey);
 
+  /// Menyimpan seluruh daftar [workouts] ke penyimpanan lokal.
   Future<void> saveWorkouts(List<IntervalWorkout> workouts) async {
     await _write(
       _workoutsKey,
@@ -38,6 +42,7 @@ class IntervalWorkoutRepository {
     );
   }
 
+  /// Menyimpan atau menghapus pilihan workout berdasarkan [workoutId].
   Future<void> selectWorkout(String? workoutId) async {
     if (workoutId == null) {
       await _delete(_selectedWorkoutKey);
@@ -46,6 +51,7 @@ class IntervalWorkoutRepository {
     }
   }
 
+  /// Memuat checkpoint workout yang cocok dengan [sessionId].
   Future<WorkoutCheckpoint?> loadCheckpoint(String sessionId) async {
     final value = await _read(_checkpointKey);
     if (value == null) return null;
@@ -57,11 +63,14 @@ class IntervalWorkoutRepository {
     return checkpoint.sessionId == sessionId ? checkpoint : null;
   }
 
+  /// Menyimpan checkpoint progres workout yang sedang berjalan.
   Future<void> saveCheckpoint(WorkoutCheckpoint checkpoint) =>
       _write(_checkpointKey, jsonEncode(checkpoint.toJson()));
 
+  /// Menghapus checkpoint progres workout yang tersimpan.
   Future<void> clearCheckpoint() => _delete(_checkpointKey);
 
+  /// Membaca nilai preferensi [key] dan mengembalikan null bila tidak ada.
   Future<String?> _read(String key) async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -69,6 +78,7 @@ class IntervalWorkoutRepository {
     return row?.value;
   }
 
+  /// Menyimpan atau menimpa nilai preferensi [key].
   Future<void> _write(String key, String value) async {
     await _database
         .into(_database.appPreferences)
@@ -77,6 +87,7 @@ class IntervalWorkoutRepository {
         );
   }
 
+  /// Menghapus preferensi dengan [key] dari basis data.
   Future<void> _delete(String key) async {
     await (_database.delete(
       _database.appPreferences,

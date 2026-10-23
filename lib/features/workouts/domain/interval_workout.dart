@@ -1,6 +1,7 @@
 enum WorkoutTargetType { duration, distance }
 
 class WorkoutInterval {
+  /// Membuat satu interval workout dengan target dan status pemulihan.
   const WorkoutInterval({
     required this.name,
     required this.targetType,
@@ -13,6 +14,7 @@ class WorkoutInterval {
   final int targetValue;
   final bool isRecovery;
 
+  /// Membuat interval tervalidasi dari input pengguna.
   factory WorkoutInterval.create({
     required String name,
     required WorkoutTargetType targetType,
@@ -36,6 +38,7 @@ class WorkoutInterval {
     );
   }
 
+  /// Mengubah interval menjadi JSON untuk penyimpanan lokal.
   Map<String, Object?> toJson() => {
     'name': name,
     'targetType': targetType.name,
@@ -43,6 +46,7 @@ class WorkoutInterval {
     'isRecovery': isRecovery,
   };
 
+  /// Membangun interval tervalidasi dari JSON tersimpan.
   factory WorkoutInterval.fromJson(Map<String, dynamic> json) {
     final type = WorkoutTargetType.values.firstWhere(
       (value) => value.name == json['targetType'],
@@ -64,6 +68,7 @@ class WorkoutInterval {
     }
   }
 
+  /// Deskripsi target interval dalam detik atau kilometer.
   String get targetDescription => switch (targetType) {
     WorkoutTargetType.duration => '${targetValue}s',
     WorkoutTargetType.distance =>
@@ -72,6 +77,7 @@ class WorkoutInterval {
 }
 
 class IntervalWorkout {
+  /// Membuat workout interval beserta pengaturan pemberitahuannya.
   const IntervalWorkout({
     required this.id,
     required this.name,
@@ -88,6 +94,7 @@ class IntervalWorkout {
   final bool hapticCueEnabled;
   final bool visualCueEnabled;
 
+  /// Membuat workout tervalidasi dari input pengguna.
   static IntervalWorkout create({
     required String id,
     required String name,
@@ -117,6 +124,7 @@ class IntervalWorkout {
     );
   }
 
+  /// Mengubah workout menjadi JSON untuk penyimpanan lokal.
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
@@ -126,6 +134,7 @@ class IntervalWorkout {
     'visualCueEnabled': visualCueEnabled,
   };
 
+  /// Membangun workout tervalidasi dari JSON tersimpan.
   factory IntervalWorkout.fromJson(Map<String, dynamic> json) {
     final intervals = json['intervals'];
     if (intervals is! List) {
@@ -154,6 +163,7 @@ class IntervalWorkout {
 }
 
 class WorkoutCheckpoint {
+  /// Membuat checkpoint progres interval pada sebuah sesi.
   const WorkoutCheckpoint({
     required this.sessionId,
     required this.workoutId,
@@ -168,6 +178,7 @@ class WorkoutCheckpoint {
   final int intervalStartElapsedSeconds;
   final double intervalStartDistanceMeters;
 
+  /// Mengubah checkpoint menjadi JSON untuk penyimpanan lokal.
   Map<String, Object?> toJson() => {
     'sessionId': sessionId,
     'workoutId': workoutId,
@@ -176,6 +187,7 @@ class WorkoutCheckpoint {
     'intervalStartDistanceMeters': intervalStartDistanceMeters,
   };
 
+  /// Membangun checkpoint dari JSON tersimpan.
   factory WorkoutCheckpoint.fromJson(Map<String, dynamic> json) =>
       WorkoutCheckpoint(
         sessionId: json['sessionId'] as String,
@@ -188,6 +200,7 @@ class WorkoutCheckpoint {
 }
 
 class WorkoutIntervalProgress {
+  /// Membuat ringkasan progres interval yang sedang berjalan.
   const WorkoutIntervalProgress({
     required this.interval,
     required this.index,

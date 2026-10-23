@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class PreRideWeather {
+  /// Membuat data cuaca pra-perjalanan dari nilai observasi.
   const PreRideWeather({
     required this.temperatureCelsius,
     required this.weatherCode,
@@ -17,6 +18,7 @@ class PreRideWeather {
   final double windSpeedKmh;
   final DateTime observedAt;
 
+  /// Menerjemahkan kode cuaca menjadi deskripsi kondisi berbahasa Indonesia.
   String get condition => switch (weatherCode) {
     0 => 'cerah',
     1 => 'sebagian besar cerah',
@@ -34,6 +36,7 @@ class PreRideWeather {
     _ => 'kondisi cuaca tidak diketahui',
   };
 
+  /// Mengubah data cuaca menjadi JSON ringkas untuk briefing AI.
   Map<String, Object> toBriefingJson({required String windRelation}) => {
     'condition': condition,
     'temperatureCelsius': temperatureCelsius,
@@ -45,6 +48,7 @@ class PreRideWeather {
 }
 
 abstract interface class PreRideWeatherService {
+  /// Mengambil cuaca terkini pada koordinat yang diberikan.
   Future<PreRideWeather> fetchCurrentWeather({
     required double latitude,
     required double longitude,
@@ -52,12 +56,14 @@ abstract interface class PreRideWeatherService {
 }
 
 class OpenMeteoPreRideWeatherService implements PreRideWeatherService {
+  /// Membuat layanan cuaca dengan klien HTTP opsional.
   OpenMeteoPreRideWeatherService({this.client});
 
   static final _endpoint = Uri.https('api.open-meteo.com', '/v1/forecast');
 
   final http.Client? client;
 
+  /// Mengambil dan memvalidasi cuaca terkini dari Open-Meteo.
   @override
   Future<PreRideWeather> fetchCurrentWeather({
     required double latitude,

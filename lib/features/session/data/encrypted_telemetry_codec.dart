@@ -6,7 +6,9 @@ import 'package:cryptography/cryptography.dart';
 import '../../../core/storage/secure_vault.dart';
 import '../domain/ride_session.dart';
 
+/// Kodek untuk mengenkripsi dan mendekripsi lokasi telemetri.
 class EncryptedTelemetryCodec {
+  /// Membuat kodek enkripsi telemetri.
   EncryptedTelemetryCodec({required this.secureVault, AesGcm? cipher})
     : _cipher = cipher ?? AesGcm.with256bits();
 
@@ -15,11 +17,13 @@ class EncryptedTelemetryCodec {
   final SecureVault secureVault;
   final AesGcm _cipher;
 
+  /// Mengenkripsi lokasi telemetri.
   Future<Uint8List> encode(TelemetryLocation location) async {
     final cleartext = utf8.encode(jsonEncode(location.toJson()));
     return encryptBytes(cleartext);
   }
 
+  /// Mengenkripsi byte mentah.
   Future<Uint8List> encryptBytes(List<int> cleartext) async {
     final key = await _loadOrCreateKey();
     if (key == null) {
@@ -32,6 +36,7 @@ class EncryptedTelemetryCodec {
     return secretBox.concatenation();
   }
 
+  /// Mendekripsi data terenkripsi menjadi lokasi telemetri.
   Future<TelemetryLocation> decode(
     Uint8List encrypted, {
     required DateTime recordedAt,
@@ -43,6 +48,7 @@ class EncryptedTelemetryCodec {
     );
   }
 
+  /// Mendekripsi byte terenkripsi.
   Future<Uint8List> decryptBytes(Uint8List encrypted) async {
     final key = await _loadOrCreateKey(create: false);
     if (key == null) throw StateError('Telemetry encryption key is missing.');
@@ -59,6 +65,7 @@ class EncryptedTelemetryCodec {
     return Uint8List.fromList(cleartext);
   }
 
+  /// Memuat atau membuat kunci enkripsi.
   Future<List<int>?> _loadOrCreateKey({bool create = true}) async {
     final stored = await secureVault.read(_keyName);
     if (stored != null) return base64Decode(stored);

@@ -5,6 +5,7 @@ import '../domain/ai_chat_message.dart';
 import 'ai_chat_gateway.dart';
 
 class SupabaseAiChatGateway implements AiChatGateway {
+  /// Membuat gateway chat AI berbasis Supabase dengan manajer sesi.
   const SupabaseAiChatGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;

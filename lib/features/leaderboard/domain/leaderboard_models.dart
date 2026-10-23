@@ -3,6 +3,7 @@ import '../../gamification/domain/rider_progress.dart';
 enum LeaderboardCategory { duration, distance }
 
 class LeaderboardSettings {
+  /// Membuat pengaturan leaderboard berisi status ikut dan nama tampilan.
   const LeaderboardSettings({
     required this.isOptedIn,
     required this.displayName,
@@ -13,6 +14,7 @@ class LeaderboardSettings {
 }
 
 class LeaderboardEntry {
+  /// Membuat entri peringkat dengan skor serta data level dan gaya rider.
   const LeaderboardEntry({
     required this.rank,
     required this.displayName,

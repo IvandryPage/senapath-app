@@ -7,15 +7,20 @@ import '../../../core/validation/input_formatters.dart';
 import '../../../core/validation/validators.dart';
 import 'cloud_account_cubit.dart';
 
+/// Layar akun cloud dan autentikasi.
 class CloudAccountScreen extends StatefulWidget {
+  /// Membuat layar akun cloud.
   const CloudAccountScreen({this.isEntryFlow = false, super.key});
 
+  /// Menandai apakah layar ini bagian alur masuk awal.
   final bool isEntryFlow;
 
+  /// Membuat state untuk layar akun cloud.
   @override
   State<CloudAccountScreen> createState() => _CloudAccountScreenState();
 }
 
+/// State untuk layar akun cloud.
 class _CloudAccountScreenState extends State<CloudAccountScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -24,6 +29,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   bool _isRegistering = false;
   bool _showPassword = false;
 
+  /// Membersihkan controller saat widget dibuang.
   @override
   void dispose() {
     _emailController.dispose();
@@ -32,6 +38,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     super.dispose();
   }
 
+  /// Membangun tampilan akun cloud berdasarkan status autentikasi.
   @override
   Widget build(
     BuildContext context,
@@ -265,6 +272,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
     },
   );
 
+  /// Membangun tampilan saat pengguna telah masuk.
   Widget _buildSignedIn(BuildContext context, CloudAccountState state) =>
       ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
@@ -301,6 +309,7 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
         ],
       );
 
+  /// Mengirim formulir masuk atau pendaftaran.
   Future<void> _submit() async {
     if (context.read<CloudAccountCubit>().state.isLoading) return;
     if (!_formKey.currentState!.validate()) return;
@@ -322,12 +331,15 @@ class _CloudAccountScreenState extends State<CloudAccountScreen> {
   }
 }
 
+/// Notifikasi status atau error akun.
 class _AccountNotice extends StatelessWidget {
+  /// Membuat notifikasi akun.
   const _AccountNotice({required this.text, this.isError = false});
 
   final String text;
   final bool isError;
 
+  /// Membangun tampilan notifikasi akun.
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,

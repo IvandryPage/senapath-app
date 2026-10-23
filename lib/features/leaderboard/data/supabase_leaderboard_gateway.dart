@@ -6,17 +6,21 @@ import '../domain/leaderboard_models.dart';
 import 'leaderboard_gateway.dart';
 
 class SupabaseLeaderboardGateway implements LeaderboardGateway {
+  /// Membuat gateway leaderboard berbasis Supabase dengan manajer sesi.
   const SupabaseLeaderboardGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
   final CustomAuthSessionManager _sessionManager;
 
+  /// Menandakan klien Supabase tersedia untuk mengakses leaderboard.
   @override
   bool get isConfigured => _client != null;
 
+  /// Menandakan pengguna memiliki sesi akun online aktif.
   @override
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
+  /// Mengembalikan klien Supabase yang siap dipakai setelah memastikan sesi.
   Future<SupabaseClient> get _requiredClient async {
     final client = _client;
     if (client == null || _sessionManager.currentUserId == null) {
@@ -26,6 +30,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     return client;
   }
 
+  /// Mengambil pengaturan leaderboard pengguna melalui RPC Supabase.
   @override
   Future<LeaderboardSettings> loadSettings() async {
     final response = await (await _requiredClient).rpc(
@@ -38,6 +43,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     );
   }
 
+  /// Mengambil daftar peringkat kategori tertentu dan memetakannya ke model.
   @override
   Future<List<LeaderboardEntry>> loadEntries(
     LeaderboardCategory category,
@@ -67,6 +73,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
         .toList(growable: false);
   }
 
+  /// Menyimpan pilihan keikutsertaan leaderboard melalui RPC Supabase.
   @override
   Future<void> saveConsent({required bool isOptedIn}) async {
     await (await _requiredClient).rpc(
@@ -75,6 +82,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     );
   }
 
+  /// Mengirim rekor durasi dan jarak terbaik melalui RPC Supabase.
   @override
   Future<void> recordPersonalBest({
     required int durationSeconds,
@@ -89,6 +97,7 @@ class SupabaseLeaderboardGateway implements LeaderboardGateway {
     );
   }
 
+  /// Mengambil satu baris hasil RPC dan melempar error bila formatnya salah.
   Map<String, Object?> _singleRow(Object? response) {
     if (response is! List || response.isEmpty || response.first is! Map) {
       throw const FormatException('Pengaturan leaderboard tidak tersedia.');

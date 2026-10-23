@@ -16,6 +16,7 @@ enum EmergencyFlowStatus {
 }
 
 class EmergencyState {
+  /// Membuat keadaan awal alur darurat dengan status idle.
   const EmergencyState({
     this.status = EmergencyFlowStatus.idle,
     this.secondsRemaining = 0,
@@ -28,8 +29,10 @@ class EmergencyState {
   final String? contactName;
   final String? message;
 
+  /// Menandakan hitung mundur SOS sedang berjalan.
   bool get isCountingDown => status == EmergencyFlowStatus.countdown;
 
+  /// Menyalin keadaan dengan perubahan opsional dan opsi hapus pesan.
   EmergencyState copyWith({
     EmergencyFlowStatus? status,
     int? secondsRemaining,
@@ -45,6 +48,7 @@ class EmergencyState {
 }
 
 class EmergencyCubit extends Cubit<EmergencyState> {
+  /// Membuat cubit darurat dengan aksi kontak dan durasi hitung mundur.
   EmergencyCubit(
     this._actions, {
     this.countdownDuration = const Duration(seconds: 15),
@@ -59,6 +63,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
   TelemetryLocation? _countdownLocation;
   int _remainingMilliseconds = 0;
 
+  /// Membuka panggilan ke kontak darurat dan memperbarui status alur.
   Future<bool> callContact(EmergencyContact contact) async {
     try {
       final opened = await _actions.call(contact);
@@ -82,11 +87,13 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     }
   }
 
+  /// Membuka WhatsApp dengan pesan SOS berisi lokasi terakhir.
   Future<bool> openWhatsApp(
     EmergencyContact contact, {
     TelemetryLocation? lastLocation,
   }) => _openSosHandoff(contact, lastLocation);
 
+  /// Memvalidasi kontak lalu memulai hitung mundur sebelum SOS dikirim.
   void startCountdown({
     required EmergencyContact contact,
     TelemetryLocation? lastLocation,
@@ -113,6 +120,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     _timer = Timer.periodic(tickInterval, (_) => _tickCountdown());
   }
 
+  /// Membatalkan hitung mundur dan menandai alur SOS dibatalkan.
   void cancelCountdown() {
     if (!state.isCountingDown) return;
     _timer?.cancel();
@@ -127,8 +135,10 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     );
   }
 
+  /// Menghapus pesan status dari keadaan.
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 
+  /// Mengurangi sisa waktu dan memicu pengiriman SOS saat hitung mundur habis.
   void _tickCountdown() {
     _remainingMilliseconds -= tickInterval.inMilliseconds;
     if (_remainingMilliseconds <= 0) {
@@ -147,6 +157,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     );
   }
 
+  /// Memvalidasi kontak, menyusun pesan SOS, lalu membuka WhatsApp.
   Future<bool> _openSosHandoff(
     EmergencyContact contact,
     TelemetryLocation? lastLocation,
@@ -189,6 +200,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     }
   }
 
+  /// Menyusun teks pesan darurat lengkap dengan tautan lokasi bila tersedia.
   String _buildSosMessage(TelemetryLocation? location) {
     final locationText = location == null
         ? 'Lokasi terakhir saya belum tersedia.'
@@ -202,9 +214,11 @@ class EmergencyCubit extends Cubit<EmergencyState> {
     ].join('\n');
   }
 
+  /// Menghitung sisa detik hitung mundur dengan pembulatan ke atas.
   int get _secondsRemaining =>
       (_remainingMilliseconds / Duration.millisecondsPerSecond).ceil();
 
+  /// Memeriksa nama terisi dan panjang nomor telepon dalam rentang wajar.
   bool _isValidContact(EmergencyContact contact) {
     final digits = contact.phone.replaceAll(RegExp(r'\D'), '');
     return contact.name.trim().isNotEmpty &&
@@ -212,6 +226,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
         digits.length <= 15;
   }
 
+  /// Menerbitkan keadaan baru berisi pesan, status, dan nama kontak.
   void _setMessage(
     String message, {
     required EmergencyFlowStatus status,
@@ -227,6 +242,7 @@ class EmergencyCubit extends Cubit<EmergencyState> {
   }
 
   @override
+  /// Menghentikan timer yang aktif sebelum menutup cubit.
   Future<void> close() async {
     _timer?.cancel();
     await super.close();

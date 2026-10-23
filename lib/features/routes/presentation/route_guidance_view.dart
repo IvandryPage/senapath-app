@@ -14,6 +14,7 @@ import '../domain/saved_route.dart';
 import 'route_guidance_cubit.dart';
 import 'route_wind_indicator.dart';
 
+/// Memformat jarak panduan sesuai sistem satuan metrik atau imperial.
 String formatGuidanceDistance(double meters, UnitSystem unitSystem) {
   if (unitSystem == UnitSystem.metric) {
     return meters >= 1000
@@ -26,6 +27,7 @@ String formatGuidanceDistance(double meters, UnitSystem unitSystem) {
 }
 
 class GuidanceStatusLine extends StatefulWidget {
+  /// Membuat baris status panduan untuk [route] beserta layanan angin.
   const GuidanceStatusLine({
     required this.route,
     this.windService,
@@ -37,6 +39,7 @@ class GuidanceStatusLine extends StatefulWidget {
   final RouteWindService? windService;
   final bool ghostPacerError;
 
+  /// Membuat state baris status panduan.
   @override
   State<GuidanceStatusLine> createState() => _GuidanceStatusLineState();
 }
@@ -51,6 +54,7 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
   bool _isLoadingWind = false;
   bool _hasWindError = false;
 
+  /// Membangun label status, akurasi, indikator angin, dan peringatan rute.
   @override
   Widget build(BuildContext context) =>
       BlocListener<RouteGuidanceCubit, RouteGuidanceState>(
@@ -141,6 +145,7 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
         ),
       );
 
+  /// Meminta izin pengguna lalu mengambil arah angin bila disetujui.
   Future<void> _requestWind(RouteGuidanceState state) async {
     if (_windConsentGranted) {
       await _fetchWind(state);
@@ -172,6 +177,7 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
     await _fetchWind(state);
   }
 
+  /// Memuat ulang angin bila posisi bergeser 5 km atau sudah 10 menit.
   Future<void> _refreshWindIfNeeded(RouteGuidanceState state) async {
     final position = state.currentPosition!;
     final currentCoordinates = (
@@ -194,6 +200,7 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
     if (movedMeters >= 5000 || hasExpired) await _fetchWind(state);
   }
 
+  /// Mengambil observasi angin dan memperbarui status muat atau galat.
   Future<void> _fetchWind(RouteGuidanceState state) async {
     final position = state.currentPosition;
     if (position == null || !state.hasAccurateFix || _isLoadingWind) return;
@@ -225,6 +232,7 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
     }
   }
 
+  /// Menentukan teks status panduan berdasarkan kondisi [state].
   String _statusLabel(RouteGuidanceState state) {
     if (state.error != null) return state.error!;
     if (state.hasReachedEnd) return 'Rute selesai';
@@ -234,6 +242,7 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
     return 'Ikuti garis rute';
   }
 
+  /// Menentukan pesan peringatan rute atau posisi, bila ada.
   String? _warningLabel(RouteGuidanceState state) {
     if (widget.ghostPacerError) {
       return 'Hantu performa sebelumnya tidak dapat dimuat.';
@@ -249,11 +258,13 @@ class _GuidanceStatusLineState extends State<GuidanceStatusLine> {
 }
 
 class GuidanceToolbar extends StatelessWidget {
+  /// Membuat toolbar panduan dengan aksi berhenti [onStop].
   const GuidanceToolbar({required this.route, required this.onStop, super.key});
 
   final RouteRecord route;
   final VoidCallback onStop;
 
+  /// Membangun metrik jarak tersisa, posisi rute, dan tombol akhiri panduan.
   @override
   Widget build(
     BuildContext context,
@@ -302,11 +313,13 @@ class GuidanceToolbar extends StatelessWidget {
 }
 
 class _ToolbarMetric extends StatelessWidget {
+  /// Membuat metrik toolbar dengan [label] dan [value].
   const _ToolbarMetric({required this.label, required this.value});
 
   final String label;
   final String value;
 
+  /// Membangun tampilan label dan nilai metrik secara vertikal.
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;

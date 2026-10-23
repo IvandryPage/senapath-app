@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 class OfflineStorageUsage {
+  /// Membuat ringkasan pemakaian penyimpanan basis data dan cache peta.
   const OfflineStorageUsage({
     required this.databaseBytes,
     required this.mapCacheBytes,
@@ -13,8 +14,10 @@ class OfflineStorageUsage {
 }
 
 class OfflineStorageManager {
+  /// Membuat pengelola penyimpanan offline tanpa state.
   const OfflineStorageManager();
 
+  /// Menghitung ukuran berkas basis data dan direktori cache peta saat ini.
   Future<OfflineStorageUsage> usage() async {
     final documents = await getApplicationDocumentsDirectory();
     final support = await getApplicationSupportDirectory();
@@ -28,6 +31,7 @@ class OfflineStorageManager {
     );
   }
 
+  /// Menghapus seluruh isi direktori cache peta jika direktori tersebut ada.
   Future<void> clearMapCache() async {
     final support = await getApplicationSupportDirectory();
     final cache = Directory(
@@ -36,6 +40,7 @@ class OfflineStorageManager {
     if (await cache.exists()) await cache.delete(recursive: true);
   }
 
+  /// Menjumlahkan ukuran berkas atau seluruh isi direktori secara rekursif.
   Future<int> _sizeOf(FileSystemEntity entity) async {
     if (!await entity.exists()) return 0;
     if (entity is File) return entity.length();

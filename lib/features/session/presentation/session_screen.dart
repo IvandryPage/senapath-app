@@ -29,6 +29,7 @@ import '../../ride_coach/presentation/ride_coach_session_panel.dart';
 import 'session_cubit.dart';
 
 class SessionScreen extends StatefulWidget {
+  /// Membuat layar sesi dengan opsi tampilan yang dapat diatur.
   const SessionScreen({
     this.showMap = true,
     this.showHistory = true,
@@ -50,6 +51,7 @@ class SessionScreen extends StatefulWidget {
   final bool compactControls;
   final bool hideReadinessDetails;
 
+  /// Membuat state layar sesi.
   @override
   State<SessionScreen> createState() => _SessionScreenState();
 }
@@ -60,12 +62,14 @@ class _SessionScreenState extends State<SessionScreen>
   String? _loadedSummarySessionId;
   static const _fileExchange = RouteFileExchange(SessionFileService());
 
+  /// Mendaftarkan observer siklus hidup aplikasi.
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
 
+  /// Menginisialisasi cubit dan memuat ringkasan sesi bila diminta.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -80,6 +84,7 @@ class _SessionScreenState extends State<SessionScreen>
     }
   }
 
+  /// Memeriksa ulang kesiapan saat aplikasi kembali aktif tanpa sesi.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed &&
@@ -91,12 +96,15 @@ class _SessionScreenState extends State<SessionScreen>
     }
   }
 
+  /// Melepas observer siklus hidup aplikasi.
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  /// Menyusun pesan snackbar serta tampilan peta, kontrol, metrik, riwayat,
+  /// dan ringkasan sesi sesuai mode layar.
   @override
   Widget build(BuildContext context) {
     return BlocListener<RideSessionCubit, RideSessionState>(
@@ -355,6 +363,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun panel pesan darurat dengan hitung mundur dan kontak tujuan.
   Widget _buildEmergencyPanel(
     BuildContext context,
     List<EmergencyContact> contacts,
@@ -447,6 +456,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun kontrol ringkas status, durasi, metrik, dan tombol sesi.
   Widget _buildCompactControls(
     BuildContext context,
     RideSessionState state,
@@ -650,6 +660,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun ringkasan performa langsung beserta grafik kecepatan.
   Widget _buildLivePerformance(
     BuildContext context,
     RideSessionState state,
@@ -742,6 +753,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun indikator status dan keterangan sesi saat ini.
   Widget _buildSessionStatus(
     BuildContext context,
     RideSessionSnapshot? session,
@@ -788,6 +800,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun daftar pemeriksaan izin, sensor, layanan, dan lokasi.
   Widget _buildReadiness(
     BuildContext context,
     ReadinessReport? readiness,
@@ -975,6 +988,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun metrik jarak, durasi, kecepatan, dan sumber posisi.
   Widget _buildMetrics(
     BuildContext context,
     RideSessionSnapshot session,
@@ -1036,6 +1050,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun tombol mulai perekaman dengan pemeriksaan kesiapan.
   Widget _buildStartControl(BuildContext context, RideSessionState state) {
     final isLoadingWorkout = context
         .watch<IntervalWorkoutCubit>()
@@ -1057,6 +1072,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun tombol pemilih latihan interval.
   Widget _buildWorkoutPicker(BuildContext context) {
     final workout = context.watch<IntervalWorkoutCubit>().state.selectedWorkout;
     return OutlinedButton.icon(
@@ -1070,6 +1086,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun kartu progres interval latihan yang sedang aktif.
   Widget _buildWorkoutProgress(BuildContext context, RideSessionState state) {
     final progress = state.workoutProgress!;
     final interval = progress.interval;
@@ -1112,6 +1129,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun tombol jeda, lanjut, selesai, atau mulai ulang sesuai status.
   Widget _buildSessionControls(BuildContext context, RideSessionState state) {
     final session = state.session!;
     if (session.status == RideSessionStatus.completed) {
@@ -1196,6 +1214,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Meminta izin lokasi lalu memulai perekaman bila perangkat siap.
   Future<void> _requestLocationAndStart(BuildContext context) async {
     final sessionCubit = context.read<RideSessionCubit>();
     await sessionCubit.checkReadiness(requestLocationPermission: true);
@@ -1224,6 +1243,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Membangun daftar riwayat perjalanan yang telah selesai.
   Widget _buildHistory(
     BuildContext context,
     List<RideSessionSnapshot> sessions,
@@ -1272,6 +1292,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Menampilkan konfirmasi lalu menghapus sesi terpilih.
   Future<void> _confirmDeleteSession(
     BuildContext context,
     RideSessionSnapshot session,
@@ -1306,6 +1327,7 @@ class _SessionScreenState extends State<SessionScreen>
     }
   }
 
+  /// Menampilkan konfirmasi dan mengekspor seluruh sesi ke berkas JSON.
   Future<void> _exportAllSessions(
     BuildContext context,
     List<RideSessionSnapshot> sessions,
@@ -1373,6 +1395,7 @@ class _SessionScreenState extends State<SessionScreen>
     }
   }
 
+  /// Membangun detail ringkasan, peta, performa, dan opsi ekspor sesi.
   Widget _buildSummaryDetail(
     BuildContext context,
     RideSessionSummary summary,
@@ -1777,6 +1800,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Menampilkan dialog untuk mengubah nama dan jenis aktivitas.
   Future<void> _editActivityMetadata(
     BuildContext context,
     RideSessionSnapshot session,
@@ -1796,6 +1820,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Menyusun sampel elevasi sesuai sumber barometer atau GPS.
   List<double> _elevationProfile(
     List<TelemetryLocation> locations, {
     required String source,
@@ -1840,6 +1865,7 @@ class _SessionScreenState extends State<SessionScreen>
         .toList(growable: false);
   }
 
+  /// Membangun status dan keterangan penyimpanan online sesi.
   Widget _buildSummarySync(BuildContext context, RideSessionSummary summary) {
     final session = summary.session;
     final isSyncing = context.select<RideSessionCubit, bool>(
@@ -1891,6 +1917,7 @@ class _SessionScreenState extends State<SessionScreen>
     );
   }
 
+  /// Mengubah kode status sinkronisasi menjadi label berbahasa Indonesia.
   String _syncStatusLabel(String status) => switch (status) {
     'synced' => 'Disimpan online',
     'syncing' => 'Sedang disimpan online',
@@ -1898,9 +1925,11 @@ class _SessionScreenState extends State<SessionScreen>
     _ => 'Tersimpan di ponsel · Belum online',
   };
 
+  /// Mengubah jenis aktivitas menjadi label yang ditampilkan.
   String _activityTypeLabel(RideActivityType type) =>
       _activityTypeLabelForDialog(type);
 
+  /// Mengekspor sesi ke berkas GPX atau JSON lalu memberi notifikasi.
   Future<void> _exportSession(
     BuildContext context,
     RideSessionSummary summary, {
@@ -1956,16 +1985,19 @@ class _SessionScreenState extends State<SessionScreen>
     }
   }
 
+  /// Memformat jarak meter ke kilometer atau mil.
   String _formatDistance(double meters, bool metric) => metric
       ? '${(meters / 1000).toStringAsFixed(2)} km'
       : '${(meters / 1609.344).toStringAsFixed(2)} mi';
 
+  /// Memformat kecepatan sesuai sistem satuan yang dipilih.
   String _formatSpeed(double metersPerSecond, UnitSystem unitSystem) {
     final metric = unitSystem == UnitSystem.metric;
     final speed = metersPerSecond * (metric ? 3.6 : 2.236936);
     return '${speed.toStringAsFixed(1)} ${metric ? 'km/j' : 'mph'}';
   }
 
+  /// Memformat tanggal dan waktu sesi untuk tampilan.
   String _formatSessionDate(DateTime date) {
     final local = date.toLocal();
     final day = local.day.toString().padLeft(2, '0');
@@ -1975,6 +2007,7 @@ class _SessionScreenState extends State<SessionScreen>
     return '$day/$month/${local.year} · $hour:$minute';
   }
 
+  /// Menampilkan konfirmasi sebelum menyelesaikan perjalanan.
   Future<void> _confirmFinish(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1998,6 +2031,7 @@ class _SessionScreenState extends State<SessionScreen>
     }
   }
 
+  /// Memformat durasi sebagai jam:menit:detik atau menit:detik.
   String _formatDuration(Duration duration) {
     String twoDigits(int value) => value.toString().padLeft(2, '0');
     final hours = duration.inHours;
@@ -2010,6 +2044,7 @@ class _SessionScreenState extends State<SessionScreen>
 }
 
 class _ActivityMetadataDialog extends StatefulWidget {
+  /// Membuat dialog pengubahan detail aktivitas.
   const _ActivityMetadataDialog({
     required this.initialName,
     required this.initialType,
@@ -2018,6 +2053,7 @@ class _ActivityMetadataDialog extends StatefulWidget {
   final String initialName;
   final RideActivityType initialType;
 
+  /// Membuat state dialog detail aktivitas.
   @override
   State<_ActivityMetadataDialog> createState() =>
       _ActivityMetadataDialogState();
@@ -2028,6 +2064,7 @@ class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
   final _formKey = GlobalKey<FormState>();
   late RideActivityType _activityType;
 
+  /// Menyiapkan pengendali nama dan jenis aktivitas awal.
   @override
   void initState() {
     super.initState();
@@ -2035,12 +2072,14 @@ class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
     _activityType = widget.initialType;
   }
 
+  /// Membuang pengendali teks dialog.
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
   }
 
+  /// Membangun formulir nama dan jenis aktivitas.
   @override
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
@@ -2109,6 +2148,7 @@ class _ActivityMetadataDialogState extends State<_ActivityMetadataDialog> {
   );
 }
 
+/// Mengubah jenis aktivitas menjadi label untuk dialog.
 String _activityTypeLabelForDialog(RideActivityType type) => switch (type) {
   RideActivityType.ride => 'Bersepeda',
   RideActivityType.commute => 'Komuter',
@@ -2117,6 +2157,7 @@ String _activityTypeLabelForDialog(RideActivityType type) => switch (type) {
 };
 
 class _ReadinessLine extends StatelessWidget {
+  /// Membuat baris status kesiapan.
   const _ReadinessLine({
     required this.label,
     required this.isReady,
@@ -2127,6 +2168,7 @@ class _ReadinessLine extends StatelessWidget {
   final bool isReady;
   final bool isWarning;
 
+  /// Membangun baris ikon dan label status kesiapan.
   @override
   Widget build(BuildContext context) {
     final color = isReady
@@ -2152,11 +2194,13 @@ class _ReadinessLine extends StatelessWidget {
 }
 
 class _ReadinessPill extends StatelessWidget {
+  /// Membuat pil status kesiapan ringkas.
   const _ReadinessPill({required this.label, required this.isReady});
 
   final String label;
   final bool isReady;
 
+  /// Membangun pil berlatar warna sesuai status kesiapan.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -2186,6 +2230,7 @@ class _ReadinessPill extends StatelessWidget {
 }
 
 class _CompactMetric extends StatelessWidget {
+  /// Membuat metrik ringkas dengan ikon.
   const _CompactMetric({
     required this.label,
     required this.value,
@@ -2196,6 +2241,7 @@ class _CompactMetric extends StatelessWidget {
   final String value;
   final IconData icon;
 
+  /// Membangun kartu metrik ringkas berisi ikon, label, dan nilai.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -2236,6 +2282,7 @@ class _CompactMetric extends StatelessWidget {
 }
 
 class _MetricValue extends StatelessWidget {
+  /// Membuat nilai metrik dengan label dan satuan.
   const _MetricValue({
     required this.label,
     required this.value,
@@ -2246,6 +2293,7 @@ class _MetricValue extends StatelessWidget {
   final String value;
   final String unit;
 
+  /// Membangun nilai metrik menggunakan komponen Senapath.
   @override
   Widget build(BuildContext context) {
     return SenapathMetric(label: label, value: value, unit: unit);
@@ -2253,11 +2301,13 @@ class _MetricValue extends StatelessWidget {
 }
 
 class _HeroSessionMetric extends StatelessWidget {
+  /// Membuat metrik utama ringkasan sesi.
   const _HeroSessionMetric({required this.label, required this.value});
 
   final String label;
   final String value;
 
+  /// Membangun metrik utama dengan label dan nilai berwarna terang.
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(right: 8),
@@ -2288,11 +2338,13 @@ class _HeroSessionMetric extends StatelessWidget {
 }
 
 class _SessionSectionHeading extends StatelessWidget {
+  /// Membuat judul bagian sesi.
   const _SessionSectionHeading({required this.title, this.trailing});
 
   final String title;
   final String? trailing;
 
+  /// Membangun judul bagian dengan teks tambahan opsional.
   @override
   Widget build(BuildContext context) => Row(
     children: [
@@ -2314,10 +2366,12 @@ class _SessionSectionHeading extends StatelessWidget {
 }
 
 class _SummaryMetricCard extends StatelessWidget {
+  /// Membuat kartu berisi metrik ringkasan.
   const _SummaryMetricCard({required this.children});
 
   final List<Widget> children;
 
+  /// Membangun kartu yang menata metrik dalam baris dua kolom.
   @override
   Widget build(BuildContext context) {
     return SenapathCard(
@@ -2346,10 +2400,12 @@ class _SummaryMetricCard extends StatelessWidget {
 }
 
 class _SpeedGraph extends StatelessWidget {
+  /// Membuat grafik garis dari nilai yang diberikan.
   const _SpeedGraph({required this.values});
 
   final List<double> values;
 
+  /// Membangun area grafik garis dengan label aksesibilitas.
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -2370,6 +2426,7 @@ class _SpeedGraph extends StatelessWidget {
 }
 
 class _SpeedGraphPainter extends CustomPainter {
+  /// Membuat pelukis grafik garis.
   const _SpeedGraphPainter({
     required this.values,
     required this.lineColor,
@@ -2380,6 +2437,7 @@ class _SpeedGraphPainter extends CustomPainter {
   final Color lineColor;
   final Color gridColor;
 
+  /// Menggambar kisi dan garis grafik pada kanvas.
   @override
   void paint(Canvas canvas, Size size) {
     if (values.length < 2 || size.isEmpty) return;
@@ -2424,6 +2482,7 @@ class _SpeedGraphPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// Menentukan apakah grafik perlu digambar ulang.
   @override
   bool shouldRepaint(covariant _SpeedGraphPainter oldDelegate) =>
       oldDelegate.values != values ||

@@ -4,23 +4,29 @@ import 'package:timezone/data/latest.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as timezone;
 
 abstract interface class RideNotificationService {
+  /// Menyiapkan layanan notifikasi dan zona waktu perangkat.
   Future<void> initialize();
+  /// Meminta izin notifikasi dan mengembalikan status pemberiannya.
   Future<bool> requestPermission();
+  /// Menampilkan notifikasi dengan judul, isi, dan payload tertentu.
   Future<void> show({
     required int id,
     required String title,
     required String body,
     String? payload,
   });
+  /// Menjadwalkan pengingat mingguan berulang pada hari dan waktu tertentu.
   Future<void> scheduleWeeklyReminder({
     required Set<int> weekdays,
     required int hour,
     required int minute,
   });
+  /// Membatalkan seluruh pengingat mingguan yang terjadwal.
   Future<void> cancelWeeklyReminders();
 }
 
 class LocalRideNotificationService implements RideNotificationService {
+  /// Membuat layanan notifikasi lokal dengan plugin opsional untuk pengujian.
   LocalRideNotificationService({FlutterLocalNotificationsPlugin? plugin})
     : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
@@ -31,6 +37,7 @@ class LocalRideNotificationService implements RideNotificationService {
   bool _initialized = false;
 
   @override
+  /// Menginisialisasi zona waktu dan plugin notifikasi sekali saja.
   Future<void> initialize() async {
     if (_initialized) return;
     timezone_data.initializeTimeZones();
@@ -50,6 +57,7 @@ class LocalRideNotificationService implements RideNotificationService {
   }
 
   @override
+  /// Meminta izin notifikasi Android atau iOS dan mengembalikan hasilnya.
   Future<bool> requestPermission() async {
     await initialize();
     final android = _plugin
@@ -70,6 +78,7 @@ class LocalRideNotificationService implements RideNotificationService {
   }
 
   @override
+  /// Menampilkan notifikasi progres dengan saluran berprioritas tinggi.
   Future<void> show({
     required int id,
     required String title,
@@ -96,6 +105,7 @@ class LocalRideNotificationService implements RideNotificationService {
   }
 
   @override
+  /// Menjadwalkan ulang pengingat untuk tiap hari yang dipilih pengguna.
   Future<void> scheduleWeeklyReminder({
     required Set<int> weekdays,
     required int hour,
@@ -139,6 +149,7 @@ class LocalRideNotificationService implements RideNotificationService {
   }
 
   @override
+  /// Membatalkan semua notifikasi pengingat mingguan berdasarkan id tetapnya.
   Future<void> cancelWeeklyReminders() async {
     await initialize();
     for (final id in _reminderIds) {

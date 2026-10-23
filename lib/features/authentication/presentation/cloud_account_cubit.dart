@@ -8,7 +8,9 @@ import '../data/cloud_account_gateway.dart';
 import '../data/custom_auth_session_manager.dart';
 import '../data/biometric_sign_in_settings_repository.dart';
 
+/// State untuk cubit akun cloud.
 class CloudAccountState {
+  /// Membuat state akun cloud.
   const CloudAccountState({
     this.email,
     this.isConfigured = false,
@@ -31,8 +33,10 @@ class CloudAccountState {
   final String? status;
   final String? error;
 
+  /// Menentukan apakah pengguna telah masuk.
   bool get isSignedIn => email != null;
 
+  /// Menyalin state akun cloud.
   CloudAccountState copyWith({
     String? email,
     bool? isConfigured,
@@ -61,6 +65,7 @@ class CloudAccountState {
 }
 
 class CloudAccountCubit extends Cubit<CloudAccountState> {
+  /// Membuat cubit akun cloud dari gateway yang diberikan.
   CloudAccountCubit(this._gateway, {this.authenticator, this.biometricSettings})
     : super(
         CloudAccountState(
@@ -74,6 +79,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
   final BiometricSignInSettingsRepository? biometricSettings;
   StreamSubscription<String?>? _authSubscription;
 
+  /// Menyiapkan status akun, sesi tersimpan, dan biometrik.
   Future<void> initialize() async {
     if (state.isInitialized || state.isInitializing) return;
     emit(state.copyWith(isInitializing: true, clearError: true));
@@ -135,12 +141,14 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Memeriksa apakah biometrik terdaftar tersedia.
   Future<bool> _hasEnrolledBiometrics() async {
     final authenticator = this.authenticator;
     if (authenticator == null) return false;
     return authenticator.hasEnrolledBiometrics;
   }
 
+  /// Memperbarui ketersediaan biometrik berdasarkan sesi tersimpan.
   Future<void> _refreshBiometricAvailability() async {
     try {
       final hasRememberedSession = await _gateway.hasRememberedSession;
@@ -154,6 +162,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Menyalakan atau mematikan masuk dengan biometrik.
   Future<void> setBiometricSignInEnabled(bool enabled) async {
     if (state.isLoading) return;
     if (enabled) {
@@ -221,6 +230,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Memvalidasi lalu mendaftarkan akun baru.
   Future<void> register({
     required String email,
     required String password,
@@ -274,6 +284,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Memvalidasi lalu masuk dengan email dan kata sandi.
   Future<void> signIn({required String email, required String password}) async {
     if (state.isLoading) return;
     final normalizedEmail = email.trim();
@@ -316,6 +327,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Meminta biometrik lalu memulihkan sesi tersimpan.
   Future<void> signInWithBiometrics() async {
     if (state.isLoading) return;
     final authenticator = this.authenticator;
@@ -363,6 +375,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Keluar dari akun online dan memperbarui status.
   Future<void> signOut() async {
     if (!_gateway.isConfigured || state.isLoading) return;
     emit(state.copyWith(isLoading: true, clearError: true, clearStatus: true));
@@ -373,7 +386,7 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
           clearEmail: true,
           isLoading: false,
           canUseBiometrics: false,
-          status: 'Berhasil keluar dari akun online. Perjalanan di ponsel tetap tersimpan.',
+          status: 'Berhasil keluar dari akun online. Perjalanan yang belum tersinkron dihapus untuk mencegah data bocor antar akun.',
         ),
       );
     } catch (error) {
@@ -389,15 +402,18 @@ class CloudAccountCubit extends Cubit<CloudAccountState> {
     }
   }
 
+  /// Mengembalikan pesan kesalahan validasi email atau kata sandi.
   String? _validate(String email, String password) =>
       TextValidators.email(email) ?? TextValidators.password(password);
 
+  /// Mengambil pesan pengguna dari error yang terjadi.
   String _messageFor(Object error, String fallback) => switch (error) {
     CustomAuthException(:final message) => message,
     StateError(:final message) => message.toString(),
     _ => fallback,
   };
 
+  /// Membatalkan langganan perubahan auth sebelum menutup cubit.
   @override
   Future<void> close() async {
     await _authSubscription?.cancel();

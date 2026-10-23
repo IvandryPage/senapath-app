@@ -8,6 +8,7 @@ import '../../authentication/data/custom_auth_session_manager.dart';
 import '../domain/rider_progress.dart';
 
 class RiderProfileRepository {
+  /// Membuat repositori profil rider dengan penyimpanan lokal dan cloud opsional.
   const RiderProfileRepository(
     this._database, {
     this._cloudClient,
@@ -23,6 +24,7 @@ class RiderProfileRepository {
   final CustomAuthSessionManager? _sessionManager;
   final AccountCloudGateway? _cloudGateway;
 
+  /// Memuat gaya rider dari cloud bila tersedia, lalu menyimpannya secara lokal.
   Future<RiderStyle> loadStyle() async {
     final cloudStyle = await loadCloudStyle();
     if (cloudStyle != null) {
@@ -32,6 +34,7 @@ class RiderProfileRepository {
     return loadLocalStyle();
   }
 
+  /// Membaca gaya rider dari preferensi lokal tanpa mengakses cloud.
   Future<RiderStyle> loadLocalStyle() async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -47,8 +50,10 @@ class RiderProfileRepository {
     );
   }
 
+  /// Menyimpan gaya rider ke penyimpanan lokal.
   Future<void> saveStyle(RiderStyle style) => _saveLocalStyle(style);
 
+  /// Memuat tampilan rider dari akun online atau lokal, lalu menyinkronkannya.
   Future<RiderAppearance> loadAppearance() async {
     final gateway = _cloudGateway;
     if (gateway != null && gateway.isSignedIn) {
@@ -71,6 +76,7 @@ class RiderProfileRepository {
     return _loadLocalAppearance();
   }
 
+  /// Menyimpan tampilan rider secara lokal dan mencoba mengunggahnya ke cloud.
   Future<void> saveAppearance(RiderAppearance appearance) async {
     await _saveLocalAppearance(appearance);
     final gateway = _cloudGateway;
@@ -83,6 +89,7 @@ class RiderProfileRepository {
     }
   }
 
+  /// Memuat bonus experience dari akun online atau penyimpanan lokal.
   Future<int> loadBonusExperience() async {
     final gateway = _cloudGateway;
     if (gateway != null && gateway.isSignedIn) {
@@ -103,6 +110,7 @@ class RiderProfileRepository {
     return _loadLocalBonusExperience();
   }
 
+  /// Menyimpan bonus experience secara lokal dan mencoba menyinkronkannya.
   Future<void> saveBonusExperience(int bonusExperience) async {
     await _saveLocalBonusExperience(bonusExperience);
     final gateway = _cloudGateway;
@@ -115,6 +123,7 @@ class RiderProfileRepository {
     }
   }
 
+  /// Menyimpan gaya, level, dan experience rider ke profil cloud pengguna.
   Future<void> saveCloudProfile({
     required RiderStyle style,
     int? level,
@@ -161,12 +170,14 @@ class RiderProfileRepository {
     );
   }
 
+  /// Mengambil progres rider lengkap dari cloud bila pengguna sudah masuk.
   Future<CloudRiderProgress?> loadCloudProgress() async {
     final gateway = _cloudGateway;
     if (gateway == null || !gateway.isSignedIn) return null;
     return gateway.pullRiderProgress();
   }
 
+  /// Mengambil gaya rider tersimpan dari profil cloud pengguna.
   Future<RiderStyle?> loadCloudStyle() async {
     final manager = _sessionManager;
     final client = _cloudClient;
@@ -180,6 +191,7 @@ class RiderProfileRepository {
     return row == null ? null : RiderStyle.fromName(row['rider_style']);
   }
 
+  /// Membaca tampilan rider dari preferensi lokal dan memvalidasi formatnya.
   Future<RiderAppearance> _loadLocalAppearance() async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -194,6 +206,7 @@ class RiderProfileRepository {
     return RiderAppearance.fromJson(decoded);
   }
 
+  /// Menulis tampilan rider ke preferensi lokal dengan menimpa nilai lama.
   Future<void> _saveLocalAppearance(RiderAppearance appearance) async {
     await _database
         .into(_database.appPreferences)
@@ -205,6 +218,7 @@ class RiderProfileRepository {
         );
   }
 
+  /// Mengubah nilai bonus experience dari berbagai tipe menjadi int non-negatif.
   int? _parseBonusExperience(Object? value) {
     if (value is int && value >= 0) return value;
     if (value is num && value >= 0) return value.toInt();
@@ -215,6 +229,7 @@ class RiderProfileRepository {
     return null;
   }
 
+  /// Membaca bonus experience lokal, mengembalikan 0 bila tidak ada.
   Future<int> _loadLocalBonusExperience() async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -223,6 +238,7 @@ class RiderProfileRepository {
     return _parseBonusExperience(jsonDecode(row.value)) ?? 0;
   }
 
+  /// Menyimpan bonus experience ke preferensi lokal.
   Future<void> _saveLocalBonusExperience(int bonusExperience) async {
     await _database
         .into(_database.appPreferences)
@@ -234,6 +250,7 @@ class RiderProfileRepository {
         );
   }
 
+  /// Menyimpan nama gaya rider ke preferensi lokal.
   Future<void> _saveLocalStyle(RiderStyle style) async {
     await _database
         .into(_database.appPreferences)

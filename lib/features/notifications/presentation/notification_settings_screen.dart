@@ -7,9 +7,11 @@ import '../../../app/theme/senapath_design.dart';
 import 'notification_settings_cubit.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
+  /// Membuat layar pengaturan notifikasi dengan key opsional.
   const NotificationSettingsScreen({super.key});
 
   @override
+  /// Membuat state internal untuk layar pengaturan notifikasi.
   State<NotificationSettingsScreen> createState() =>
       _NotificationSettingsScreenState();
 }
@@ -20,6 +22,7 @@ class _NotificationSettingsScreenState
   bool _loaded = false;
 
   @override
+  /// Memuat pengaturan notifikasi satu kali saat layar dibuka.
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_loaded) return;
@@ -28,6 +31,7 @@ class _NotificationSettingsScreenState
   }
 
   @override
+  /// Membangun sakelar, pemilih hari, dan waktu pengingat latihan.
   Widget build(
     BuildContext context,
   ) => BlocConsumer<NotificationSettingsCubit, NotificationSettingsState>(

@@ -7,6 +7,7 @@ class AppPreferences extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
 
+  /// Menetapkan kolom key sebagai kunci utama preferensi.
   @override
   Set<Column<Object>> get primaryKey => {key};
 }
@@ -28,6 +29,7 @@ class RideSessions extends Table {
       real().withDefault(const Constant(0))();
   RealColumn get gpsAccuracyMeters => real().nullable()();
 
+  /// Menetapkan kolom id sesi sebagai kunci utama.
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -52,6 +54,7 @@ class SavedRoutes extends Table {
       text().withDefault(const Constant('offline'))();
   BlobColumn get encryptedGeometry => blob().nullable()();
 
+  /// Menetapkan kolom id rute tersimpan sebagai kunci utama.
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -64,6 +67,7 @@ class RideHistory extends Table {
   RealColumn get durationMinutes => real()();
   DateTimeColumn get completedAt => dateTime()();
 
+  /// Menetapkan kolom sessionId sebagai kunci utama riwayat perjalanan.
   @override
   Set<Column<Object>> get primaryKey => {sessionId};
 }
@@ -78,13 +82,17 @@ class RideHistory extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
+  /// Membuka basis data lokal Drift bernama `senapath`.
   AppDatabase() : super(driftDatabase(name: 'senapath'));
 
+  /// Membuat basis data dengan executor khusus untuk pengujian.
   AppDatabase.forTesting(super.executor);
 
+  /// Menunjukkan versi skema basis data yang sedang dipakai.
   @override
   int get schemaVersion => 9;
 
+  /// Mendefinisikan pembuatan tabel awal dan migrasi bertahap antar versi.
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) => migrator.createAll(),

@@ -16,6 +16,7 @@ import '../../features/routes/data/pre_ride_weather_service.dart';
 import '../../features/logistics/presentation/logistics_screen.dart';
 import '../../features/authentication/presentation/cloud_account_screen.dart';
 import '../../features/authentication/presentation/cloud_account_cubit.dart';
+import '../../features/profile/presentation/profile_cubit.dart';
 import '../../features/assistant/presentation/ai_chat_screen.dart';
 import '../../features/feedback/presentation/feedback_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
@@ -181,22 +182,33 @@ final appRouter = GoRouter(
 );
 
 class _AppShell extends StatefulWidget {
+  /// Membuat shell utama yang membungkus cabang navigasi dan lokasi aktif.
   const _AppShell({required this.navigationShell, required this.location});
 
   final StatefulNavigationShell navigationShell;
   final String location;
 
+  /// Membuat state internal shell untuk mengelola inisialisasi akun.
   @override
   State<_AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<_AppShell> {
+  /// Memulai inisialisasi cubit akun saat shell pertama kali dipasang.
   @override
   void initState() {
     super.initState();
-    unawaited(context.read<CloudAccountCubit>().initialize());
+    final accountCubit = context.read<CloudAccountCubit>();
+    final profileCubit = context.read<ProfileCubit>();
+    unawaited(accountCubit.initialize().then((_) {
+      if (!accountCubit.state.isConfigured) {
+        unawaited(profileCubit.load());
+      }
+    }));
   }
 
+  /// Membangun kerangka halaman berisi app bar, konten cabang aktif, dan
+  /// navigasi bawah, serta menahan akses sebelum akun siap atau masuk.
   @override
   Widget build(BuildContext context) {
     final account = context.watch<CloudAccountCubit>().state;

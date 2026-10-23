@@ -32,9 +32,11 @@ final _phoneFormCountries = allCountries
     .toList(growable: false);
 
 class ProfileScreen extends StatefulWidget {
+  /// Membuat layar profil dengan key opsional.
   const ProfileScreen({super.key});
 
   @override
+  /// Membuat state internal untuk layar profil.
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
@@ -43,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _startedLoading = false;
 
   @override
+  /// Memicu pemuatan profil, progres, target, dan tim satu kali saat layar dibuka.
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_startedLoading) return;
@@ -53,6 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     unawaited(context.read<CyclingTeamCubit>().loadTeams());
   }
 
+  /// Menginisialisasi sesi lalu memuat progres gamifikasi pengendara.
   Future<void> _loadRiderProgress() async {
     final sessions = context.read<RideSessionCubit>();
     await sessions.initialize();
@@ -63,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
+  /// Menyusun daftar profil, progres, dan perjalanan terbaru dengan notifikasi pesan.
   Widget build(BuildContext context) {
     return BlocListener<ProfileCubit, ProfileState>(
       listenWhen: (previous, current) =>
@@ -105,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Membangun bagian identitas profil: avatar, nama, tim, dan gaya bersepeda.
   Widget _buildProfileSection(BuildContext context, ProfileState state) {
     final profile = state.profile;
     final colorScheme = Theme.of(context).colorScheme;
@@ -223,6 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Menampilkan bottom sheet berisi menu navigasi profil.
   Future<void> _openProfileMenu() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -285,6 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Membuat satu baris menu profil dengan ikon, judul, dan aksi ketuk.
   Widget _profileMenuItem(
     BuildContext sheetContext, {
     required IconData icon,
@@ -299,11 +307,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     onTap: onTap,
   );
 
+  /// Menutup sheet lalu membuka rute tujuan.
   void _openMenuDestination(BuildContext sheetContext, String route) {
     Navigator.pop(sheetContext);
     context.push(route);
   }
 
+  /// Menampilkan sheet daftar kontak darurat beserta pengelolaannya.
   Future<void> _openEmergencyContacts() => showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -320,6 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ),
   );
 
+  /// Membangun bagian kontak darurat dengan aksi telepon, WhatsApp, dan menu.
   Widget _buildContactsSection(BuildContext context, ProfileState state) {
     final contacts = state.contacts;
 
@@ -405,6 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Meminta pengguna memilih avatar dari galeri dan mengembalikan byte-nya.
   Future<Uint8List?> _chooseAvatar() async {
     try {
       final image = await _imagePicker.pickImage(
@@ -423,6 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Membuka editor profil lalu menyimpan nama, gaya, dan avatar yang berubah.
   Future<void> _editProfile(UserProfile profile, Uint8List? avatarBytes) async {
     final currentCyclistType =
         context.read<RiderGamificationCubit>().state.progress?.style ??
@@ -451,6 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Membuka dialog tambah atau ubah kontak lalu menyimpannya.
   Future<void> _editContact([EmergencyContact? contact]) async {
     final updated = await showDialog<EmergencyContact>(
       context: context,
@@ -460,6 +474,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await context.read<ProfileCubit>().saveContact(updated);
   }
 
+  /// Meminta konfirmasi lalu menghapus kontak darurat terpilih.
   Future<void> _removeContact(EmergencyContact contact) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -483,6 +498,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Membuka aplikasi telepon untuk kontak dan menampilkan pesan hasilnya.
   Future<void> _callContact(EmergencyContact contact) async {
     try {
       await context.read<EmergencyCubit>().callContact(contact);
@@ -495,6 +511,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Membuka WhatsApp untuk kontak dan menampilkan pesan hasilnya.
   Future<void> _openContactWhatsApp(EmergencyContact contact) async {
     try {
       await context.read<EmergencyCubit>().openWhatsApp(contact);
@@ -507,6 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Menampilkan pesan singkat melalui SnackBar.
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -515,6 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _ProfileProgressSection extends StatelessWidget {
+  /// Membuat bagian progres dengan data sesi, status muat, dan aksi lihat semua.
   const _ProfileProgressSection({
     required this.sessions,
     required this.isLoading,
@@ -528,6 +547,7 @@ class _ProfileProgressSection extends StatelessWidget {
   final VoidCallback onSeeAll;
 
   @override
+  /// Membangun ringkasan progres mingguan, rekor, dan target mingguan.
   Widget build(BuildContext context) {
     final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
     final week = _calculator.calculate(
@@ -654,6 +674,7 @@ class _ProfileProgressSection extends StatelessWidget {
 }
 
 class _ProfileBentoTile extends StatelessWidget {
+  /// Membuat kartu statistik dengan warna, ikon, label, nilai, dan keterangan.
   const _ProfileBentoTile({
     required this.background,
     required this.foreground,
@@ -671,6 +692,7 @@ class _ProfileBentoTile extends StatelessWidget {
   final String helper;
 
   @override
+  /// Membangun tampilan kartu statistik berwarna dengan nilai dan keterangan.
   Widget build(BuildContext context) => Container(
     height: 144,
     padding: const EdgeInsets.all(16),
@@ -706,6 +728,7 @@ class _ProfileBentoTile extends StatelessWidget {
 }
 
 class _ProfileGoalTile extends StatelessWidget {
+  /// Membuat kartu target dengan data target, progres, dan sistem satuan.
   const _ProfileGoalTile({
     required this.goal,
     required this.progress,
@@ -717,6 +740,7 @@ class _ProfileGoalTile extends StatelessWidget {
   final UnitSystem unitSystem;
 
   @override
+  /// Membangun kartu target berisi label, persentase, dan bilah progres.
   Widget build(BuildContext context) {
     final current = progress.valueFor(goal.metric);
     final progressValue = progress.progressFor(goal);
@@ -763,6 +787,7 @@ class _ProfileGoalTile extends StatelessWidget {
 }
 
 class _RecentSessionsSection extends StatelessWidget {
+  /// Membuat bagian perjalanan terbaru dengan aksi lihat semua dan mulai.
   const _RecentSessionsSection({
     required this.sessions,
     required this.isLoading,
@@ -776,6 +801,7 @@ class _RecentSessionsSection extends StatelessWidget {
   final VoidCallback onStartSession;
 
   @override
+  /// Membangun daftar tiga perjalanan terbaru atau ajakan memulai perjalanan.
   Widget build(BuildContext context) {
     final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
     final recent = sessions.take(3).toList(growable: false);
@@ -817,12 +843,14 @@ class _RecentSessionsSection extends StatelessWidget {
 }
 
 class _RecentSessionTile extends StatelessWidget {
+  /// Membuat baris ringkasan satu sesi perjalanan.
   const _RecentSessionTile({required this.session, required this.unitSystem});
 
   final RideSessionSnapshot session;
   final UnitSystem unitSystem;
 
   @override
+  /// Membangun baris sesi berisi judul, tanggal, jarak, dan durasi.
   Widget build(BuildContext context) {
     final metric = unitSystem == UnitSystem.metric;
     final distance = _profileDistance(session.distanceMeters, metric);
@@ -845,6 +873,7 @@ class _RecentSessionTile extends StatelessWidget {
 }
 
 class _ProfileSectionTitle extends StatelessWidget {
+  /// Membuat judul bagian dengan tombol aksi di sisi kanan.
   const _ProfileSectionTitle({
     required this.title,
     required this.actionLabel,
@@ -856,6 +885,7 @@ class _ProfileSectionTitle extends StatelessWidget {
   final VoidCallback onAction;
 
   @override
+  /// Membangun baris judul bagian dan tombol aksi.
   Widget build(BuildContext context) => Row(
     children: [
       Expanded(
@@ -866,10 +896,12 @@ class _ProfileSectionTitle extends StatelessWidget {
   );
 }
 
+/// Memformat jarak meter ke kilometer atau mil sesuai sistem satuan.
 String _profileDistance(double meters, bool metric) => metric
     ? '${(meters / 1000).toStringAsFixed(1)} km'
     : '${(meters / 1609.344).toStringAsFixed(1)} mi';
 
+/// Memformat durasi detik menjadi teks jam dan menit.
 String _profileDuration(int seconds) {
   final hours = seconds ~/ 3600;
   final minutes = seconds % 3600 ~/ 60;
@@ -877,6 +909,7 @@ String _profileDuration(int seconds) {
 }
 
 class _ProfileEditor extends StatefulWidget {
+  /// Membuat dialog editor profil dengan profil awal dan pemilih avatar.
   const _ProfileEditor({
     required this.profile,
     required this.avatarBytes,
@@ -888,6 +921,7 @@ class _ProfileEditor extends StatefulWidget {
   final Future<Uint8List?> Function() onChooseAvatar;
 
   @override
+  /// Membuat state internal untuk dialog editor profil.
   State<_ProfileEditor> createState() => _ProfileEditorState();
 }
 
@@ -899,6 +933,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   Uint8List? _updatedAvatarBytes;
 
   @override
+  /// Mengisi controller nama, gaya, dan avatar dari profil awal.
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile.displayName);
@@ -907,11 +942,13 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   }
 
   @override
+  /// Melepaskan controller nama saat dialog ditutup.
   void dispose() {
     _nameController.dispose();
     super.dispose();
   }
 
+  /// Memilih avatar baru melalui callback induk dan memperbarui pratinjau.
   Future<void> _chooseAvatar() async {
     final bytes = await widget.onChooseAvatar();
     if (bytes != null && mounted) {
@@ -923,6 +960,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   }
 
   @override
+  /// Membangun dialog form edit profil dengan nama, foto, dan tipe pesepeda.
   Widget build(BuildContext context) {
     return SenapathAlertDialog(
       scrollable: true,
@@ -1009,11 +1047,13 @@ class _ProfileEditorState extends State<_ProfileEditor> {
 }
 
 class _ContactEditor extends StatefulWidget {
+  /// Membuat dialog editor kontak, kosong atau berdasarkan kontak yang ada.
   const _ContactEditor({this.contact});
 
   final EmergencyContact? contact;
 
   @override
+  /// Membuat state internal untuk dialog editor kontak.
   State<_ContactEditor> createState() => _ContactEditorState();
 }
 
@@ -1025,6 +1065,7 @@ class _ContactEditorState extends State<_ContactEditor> {
   bool _phoneRequiredError = false;
 
   @override
+  /// Mengisi controller nama, telepon, dan hubungan dari kontak awal.
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.contact?.name ?? '');
@@ -1037,6 +1078,7 @@ class _ContactEditorState extends State<_ContactEditor> {
   }
 
   @override
+  /// Melepaskan seluruh controller saat dialog ditutup.
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
@@ -1045,6 +1087,7 @@ class _ContactEditorState extends State<_ContactEditor> {
   }
 
   @override
+  /// Membangun dialog form kontak dengan validasi nama, telepon, dan hubungan.
   Widget build(BuildContext context) {
     return SenapathAlertDialog(
       scrollable: true,
@@ -1147,6 +1190,7 @@ class _ContactEditorState extends State<_ContactEditor> {
     );
   }
 
+  /// Menentukan kode negara bawaan dari lokal perangkat atau 'ID'.
   String get _defaultCountryCode {
     final localeCountry = WidgetsBinding
         .instance
@@ -1161,6 +1205,7 @@ class _ContactEditorState extends State<_ContactEditor> {
     return 'ID';
   }
 
+  /// Mengurai nomor telepon tersimpan, mengembalikan null bila tidak valid.
   PhoneNumber? _parseStoredPhone(String? phone) {
     final value = phone?.trim();
     if (value == null || value.isEmpty) return null;
@@ -1174,6 +1219,7 @@ class _ContactEditorState extends State<_ContactEditor> {
     }
   }
 
+  /// Memvalidasi form lalu mengembalikan kontak baru atau yang diperbarui.
   void _save() {
     final isFormValid = _formKey.currentState!.validate();
     final phone = _phoneController.value;
@@ -1191,6 +1237,7 @@ class _ContactEditorState extends State<_ContactEditor> {
     );
   }
 
+  /// Membuat id kontak unik berformat UUID versi 4.
   String _newContactId() {
     final random = Random.secure();
     final value = List<int>.generate(16, (_) => random.nextInt(256));

@@ -15,9 +15,11 @@ import '../domain/activity_progress.dart';
 import 'activity_goals_cubit.dart';
 
 class ActivityProgressScreen extends StatefulWidget {
+  /// Membuat layar progres aktivitas dengan key opsional.
   const ActivityProgressScreen({super.key});
 
   @override
+  /// Membuat state internal untuk layar progres aktivitas.
   State<ActivityProgressScreen> createState() => _ActivityProgressScreenState();
 }
 
@@ -26,12 +28,14 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
   ProgressPeriod _selectedPeriod = ProgressPeriod.week;
 
   @override
+  /// Memuat target aktivitas saat layar mulai bergantung pada konteks.
   void didChangeDependencies() {
     super.didChangeDependencies();
     unawaited(context.read<ActivityGoalsCubit>().load());
   }
 
   @override
+  /// Membangun ringkasan periode, grafik jarak, dan daftar target pribadi.
   Widget build(BuildContext context) {
     return BlocBuilder<RideSessionCubit, RideSessionState>(
       builder: (context, rideState) {
@@ -180,6 +184,7 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
     );
   }
 
+  /// Membuka dialog target lalu menyimpan target baru atau hasil edit.
   Future<void> _editGoal(BuildContext context, [ActivityGoal? existing]) async {
     final goal = await showDialog<ActivityGoal>(
       context: context,
@@ -192,6 +197,7 @@ class _ActivityProgressScreenState extends State<ActivityProgressScreen> {
 }
 
 class _ProgressPeriodCard extends StatelessWidget {
+  /// Membuat kartu ringkasan periode dengan progres, sesi, dan target.
   const _ProgressPeriodCard({
     required this.title,
     required this.progress,
@@ -207,6 +213,7 @@ class _ProgressPeriodCard extends StatelessWidget {
   final List<ActivityGoal> goals;
 
   @override
+  /// Membangun nilai ringkasan, grafik jarak, target, dan perbandingan periode.
   Widget build(BuildContext context) {
     final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
     final distance = unit == UnitSystem.metric
@@ -274,6 +281,7 @@ class _ProgressPeriodCard extends StatelessWidget {
 }
 
 class _PeriodDistanceChart extends StatelessWidget {
+  /// Membuat grafik batang jarak per hari atau per pekan.
   const _PeriodDistanceChart({
     required this.progress,
     required this.sessions,
@@ -285,6 +293,7 @@ class _PeriodDistanceChart extends StatelessWidget {
   final UnitSystem unit;
 
   @override
+  /// Membangun grafik batang yang mengelompokkan jarak sesi per bucket periode.
   Widget build(BuildContext context) {
     final bucketCount = progress.period == ProgressPeriod.week ? 7 : 5;
     final values = List<double>.filled(bucketCount, 0);
@@ -381,12 +390,14 @@ class _PeriodDistanceChart extends StatelessWidget {
 }
 
 class _GameGoalProgressBar extends StatelessWidget {
+  /// Membuat bilah progres target bergaya permainan beserta status capaian.
   const _GameGoalProgressBar({required this.goal, required this.progress});
 
   final ActivityGoal goal;
   final ActivityProgress progress;
 
   @override
+  /// Membangun bilah progres target dengan label nilai dan status on track.
   Widget build(BuildContext context) {
     final unit = context.watch<UnitSettingsCubit>().state.unitSystem;
     final current = progress.valueFor(goal.metric);
@@ -461,6 +472,7 @@ class _GameGoalProgressBar extends StatelessWidget {
 }
 
 class _Comparison extends StatelessWidget {
+  /// Membuat teks perbandingan progres periode ini dengan sebelumnya.
   const _Comparison({
     required this.current,
     required this.previous,
@@ -472,6 +484,7 @@ class _Comparison extends StatelessWidget {
   final UnitSystem unit;
 
   @override
+  /// Membangun ringkasan selisih sesi, jarak, dan durasi aktif antar periode.
   Widget build(BuildContext context) {
     final distanceDifference = current.distanceMeters - previous.distanceMeters;
     final distance = unit == UnitSystem.metric
@@ -494,12 +507,14 @@ class _Comparison extends StatelessWidget {
 }
 
 class _Value extends StatelessWidget {
+  /// Membuat pasangan nilai dan label untuk ringkasan periode.
   const _Value({required this.label, required this.value});
 
   final String label;
   final String value;
 
   @override
+  /// Membangun kolom berisi nilai besar dan label kecil di bawahnya.
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -510,6 +525,7 @@ class _Value extends StatelessWidget {
 }
 
 class _GoalCard extends StatelessWidget {
+  /// Membuat kartu target dengan aksi edit dan hapus.
   const _GoalCard({
     required this.goal,
     required this.progress,
@@ -525,6 +541,7 @@ class _GoalCard extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
+  /// Membangun kartu target berisi label, nilai capaian, dan tombol kelola.
   Widget build(BuildContext context) {
     final current = progress.valueFor(goal.metric);
     final target = goal.target;
@@ -574,11 +591,13 @@ class _GoalCard extends StatelessWidget {
 }
 
 class _GoalDialog extends StatefulWidget {
+  /// Membuat dialog target baru atau editor target yang sudah ada.
   const _GoalDialog({this.existing});
 
   final ActivityGoal? existing;
 
   @override
+  /// Membuat state internal untuk dialog target.
   State<_GoalDialog> createState() => _GoalDialogState();
 }
 
@@ -589,6 +608,7 @@ class _GoalDialogState extends State<_GoalDialog> {
   late final TextEditingController _target;
 
   @override
+  /// Mengisi metrik, periode, dan nilai target dari target yang diedit.
   void initState() {
     super.initState();
     _metric = widget.existing?.metric ?? GoalMetric.completedSessions;
@@ -600,11 +620,13 @@ class _GoalDialogState extends State<_GoalDialog> {
   }
 
   @override
+  /// Melepaskan controller input target saat dialog ditutup.
   void dispose() {
     _target.dispose();
     super.dispose();
   }
 
+  /// Mengubah input mentah menjadi target sesuai satuan metrik terpilih.
   double? _targetValue() {
     final value = _rawTarget();
     if (value == null || value <= 0) return null;
@@ -615,24 +637,28 @@ class _GoalDialogState extends State<_GoalDialog> {
     };
   }
 
+  /// Mengurai teks target menjadi angka, menerima koma sebagai desimal.
   double? _rawTarget() {
     final value = double.tryParse(_target.text.trim().replaceAll(',', '.'));
     if (value == null || !value.isFinite) return null;
     return value;
   }
 
+  /// Mengembalikan batas atas input target untuk metrik tertentu.
   double _maxRawTarget(GoalMetric metric) => switch (metric) {
     GoalMetric.completedSessions => InputLimits.goalSessionsMax,
     GoalMetric.distanceMeters => InputLimits.goalDistanceKmMax,
     GoalMetric.activeSeconds => InputLimits.goalActiveHoursMax,
   };
 
+  /// Menentukan label kolom input sesuai metrik target.
   String _targetFieldLabel(GoalMetric metric) => switch (metric) {
     GoalMetric.completedSessions => 'jumlah sesi',
     GoalMetric.distanceMeters => 'jarak (km)',
     GoalMetric.activeSeconds => 'durasi (jam)',
   };
 
+  /// Memvalidasi input target memakai aturan bilangan bulat atau desimal.
   String? _validateTarget(String? value) {
     if (_metric == GoalMetric.completedSessions) {
       return TextValidators.positiveInteger(
@@ -651,6 +677,7 @@ class _GoalDialogState extends State<_GoalDialog> {
     );
   }
 
+  /// Memformat nilai target awal sesuai satuan metriknya.
   String _formatTarget(double value, GoalMetric metric) => switch (metric) {
     GoalMetric.completedSessions => value.toStringAsFixed(0),
     GoalMetric.distanceMeters => (value / 1000).toStringAsFixed(1),
@@ -658,6 +685,7 @@ class _GoalDialogState extends State<_GoalDialog> {
   };
 
   @override
+  /// Membangun dialog form target dengan pilihan metrik, periode, dan nilai.
   Widget build(BuildContext context) => SenapathAlertDialog(
     scrollable: true,
     title: Text(widget.existing == null ? 'Buat target' : 'Ubah target'),
@@ -738,12 +766,14 @@ class _GoalDialogState extends State<_GoalDialog> {
   );
 }
 
+/// Memberi label yang mudah dibaca untuk setiap metrik target.
 String _goalLabel(GoalMetric metric) => switch (metric) {
   GoalMetric.completedSessions => 'Jumlah sesi',
   GoalMetric.distanceMeters => 'Jarak',
   GoalMetric.activeSeconds => 'Durasi aktif',
 };
 
+/// Memformat nilai target dengan satuan yang sesuai metrik dan sistem satuan.
 String _formatGoalValue(double value, GoalMetric metric, UnitSystem unit) =>
     switch (metric) {
       GoalMetric.completedSessions => '${value.toStringAsFixed(0)} sesi',
@@ -754,6 +784,7 @@ String _formatGoalValue(double value, GoalMetric metric, UnitSystem unit) =>
       GoalMetric.activeSeconds => '${(value / 3600).toStringAsFixed(1)} jam',
     };
 
+/// Memberi label kolom target sesuai metrik yang dipilih.
 String _targetLabel(GoalMetric metric) => switch (metric) {
   GoalMetric.completedSessions => 'Target sesi',
   GoalMetric.distanceMeters => 'Target jarak (km)',

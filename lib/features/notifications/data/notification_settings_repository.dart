@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../../core/storage/app_database.dart';
 
 class RideNotificationSettings {
+  /// Membuat pengaturan notifikasi perjalanan dengan nilai bawaan.
   const RideNotificationSettings({
     this.routeProgressEnabled = true,
     this.remindersEnabled = false,
@@ -17,6 +18,7 @@ class RideNotificationSettings {
   final int reminderHour;
   final int reminderMinute;
 
+  /// Menyalin pengaturan dengan perubahan opsional pada tiap kolom.
   RideNotificationSettings copyWith({
     bool? routeProgressEnabled,
     bool? remindersEnabled,
@@ -31,6 +33,7 @@ class RideNotificationSettings {
     reminderMinute: reminderMinute ?? this.reminderMinute,
   );
 
+  /// Mengubah pengaturan menjadi peta JSON dengan hari pengingat terurut.
   Map<String, Object?> toJson() => {
     'routeProgressEnabled': routeProgressEnabled,
     'remindersEnabled': remindersEnabled,
@@ -39,6 +42,7 @@ class RideNotificationSettings {
     'reminderMinute': reminderMinute,
   };
 
+  /// Membangun pengaturan dari JSON sekaligus memvalidasi hari dan waktu.
   factory RideNotificationSettings.fromJson(Object? value) {
     if (value is! Map<String, dynamic>) {
       throw const FormatException('Pengaturan notifikasi tidak valid.');
@@ -67,11 +71,13 @@ class RideNotificationSettings {
 }
 
 class NotificationSettingsRepository {
+  /// Membuat repositori pengaturan notifikasi dengan basis data lokal.
   const NotificationSettingsRepository(this._database);
 
   static const _key = 'ride_notification_settings_v1';
   final AppDatabase _database;
 
+  /// Memuat pengaturan notifikasi tersimpan atau nilai bawaan bila kosong.
   Future<RideNotificationSettings> load() async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -80,6 +86,7 @@ class NotificationSettingsRepository {
     return RideNotificationSettings.fromJson(jsonDecode(row.value));
   }
 
+  /// Menyimpan pengaturan notifikasi terenkode ke preferensi lokal.
   Future<void> save(RideNotificationSettings settings) async {
     await _database
         .into(_database.appPreferences)

@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../session/data/session_file_service.dart';
 
 class RouteFileExchange {
+  /// Membuat penukar file rute dengan [fileService] untuk penguraian GPX.
   const RouteFileExchange(this.fileService);
 
   static const _androidFileExportChannel = MethodChannel(
@@ -16,6 +17,7 @@ class RouteFileExchange {
 
   final SessionFileService fileService;
 
+  /// Membuka dan mengurai file GPX yang dipilih pengguna.
   Future<GpxImport?> importGpx() async {
     final file = await openFile(
       acceptedTypeGroups: const [
@@ -30,6 +32,7 @@ class RouteFileExchange {
     return fileService.parseGpxDocument(await file.readAsString());
   }
 
+  /// Mengekspor teks ke file sesuai platform dan mengembalikan status berhasil.
   Future<bool> exportText({
     required String content,
     required String suggestedName,

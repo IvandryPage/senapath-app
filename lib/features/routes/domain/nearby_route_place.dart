@@ -4,6 +4,7 @@ enum NearbyRoutePlaceCategory {
   clinic('Klinik / fasilitas kesehatan', 'clinic'),
   bicycleRepair('Bengkel sepeda', 'bicycle repair');
 
+  /// Menetapkan label tampilan dan nama ikon untuk kategori fasilitas.
   const NearbyRoutePlaceCategory(this.label, this.iconName);
 
   final String label;
@@ -11,6 +12,7 @@ enum NearbyRoutePlaceCategory {
 }
 
 class NearbyRoutePlace {
+  /// Membuat data fasilitas sekitar rute dari elemen OpenStreetMap.
   const NearbyRoutePlace({
     required this.osmType,
     required this.osmId,
@@ -27,5 +29,6 @@ class NearbyRoutePlace {
   final double latitude;
   final double longitude;
 
+  /// Tautan halaman OpenStreetMap untuk fasilitas ini.
   Uri get osmUri => Uri.https('www.openstreetmap.org', '/$osmType/$osmId');
 }

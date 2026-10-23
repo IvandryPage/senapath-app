@@ -13,9 +13,11 @@ import '../../leaderboard/presentation/leaderboard_settings_section.dart';
 import '../../session/presentation/session_cubit.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
+  /// Membuat layar pengaturan profil dengan key opsional.
   const ProfileSettingsScreen({super.key});
 
   @override
+  /// Membuat state internal untuk layar pengaturan profil.
   State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
 }
 
@@ -28,6 +30,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   String? _storageError;
 
   @override
+  /// Memuat satuan, pengaturan sinkronisasi, dan pemakaian penyimpanan sekali.
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialized) return;
@@ -38,6 +41,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   }
 
   @override
+  /// Membangun daftar pengaturan umum, notifikasi, peringkat, dan penyimpanan.
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
     children: [
@@ -88,6 +92,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ],
   );
 
+  /// Membuat judul bagian dengan ikon, judul, dan subjudul.
   Widget _sectionHeading(
     BuildContext context, {
     required IconData icon,
@@ -115,6 +120,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ],
   );
 
+  /// Membangun pemilih sistem satuan metrik atau imperial.
   Widget _unitSettings() => BlocBuilder<UnitSettingsCubit, UnitSettingsState>(
     builder: (context, state) => SenapathCard(
       child: Padding(
@@ -161,6 +167,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ),
   );
 
+  /// Membangun kartu informasi tema yang mengikuti cahaya perangkat.
   Widget _themeModeInfo() => SenapathCard(
     child: ListTile(
       leading: Icon(
@@ -177,6 +184,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ),
   );
 
+  /// Membangun pengaturan masuk dengan biometrik beserta status akun.
   Widget _biometricSettings() =>
       BlocBuilder<CloudAccountCubit, CloudAccountState>(
         builder: (context, state) => SenapathCard(
@@ -220,6 +228,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ),
       );
 
+  /// Membangun sakelar sinkronisasi otomatis perjalanan ke akun online.
   Widget
   _sessionSyncSettings() => BlocBuilder<RideSessionCubit, RideSessionState>(
     builder: (context, state) => SenapathCard(
@@ -246,6 +255,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ),
   );
 
+  /// Membangun informasi pemakaian penyimpanan dan aksi hapus peta tersimpan.
   Widget _storageSettings() => SenapathCard(
     child: Column(
       children: [
@@ -297,6 +307,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     ),
   );
 
+  /// Menyimpan pilihan sistem satuan dan menampilkan pesan bila gagal.
   Future<void> _saveUnitSystem(UnitSystem unitSystem) async {
     try {
       await context.read<UnitSettingsCubit>().select(unitSystem);
@@ -305,6 +316,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  /// Menghitung pemakaian penyimpanan lokal dan memperbarui status tampilan.
   Future<void> _loadStorageUsage() async {
     setState(() {
       _loadingStorage = true;
@@ -326,6 +338,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  /// Meminta konfirmasi lalu menghapus cache peta tersimpan.
   Future<void> _confirmClearMapCache() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -360,12 +373,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  /// Memformat jumlah byte menjadi satuan B, KB, atau MB.
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  /// Menampilkan pesan singkat melalui SnackBar.
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()

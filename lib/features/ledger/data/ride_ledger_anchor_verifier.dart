@@ -8,8 +8,10 @@ import 'evm_rpc_client.dart';
 /// langsung dari node blockchain lewat JSON-RPC, lalu dicocokkan dengan
 /// hash chain lokal di perangkat.
 class RideLedgerAnchorVerifier {
+  /// Membuat verifikator anchor blockchain.
   const RideLedgerAnchorVerifier();
 
+  /// Memverifikasi anchor dengan membaca transaksi langsung dari RPC.
   Future<AnchorVerification> verify({
     required RideLedgerAnchor anchor,
     required RideLedgerChainInfo chain,
@@ -96,6 +98,7 @@ class RideLedgerAnchorVerifier {
     }
   }
 
+  /// Mendekode calldata hex menjadi string UTF-8.
   static String? _decodeInput(String hex) {
     if (!hex.startsWith('0x') || hex.length.isOdd) return null;
     try {

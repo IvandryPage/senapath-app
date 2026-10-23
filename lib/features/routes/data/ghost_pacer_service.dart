@@ -6,15 +6,20 @@ import '../../session/data/ride_session_repository.dart';
 import '../../session/domain/ride_session.dart';
 
 abstract interface class GhostPacerHistory {
+  /// Memuat semua sesi perjalanan yang sudah selesai.
   Future<List<RideSessionSnapshot>> loadCompletedSessions();
+
+  /// Memuat titik telemetri untuk sesi dengan [sessionId].
   Future<List<TelemetryLocation>> loadTelemetryLocations(String sessionId);
 }
 
 class GhostPacerService {
+  /// Membuat layanan dengan sumber riwayat [history].
   const GhostPacerService({required this.history});
 
   final GhostPacerHistory history;
 
+  /// Mencari performa terbaik pada [route] dari sesi yang selesai.
   Future<GhostPacerPerformance?> loadBestForRoute(RouteRecord route) async {
     if (route.points.length < 2) return null;
     final sessions = await history.loadCompletedSessions();
@@ -43,19 +48,23 @@ class GhostPacerService {
 }
 
 class RideSessionGhostPacerHistory implements GhostPacerHistory {
+  /// Membungkus [repository] sebagai sumber riwayat ghost pacer.
   const RideSessionGhostPacerHistory(this.repository);
 
   final RideSessionRepository repository;
 
+  /// Meneruskan pemuatan sesi selesai ke [repository].
   @override
   Future<List<RideSessionSnapshot>> loadCompletedSessions() =>
       repository.loadCompletedSessions();
 
+  /// Meneruskan pemuatan telemetri ke [repository].
   @override
   Future<List<TelemetryLocation>> loadTelemetryLocations(String sessionId) =>
       repository.loadTelemetryLocations(sessionId);
 }
 
+/// Memadankan sesi dengan rute dan menghitung sampel performa bila cukup cocok.
 GhostPacerPerformance? _matchPerformance(
   RouteRecord route,
   RideSessionSnapshot session,
@@ -162,6 +171,7 @@ GhostPacerPerformance? _matchPerformance(
   );
 }
 
+/// Menurunkan jumlah titik trek menjadi maksimal 300 sampel.
 List<TelemetryLocation> _sampleTrack(List<TelemetryLocation> locations) {
   if (locations.length <= 300) return locations;
   return [
@@ -171,12 +181,14 @@ List<TelemetryLocation> _sampleTrack(List<TelemetryLocation> locations) {
 }
 
 class _RouteSample {
+  /// Menyimpan satu titik rute beserta jarak kumulatifnya.
   const _RouteSample({required this.point, required this.distanceMeters});
 
   final RoutePoint point;
   final double distanceMeters;
 }
 
+/// Menyampel titik rute beserta jarak kumulatifnya, maksimal 180 titik.
 List<_RouteSample> _sampleRoute(List<RoutePoint> points) {
   final distances = List<double>.filled(points.length, 0);
   for (var index = 1; index < points.length; index++) {
@@ -203,6 +215,7 @@ List<_RouteSample> _sampleRoute(List<RoutePoint> points) {
   ];
 }
 
+/// Menghitung jarak meter antara dua [RoutePoint].
 double _distanceBetweenPoints(RoutePoint first, RoutePoint second) =>
     _distanceBetweenCoordinates(
       first.latitude,
@@ -211,6 +224,7 @@ double _distanceBetweenPoints(RoutePoint first, RoutePoint second) =>
       second.longitude,
     );
 
+/// Menghitung jarak meter antara dua pasangan koordinat dengan formula haversine.
 double _distanceBetweenCoordinates(
   double latitude1,
   double longitude1,
@@ -228,6 +242,7 @@ double _distanceBetweenCoordinates(
   return earthRadiusMeters * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }
 
+/// Memproyeksikan koordinat ke segmen rute dan mengembalikan fraksi serta jaraknya.
 ({double fraction, double distanceMeters}) _projectOnSegment(
   double latitude,
   double longitude,
@@ -263,4 +278,5 @@ double _distanceBetweenCoordinates(
   );
 }
 
+/// Mengonversi sudut derajat menjadi radian.
 double _radians(double degrees) => degrees * math.pi / 180;

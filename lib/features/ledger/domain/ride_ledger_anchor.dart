@@ -1,5 +1,6 @@
 /// Referensi transaksi blockchain untuk head hash ledger bukti perjalanan.
 class RideLedgerAnchor {
+  /// Membuat referensi anchor blockchain.
   const RideLedgerAnchor({
     required this.id,
     required this.blockCount,
@@ -20,11 +21,13 @@ class RideLedgerAnchor {
   final int? blockNumber;
   final DateTime createdAt;
 
+  /// Menentukan apakah anchor telah terkonfirmasi.
   bool get isConfirmed => status == 'confirmed';
 
   /// Muatan yang harus ada di calldata transaksi.
   String get expectedPayload => 'senapath:v1:$blockCount:$headHash';
 
+  /// Membuat anchor dari data JSON.
   factory RideLedgerAnchor.fromJson(Map<String, dynamic> json) =>
       RideLedgerAnchor(
         id: json['id'] as String,
@@ -37,7 +40,9 @@ class RideLedgerAnchor {
       );
 }
 
+/// Informasi jaringan blockchain untuk pencatatan bukti.
 class RideLedgerChainInfo {
+  /// Membuat informasi jaringan blockchain.
   const RideLedgerChainInfo({
     required this.chainId,
     required this.name,
@@ -52,8 +57,10 @@ class RideLedgerChainInfo {
   final String publicRpcUrl;
   final String relayerAddress;
 
+  /// Membentuk URL transaksi di explorer blockchain.
   Uri txUrl(String txHash) => Uri.parse('$explorerUrl/tx/$txHash');
 
+  /// Membuat informasi jaringan dari data JSON.
   factory RideLedgerChainInfo.fromJson(Map<String, dynamic> json) =>
       RideLedgerChainInfo(
         chainId: (json['chainId'] as num).toInt(),
@@ -64,12 +71,15 @@ class RideLedgerChainInfo {
       );
 }
 
+/// Daftar anchor beserta informasi jaringan blockchain.
 class RideLedgerAnchorList {
+  /// Membuat daftar anchor blockchain.
   const RideLedgerAnchorList({required this.chain, required this.anchors});
 
   final RideLedgerChainInfo chain;
   final List<RideLedgerAnchor> anchors;
 
+  /// Membuat daftar anchor dari data JSON.
   factory RideLedgerAnchorList.fromJson(Map<String, dynamic> json) =>
       RideLedgerAnchorList(
         chain: RideLedgerChainInfo.fromJson(
@@ -96,7 +106,9 @@ enum AnchorVerificationStatus {
   mismatch,
 }
 
+/// Hasil verifikasi anchor terhadap blockchain publik.
 class AnchorVerification {
+  /// Membuat hasil verifikasi anchor.
   const AnchorVerification(this.status, this.detail);
 
   final AnchorVerificationStatus status;

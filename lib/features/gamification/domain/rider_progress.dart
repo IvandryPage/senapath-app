@@ -43,6 +43,7 @@ enum RiderStyle {
     description: 'Pesepeda yang gemar eksplorasi rute baru dan variasi medan.',
   );
 
+  /// Membuat gaya rider dengan label dan deskripsi yang ditampilkan ke pengguna.
   const RiderStyle({required this.label, required this.description});
 
   final String label;
@@ -65,6 +66,7 @@ enum RiderKitColor {
   green(0xFF3B8C6E, 'Hijau'),
   violet(0xFF7955A6, 'Ungu');
 
+  /// Membuat warna jersey beserta nilai ARGB dan label tampilannya.
   const RiderKitColor(this.value, this.label);
 
   final int value;
@@ -76,6 +78,7 @@ enum RiderAccessory {
   glasses('Kacamata', 'visibility'),
   none('Tanpa aksesori', 'none');
 
+  /// Membuat aksesori rider dengan label dan nama serialisasinya.
   const RiderAccessory(this.label, this.serializedName);
 
   final String label;
@@ -83,6 +86,7 @@ enum RiderAccessory {
 }
 
 class RiderAppearance {
+  /// Membuat tampilan rider dengan warna jersey dan aksesori bawaan.
   const RiderAppearance({
     this.kitColor = RiderKitColor.coral,
     this.accessory = RiderAccessory.helmet,
@@ -91,6 +95,7 @@ class RiderAppearance {
   final RiderKitColor kitColor;
   final RiderAccessory accessory;
 
+  /// Menyalin tampilan rider dengan warna jersey atau aksesori pengganti.
   RiderAppearance copyWith({
     RiderKitColor? kitColor,
     RiderAccessory? accessory,
@@ -99,20 +104,24 @@ class RiderAppearance {
     accessory: accessory ?? this.accessory,
   );
 
+  /// Membandingkan kesamaan warna jersey dan aksesori pada dua tampilan.
   @override
   bool operator ==(Object other) =>
       other is RiderAppearance &&
       other.kitColor == kitColor &&
       other.accessory == accessory;
 
+  /// Menghitung hash dari warna jersey dan aksesori untuk pemakaian di koleksi.
   @override
   int get hashCode => Object.hash(kitColor, accessory);
 
+  /// Mengubah tampilan rider menjadi map untuk penyimpanan JSON.
   Map<String, Object?> toJson() => {
     'kitColor': kitColor.name,
     'accessory': accessory.name,
   };
 
+  /// Membuat tampilan rider dari map JSON dan melempar error bila nilai tidak valid.
   factory RiderAppearance.fromJson(Map<String, dynamic> json) {
     final kitColorName = json['kitColor'];
     final accessoryName = json['accessory'];
@@ -134,6 +143,7 @@ class RiderAppearance {
 }
 
 class RiderProgress {
+  /// Membuat progres rider dengan statistik perjalanan dan bonus experience.
   const RiderProgress({
     required this.experience,
     required this.level,
@@ -160,14 +170,18 @@ class RiderProgress {
   /// Experience earned outside of rides (for example mini-game rewards).
   final int bonusExperience;
 
+  /// Menghitung fraksi kemajuan menuju level berikutnya dalam rentang 0–1.
   double get levelProgress =>
       (experience % experiencePerLevel) / experiencePerLevel;
 
+  /// Menghitung sisa experience yang dibutuhkan untuk naik level.
   int get experienceToNextLevel =>
       experiencePerLevel - (experience % experiencePerLevel);
 
+  /// Menentukan peringkat rider berdasarkan level saat ini.
   RiderRank get rank => RiderRank.forLevel(level);
 
+  /// Menyusun daftar pencapaian berdasarkan statistik perjalanan saat ini.
   List<RiderAchievement> get achievements => [
     for (final target in const [1, 5, 10, 25, 50, 100])
       RiderAchievement(
@@ -251,6 +265,7 @@ class RiderProgress {
       ),
   ];
 
+  /// Menghitung progres rider dari sesi perjalanan, termasuk experience bonus.
   factory RiderProgress.fromSessions(
     List<RideSessionSnapshot> sessions, {
     required RiderStyle style,
@@ -302,6 +317,7 @@ enum RiderRank {
   eliteRider(minLevel: 61, maxLevel: 100, title: 'Pesepeda elite'),
   proRider(minLevel: 101, maxLevel: null, title: 'Pesepeda profesional');
 
+  /// Membuat peringkat dengan rentang level dan judul tampilannya.
   const RiderRank({
     required this.minLevel,
     required this.maxLevel,
@@ -312,17 +328,20 @@ enum RiderRank {
   final int? maxLevel;
   final String title;
 
+  /// Memilih peringkat yang mencakup level tertentu.
   static RiderRank forLevel(int level) => RiderRank.values.firstWhere(
     (rank) =>
         level >= rank.minLevel &&
         (rank.maxLevel == null || level <= rank.maxLevel!),
   );
 
+  /// Menampilkan rentang level peringkat dalam format siap tampil.
   String get levelRange =>
       maxLevel == null ? 'Level $minLevel+' : 'Level $minLevel–$maxLevel';
 }
 
 class RiderAchievement {
+  /// Membuat pencapaian dengan judul, ikon, target, dan progres saat ini.
   const RiderAchievement({
     required this.title,
     required this.description,
@@ -339,8 +358,10 @@ class RiderAchievement {
   final int target;
   final String unit;
 
+  /// Menandakan pencapaian sudah terbuka saat progres mencapai target.
   bool get isUnlocked => progress >= target;
 
+  /// Menghitung fraksi progres pencapaian dalam rentang 0–1.
   double get progressFraction => (progress / target).clamp(0, 1).toDouble();
 }
 

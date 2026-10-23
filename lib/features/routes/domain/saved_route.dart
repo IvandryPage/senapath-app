@@ -1,4 +1,5 @@
 class RoutePoint {
+  /// Membuat titik rute dari koordinat dan elevasi.
   const RoutePoint({
     required this.latitude,
     required this.longitude,
@@ -11,6 +12,7 @@ class RoutePoint {
 }
 
 class RouteCheckpoint {
+  /// Membuat checkpoint rute dengan nama dan koordinat.
   const RouteCheckpoint({
     required this.name,
     required this.latitude,
@@ -23,6 +25,7 @@ class RouteCheckpoint {
 }
 
 class RouteRecord {
+  /// Membuat rekaman rute dengan metadata dan geometri opsional.
   const RouteRecord({
     required this.id,
     required this.name,

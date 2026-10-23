@@ -9,6 +9,7 @@ import 'rider_gamification_cubit.dart';
 
 /// A drag-and-drop jigsaw puzzle that reassembles a 3x3 grid into one image.
 class MiniGameScreen extends StatefulWidget {
+  /// Membuat layar mini game puzzle dengan key opsional.
   const MiniGameScreen({super.key});
 
   static const String asset = 'assets/images/mini_games_image.jpg';
@@ -17,6 +18,7 @@ class MiniGameScreen extends StatefulWidget {
   /// Experience awarded every time the puzzle is solved.
   static const int rewardExperience = 10;
 
+  /// Membuat state internal untuk mengelola urutan dan langkah puzzle.
   @override
   State<MiniGameScreen> createState() => _MiniGameScreenState();
 }
@@ -30,20 +32,24 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
   int _moves = 0;
   bool _solved = false;
 
+  /// Menginisialisasi urutan tile dengan susunan acak yang belum selesai.
   @override
   void initState() {
     super.initState();
     _tiles = _shuffledTiles();
   }
 
+  /// Memuat lebih awal gambar puzzle agar potongan tampil tanpa jeda.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     precacheImage(const AssetImage(MiniGameScreen.asset), context);
   }
 
+  /// Menghasilkan urutan tile yang sudah tersusun benar.
   List<int> _solvedTiles() => List<int>.generate(_tileCount, (index) => index);
 
+  /// Memeriksa apakah setiap tile berada pada posisi indeks yang benar.
   bool _isSolvedOrder(List<int> tiles) {
     for (var index = 0; index < tiles.length; index++) {
       if (tiles[index] != index) return false;
@@ -51,6 +57,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     return true;
   }
 
+  /// Mengacak tile dan mengulanginya jika hasilnya kebetulan sudah tersusun.
   List<int> _shuffledTiles() {
     final tiles = _solvedTiles();
     do {
@@ -59,6 +66,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     return tiles;
   }
 
+  /// Mengacak ulang papan dan mereset jumlah langkah serta status selesai.
   void _shuffle() {
     setState(() {
       _tiles = _shuffledTiles();
@@ -67,6 +75,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     });
   }
 
+  /// Menukar posisi dua tile, menambah langkah, dan memberi hadiah bila selesai.
   void _swap(int draggedTile, int targetPosition) {
     final from = _tiles.indexOf(draggedTile);
     if (from == -1 || from == targetPosition) return;
@@ -86,6 +95,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     }
   }
 
+  /// Menampilkan dialog kemenangan dengan jumlah langkah dan opsi bermain lagi.
   Future<void> _showSolvedDialog() async {
     if (!mounted) return;
     await showDialog<void>(
@@ -113,6 +123,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     );
   }
 
+  /// Menampilkan dialog pratinjau gambar utuh sebagai target puzzle.
   Future<void> _showPreview() => showDialog<void>(
     context: context,
     builder: (dialogContext) => SenapathAlertDialog(
@@ -130,6 +141,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     ),
   );
 
+  /// Menyusun petunjuk, kontrol, dan papan puzzle yang dapat diseret.
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -189,6 +201,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     );
   }
 
+  /// Menyusun grid 3x3 berisi sel-sel puzzle sesuai ukuran papan.
   Widget _buildBoard(double boardSize) {
     final cellSize = boardSize / MiniGameScreen.gridSize;
     return Column(
@@ -211,6 +224,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
     );
   }
 
+  /// Membuat satu sel yang menerima tile lain dan menyediakan tile untuk diseret.
   Widget _buildCell(int position, double cellSize) {
     final tile = _tiles[position];
     return DragTarget<int>(
@@ -245,11 +259,13 @@ class _MiniGameScreenState extends State<MiniGameScreen> {
 }
 
 class _PuzzlePiece extends StatelessWidget {
+  /// Membuat satu potongan puzzle dari indeks tile dan ukuran sel.
   const _PuzzlePiece({required this.tile, required this.size});
 
   final int tile;
   final double size;
 
+  /// Menampilkan potongan gambar yang dipotong sesuai posisi tile.
   @override
   Widget build(BuildContext context) {
     const grid = MiniGameScreen.gridSize;

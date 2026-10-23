@@ -8,6 +8,7 @@ import '../../session/data/encrypted_telemetry_codec.dart';
 import '../domain/saved_route.dart';
 
 class SavedRouteRepository {
+  /// Membuat repositori dengan [database] dan kodek geometri terenkripsi.
   const SavedRouteRepository(this.database, {required this.geometryCodec});
 
   final AppDatabase database;
@@ -15,6 +16,7 @@ class SavedRouteRepository {
 
   static const _selectedSessionRouteKey = 'selected_session_route_id';
 
+  /// Memuat rute impor yang terakhir dipilih untuk sesi, bila ada.
   Future<RouteRecord?> loadSelectedSessionRoute() async {
     final preference =
         await (database.select(database.appPreferences)
@@ -31,6 +33,7 @@ class SavedRouteRepository {
     return row == null ? null : _map(row);
   }
 
+  /// Menyimpan atau menghapus rute sesi yang dipilih berdasarkan [routeId].
   Future<void> saveSelectedSessionRoute(String? routeId) async {
     await database
         .into(database.appPreferences)
@@ -42,6 +45,7 @@ class SavedRouteRepository {
         );
   }
 
+  /// Mencari rute tersimpan berdasarkan nama dan mengurutkan yang terbaru.
   Future<List<RouteRecord>> search(String query) async {
     final normalized = query.trim();
     final rows =
@@ -56,6 +60,7 @@ class SavedRouteRepository {
     return Future.wait(rows.map(_map));
   }
 
+  /// Memvalidasi, menghitung metrik, dan menyimpan rute GPX hasil impor.
   Future<RouteRecord> saveImportedRoute({
     required String name,
     String description = '',
@@ -136,6 +141,7 @@ class SavedRouteRepository {
     return _map(row);
   }
 
+  /// Menghapus rute impor [routeId], gagal bila bukan rute impor.
   Future<void> deleteImportedRoute(String routeId) async {
     final deleted =
         await (database.delete(database.savedRoutes)..where(
@@ -148,6 +154,7 @@ class SavedRouteRepository {
     }
   }
 
+  /// Memetakan baris basis data menjadi [RouteRecord] dengan geometri terurai.
   Future<RouteRecord> _map(SavedRoute row) async {
     final geometry = row.encryptedGeometry == null
         ? (points: const <RoutePoint>[], checkpoints: const <RouteCheckpoint>[])
@@ -167,6 +174,7 @@ class SavedRouteRepository {
     );
   }
 
+  /// Mendekripsi dan mengurai geometri rute beserta checkpoint-nya.
   Future<({List<RoutePoint> points, List<RouteCheckpoint> checkpoints})>
   _decodeGeometry(Uint8List encrypted) async {
     final decoded = jsonDecode(
@@ -201,6 +209,7 @@ class SavedRouteRepository {
     return (points: points, checkpoints: checkpoints);
   }
 
+  /// Memvalidasi dan membangun [RouteCheckpoint] dari JSON tersimpan.
   RouteCheckpoint _decodeCheckpoint(Map<String, Object?> json) {
     final name = json['name'];
     final latitude = (json['latitude'] as num?)?.toDouble();
@@ -224,6 +233,7 @@ class SavedRouteRepository {
     );
   }
 
+  /// Memvalidasi dan membangun [RoutePoint] dari JSON tersimpan.
   RoutePoint _decodePoint(Map<String, Object?> json) {
     final latitude = (json['latitude'] as num?)?.toDouble();
     final longitude = (json['longitude'] as num?)?.toDouble();

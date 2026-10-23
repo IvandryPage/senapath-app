@@ -62,6 +62,8 @@ abstract final class TextValidators {
     r'(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$',
   );
 
+  /// Memeriksa apakah teks memuat karakter kontrol, tak terlihat, atau baris
+  /// baru yang tidak diizinkan.
   static bool hasForbiddenCharacters(
     String value, {
     bool allowLineBreaks = false,
@@ -69,6 +71,7 @@ abstract final class TextValidators {
     value,
   );
 
+  /// Menghapus semua karakter terlarang dari teks dengan aturan baris baru.
   static String stripForbiddenCharacters(
     String value, {
     bool allowLineBreaks = false,
@@ -119,6 +122,7 @@ abstract final class TextValidators {
     return null;
   }
 
+  /// Memvalidasi alamat email, termasuk panjang dan format dasar.
   static String? email(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'Masukkan email.';
@@ -134,6 +138,8 @@ abstract final class TextValidators {
     return null;
   }
 
+  /// Memvalidasi kata sandi berdasarkan panjang minimum, maksimum, dan karakter
+  /// yang didukung.
   static String? password(String? value) {
     final text = value ?? '';
     if (text.isEmpty) return 'Masukkan kata sandi.';
@@ -150,12 +156,15 @@ abstract final class TextValidators {
     return null;
   }
 
+  /// Memastikan konfirmasi kata sandi terisi dan cocok dengan kata sandi asli.
   static String? passwordConfirmation(String? value, String password) {
     if (value == null || value.isEmpty) return 'Ulangi kata sandi.';
     if (value != password) return 'Kata sandi belum cocok.';
     return null;
   }
 
+  /// Memvalidasi kode undangan: wajib, hanya huruf/angka/tanda hubung, dan
+  /// sesuai batas panjang.
   static String? inviteCode(String? value) {
     final text = (value ?? '').trim();
     if (text.isEmpty) return 'Masukkan kode undangan.';
@@ -206,6 +215,7 @@ abstract final class TextValidators {
     return null;
   }
 
+  /// Memvalidasi bilangan bulat positif tanpa titik atau koma dalam batas.
   static String? positiveInteger(
     String? value, {
     required String label,
@@ -225,6 +235,7 @@ abstract final class TextValidators {
     return null;
   }
 
+  /// Menghitung jumlah digit di belakang koma atau titik pada teks angka.
   static int _fractionDigits(String text) {
     final comma = text.indexOf(',');
     if (comma != -1) {
@@ -235,6 +246,7 @@ abstract final class TextValidators {
     return text.substring(dot + 1).replaceAll(RegExp(r'[^\d]'), '').length;
   }
 
+  /// Memformat batas angka tanpa desimal bila nilainya bulat.
   static String _formatLimit(double value) =>
       value == value.roundToDouble() ? value.toStringAsFixed(0) : '$value';
 }
@@ -278,6 +290,7 @@ abstract final class AmountValidators {
     return null;
   }
 
+  /// Menghitung digit desimal pada nominal, mengabaikan pemisah ribuan.
   static int _fractionDigits(String text) {
     final comma = text.indexOf(',');
     if (comma != -1) {

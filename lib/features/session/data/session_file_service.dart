@@ -5,7 +5,9 @@ import 'package:xml/xml.dart';
 import '../domain/ride_session.dart';
 import '../../routes/domain/saved_route.dart';
 
+/// Hasil impor file GPX.
 class GpxImport {
+  /// Membuat hasil impor GPX.
   const GpxImport({
     required this.name,
     required this.description,
@@ -19,11 +21,14 @@ class GpxImport {
   final List<RouteCheckpoint> checkpoints;
 }
 
+/// Layanan ekspor dan impor file sesi.
 class SessionFileService {
+  /// Membuat layanan file sesi.
   const SessionFileService();
 
   static const maximumGpxBytes = 10 * 1024 * 1024;
 
+  /// Mengekspor sesi ke format JSON.
   String toJson({
     required RideSessionSnapshot session,
     required List<TelemetryLocation> locations,
@@ -47,6 +52,7 @@ class SessionFileService {
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
+  /// Mengekspor beberapa aktivitas ke arsip JSON.
   String toJsonArchive({
     required List<
       ({RideSessionSnapshot session, List<TelemetryLocation> locations})
@@ -67,6 +73,7 @@ class SessionFileService {
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
+  /// Mengekspor lokasi ke format GPX.
   String toGpx(
     List<TelemetryLocation> locations, {
     String trackName = 'Senapath session',
@@ -138,10 +145,12 @@ class SessionFileService {
     return builder.buildDocument().toXmlString(pretty: true);
   }
 
+  /// Mengurai file GPX dan mengembalikan lokasi.
   List<TelemetryLocation> parseGpx(String content) {
     return parseGpxDocument(content).locations;
   }
 
+  /// Mengurai file GPX lengkap beserta checkpoint.
   GpxImport parseGpxDocument(String content) {
     if (utf8.encode(content).length > maximumGpxBytes) {
       throw const FormatException('Ukuran GPX melebihi batas 10 MB.');
@@ -234,6 +243,7 @@ class SessionFileService {
     );
   }
 
+  /// Mengambil teks pertama dari elemen XML yang tersedia.
   String? _firstText(Iterable<XmlElement?> elements) {
     for (final element in elements) {
       final text = element?.innerText.trim();
@@ -242,6 +252,7 @@ class SessionFileService {
     return null;
   }
 
+  /// Mengonversi lokasi ke JSON untuk ekspor.
   Map<String, Object?> _locationJson(TelemetryLocation location) => {
     'recordedAt': location.recordedAt.toUtc().toIso8601String(),
     ...location.toJson(),

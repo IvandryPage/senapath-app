@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'senapath_design.dart';
 
 abstract final class AppTheme {
+  /// Menyusun tema gelap dengan palet biru malam dan menurunkan komponen dasar
+  /// dari tema terang.
   static ThemeData get dark {
     const background = Color(0xFF071122);
     const surface = Color(0xFF10243A);
@@ -202,6 +204,8 @@ abstract final class AppTheme {
     );
   }
 
+  /// Menyusun tema terang beserta skema warna, tipografi, dan gaya komponen
+  /// bawaan aplikasi.
   static ThemeData get light {
     const ink = SenapathColors.ink;
     const canvas = SenapathColors.canvas;

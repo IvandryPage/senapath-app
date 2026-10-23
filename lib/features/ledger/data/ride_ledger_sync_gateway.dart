@@ -4,10 +4,14 @@ import '../../authentication/data/custom_auth_session_manager.dart';
 import '../domain/ride_ledger_anchor.dart';
 import '../domain/ride_ledger_block.dart';
 
+/// Gateway sinkronisasi buku besar ke cloud dan blockchain.
 abstract interface class RideLedgerSyncGateway {
+  /// Menentukan apakah gateway terkonfigurasi.
   bool get isConfigured;
+  /// Menentukan apakah pengguna telah masuk.
   bool get isSignedIn;
 
+  /// Menyinkronkan daftar blok ke cloud.
   Future<RideLedgerSyncResult> sync(List<RideLedgerBlock> blocks);
 
   /// Mencatat head hash cloud ke blockchain melalui relayer server-side.
@@ -17,7 +21,9 @@ abstract interface class RideLedgerSyncGateway {
   Future<RideLedgerAnchorList> anchors();
 }
 
+/// Hasil sinkronisasi ledger ke cloud.
 class RideLedgerSyncResult {
+  /// Membuat hasil sinkronisasi ledger.
   const RideLedgerSyncResult({
     required this.blockCount,
     required this.head,
@@ -29,18 +35,23 @@ class RideLedgerSyncResult {
   final String message;
 }
 
+/// Implementasi gateway sinkronisasi ledger berbasis Supabase.
 class SupabaseRideLedgerSyncGateway implements RideLedgerSyncGateway {
+  /// Membuat gateway sinkronisasi ledger Supabase.
   const SupabaseRideLedgerSyncGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
   final CustomAuthSessionManager _sessionManager;
 
+  /// Menentukan apakah klien Supabase tersedia.
   @override
   bool get isConfigured => _client != null;
 
+  /// Menentukan apakah pengguna telah masuk.
   @override
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
+  /// Menyinkronkan blok bukti ke cloud melalui fungsi terautentikasi.
   @override
   Future<RideLedgerSyncResult> sync(List<RideLedgerBlock> blocks) async {
     final client = _client;
@@ -81,12 +92,15 @@ class SupabaseRideLedgerSyncGateway implements RideLedgerSyncGateway {
     );
   }
 
+  /// Mencatat anchor ke blockchain melalui relayer.
   @override
   Future<RideLedgerAnchorList> anchor() => _callAnchorFunction('anchor');
 
+  /// Mengambil daftar anchor blockchain.
   @override
   Future<RideLedgerAnchorList> anchors() => _callAnchorFunction('list');
 
+  /// Memanggil fungsi anchor terautentikasi.
   Future<RideLedgerAnchorList> _callAnchorFunction(String action) async {
     if (_client == null) {
       throw StateError('Supabase belum dikonfigurasi.');

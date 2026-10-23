@@ -6,6 +6,7 @@ final _greeting = RegExp(
   caseSensitive: false,
 );
 
+/// Membersihkan penanda, sapaan, dan spasi berlebih dari teks rekomendasi.
 String formatCoachRecommendation(String recommendation) {
   return recommendation
       .replaceAll(RegExp(r'```[^`]*```', dotAll: true), ' ')

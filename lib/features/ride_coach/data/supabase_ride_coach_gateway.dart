@@ -4,17 +4,21 @@ import '../../authentication/data/custom_auth_session_manager.dart';
 import 'ride_coach_gateway.dart';
 
 class SupabaseRideCoachGateway implements RideCoachGateway {
+  /// Membuat gateway dengan klien Supabase dan manajer sesi autentikasi.
   const SupabaseRideCoachGateway(this._client, this._sessionManager);
 
   final SupabaseClient? _client;
   final CustomAuthSessionManager _sessionManager;
 
+  /// Menandakan klien Supabase tersedia.
   @override
   bool get isConfigured => _client != null;
 
+  /// Menandakan pengguna memiliki sesi akun aktif.
   @override
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
+  /// Memanggil Edge Function untuk memeriksa kesiapan layanan AI.
   @override
   Future<String> diagnoseConfiguration() async {
     if (_client == null) {
@@ -47,6 +51,7 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     return data['diagnostic'] as String;
   }
 
+  /// Meminta rekomendasi AI dan memvalidasi respons dari Edge Function.
   @override
   Future<String> recommend({
     required Map<String, Object?> rideContext,
@@ -88,6 +93,7 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     return recommendation.trim();
   }
 
+  /// Meminta briefing pra-perjalanan dan memvalidasi respons AI.
   @override
   Future<String> prepareRide({
     required Map<String, Object?> routeAndWeather,
@@ -133,6 +139,7 @@ class SupabaseRideCoachGateway implements RideCoachGateway {
     return briefing.trim();
   }
 
+  /// Menyusun pesan kesalahan yang ramah dari kegagalan Edge Function.
   String _functionErrorMessage(FunctionException error) {
     final details = error.details;
     final message = details is Map ? details['error'] : null;

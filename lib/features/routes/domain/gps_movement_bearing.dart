@@ -4,6 +4,7 @@ import '../../session/domain/ride_session.dart';
 
 const _earthRadiusMeters = 6371000.0;
 
+/// Menghitung arah gerak dari dua lokasi GPS terbaru yang valid dalam 20 detik.
 double? gpsMovementBearing(
   List<TelemetryLocation> locations, {
   required DateTime now,
@@ -62,4 +63,5 @@ double? gpsMovementBearing(
   return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
 }
 
+/// Mengonversi sudut derajat menjadi radian.
 double _degreesToRadians(double degrees) => degrees * math.pi / 180;

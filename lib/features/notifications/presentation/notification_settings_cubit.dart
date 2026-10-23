@@ -6,6 +6,7 @@ import '../data/notification_settings_repository.dart';
 import '../data/ride_notification_service.dart';
 
 class NotificationSettingsState {
+  /// Membuat keadaan awal pengaturan notifikasi.
   const NotificationSettingsState({
     this.settings = const RideNotificationSettings(),
     this.isLoading = false,
@@ -22,12 +23,14 @@ class NotificationSettingsState {
 }
 
 class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
+  /// Membuat cubit pengaturan notifikasi dengan repositori dan layanan notifikasi.
   NotificationSettingsCubit(this._repository, this._notifications)
     : super(const NotificationSettingsState());
 
   final NotificationSettingsRepository _repository;
   final RideNotificationService _notifications;
 
+  /// Memuat pengaturan lalu memulihkan jadwal pengingat bila aktif.
   Future<void> load() async {
     if (state.isLoading || state.isSaving) return;
     emit(NotificationSettingsState(settings: state.settings, isLoading: true));
@@ -62,6 +65,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     }
   }
 
+  /// Meminta izin, menyimpan perubahan, dan mengembalikan setelan bila gagal.
   Future<void> update(RideNotificationSettings settings) async {
     if (state.isSaving || state.isLoading) return;
     final previous = state.settings;
@@ -116,6 +120,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     }
   }
 
+  /// Membuka pengaturan notifikasi perangkat dan melaporkan bila gagal.
   Future<void> openNotificationSettings() async {
     try {
       final opened = await openAppSettings();
@@ -139,6 +144,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     }
   }
 
+  /// Menjadwalkan pengingat mingguan dari pengaturan yang diberikan.
   Future<void> _schedule(RideNotificationSettings settings) =>
       _notifications.scheduleWeeklyReminder(
         weekdays: settings.reminderWeekdays,
@@ -146,6 +152,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
         minute: settings.reminderMinute,
       );
 
+  /// Menyusun detail kesalahan, termasuk kode dan pesan PlatformException.
   String _errorDetails(Object error) {
     if (error is PlatformException) {
       final message = error.message;
@@ -156,6 +163,7 @@ class NotificationSettingsCubit extends Cubit<NotificationSettingsState> {
     return error.toString();
   }
 
+  /// Memvalidasi dan mengirim rekomendasi sebagai notifikasi lokal.
   Future<void> sendRecommendation(String recommendation) async {
     if (recommendation.trim().isEmpty) {
       if (!isClosed) {

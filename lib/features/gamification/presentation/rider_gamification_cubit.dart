@@ -9,6 +9,7 @@ import '../data/rider_profile_repository.dart';
 import '../domain/rider_progress.dart';
 
 class RiderGamificationState {
+  /// Membuat state gamifikasi rider dengan nilai awal opsional.
   const RiderGamificationState({
     this.progress,
     this.appearance = const RiderAppearance(),
@@ -25,6 +26,7 @@ class RiderGamificationState {
 }
 
 class RiderGamificationCubit extends Cubit<RiderGamificationState> {
+  /// Membuat cubit gamifikasi dengan repositori profil rider sebagai sumber data.
   RiderGamificationCubit(this._repository)
     : super(const RiderGamificationState());
 
@@ -33,6 +35,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
   RiderStyle? _pendingCyclistType;
   int _bonusExperience = 0;
 
+  /// Memuat progres, gaya, tampilan, dan bonus experience dari data sesi.
   Future<void> load(List<RideSessionSnapshot> sessions) async {
     _sessions = sessions;
     if (state.isLoading) return;
@@ -123,6 +126,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     }
   }
 
+  /// Menggabungkan progres lokal dan cloud dengan mengambil nilai tertinggi.
   RiderProgress _mergeCloudProgress(
     RiderProgress local,
     CloudRiderProgress cloud,
@@ -144,6 +148,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     );
   }
 
+  /// Menghitung ulang progres dari daftar sesi terbaru lalu menyinkronkannya.
   void updateSessions(List<RideSessionSnapshot> sessions) {
     _sessions = sessions;
     final progress = state.progress;
@@ -162,10 +167,12 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     unawaited(_syncProfile(updated));
   }
 
+  /// Mengosongkan state gamifikasi saat akun pengguna berganti.
   void clearForAccountChange() {
     emit(const RiderGamificationState());
   }
 
+  /// Menerapkan tipe pesepeda baru dan memperbarui progres jika sudah dimuat.
   Future<void> applyCyclistType(RiderStyle style) async {
     final current = state.progress;
     if (state.isSaving) return;
@@ -223,6 +230,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     }
   }
 
+  /// Menyimpan tampilan rider baru lalu menyinkronkan profil ke cloud.
   Future<void> setAppearance(RiderAppearance appearance) async {
     if (state.progress == null || state.isSaving) return;
     final progress = state.progress!;
@@ -254,6 +262,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     }
   }
 
+  /// Menambahkan experience bonus, memperbarui level, lalu menyimpannya.
   Future<void> awardExperience(int amount) async {
     if (amount <= 0) return;
     _bonusExperience += amount;
@@ -285,6 +294,7 @@ class RiderGamificationCubit extends Cubit<RiderGamificationState> {
     unawaited(_syncProfile(updated));
   }
 
+  /// Menyinkronkan progres ke cloud dan melaporkan kegagalan lewat state.
   Future<void> _syncProfile(RiderProgress progress) async {
     try {
       await _repository.saveCloudProgress(progress, state.appearance);

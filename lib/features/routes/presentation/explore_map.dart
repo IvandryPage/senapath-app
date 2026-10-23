@@ -13,6 +13,7 @@ import '../domain/nearby_route_place.dart';
 import '../domain/saved_route.dart';
 
 class ExploreMap extends StatefulWidget {
+  /// Membuat peta jelajah rute, jejak, lokasi, dan fasilitas sekitar.
   const ExploreMap({
     this.routes = const [],
     this.nearbyPlaces = const [],
@@ -51,6 +52,7 @@ class ExploreMap extends StatefulWidget {
   final bool showLocationButton;
   final bool showEmptyMessage;
 
+  /// Membuat state peta jelajah.
   @override
   State<ExploreMap> createState() => _ExploreMapState();
 }
@@ -67,6 +69,7 @@ class _ExploreMapState extends State<ExploreMap> {
   int _mapKey = 0;
   String? _locationMessage;
 
+  /// Menjadwalkan penentuan lokasi otomatis setelah frame pertama.
   @override
   void initState() {
     super.initState();
@@ -77,6 +80,7 @@ class _ExploreMapState extends State<ExploreMap> {
     }
   }
 
+  /// Daftar garis rute dalam bentuk koordinat peta.
   List<List<LatLng>> get _routeLines => [
     for (final route in widget.routes)
       if (route.points.length >= 2)
@@ -86,11 +90,13 @@ class _ExploreMapState extends State<ExploreMap> {
         ],
   ];
 
+  /// Semua titik dari seluruh garis rute yang ditampilkan.
   List<LatLng> get _routePoints => [
     for (final line in _routeLines)
       for (final point in line) point,
   ];
 
+  /// Menyesuaikan kamera dan lokasi saat properti peta berubah.
   @override
   void didUpdateWidget(covariant ExploreMap oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -115,6 +121,7 @@ class _ExploreMapState extends State<ExploreMap> {
     }
   }
 
+  /// Membangun peta beserta lapisan rute, penanda, dan kontrol lokasi.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -485,6 +492,7 @@ class _ExploreMapState extends State<ExploreMap> {
     );
   }
 
+  /// Memilih ikon peta sesuai kategori fasilitas.
   IconData _nearbyPlaceIcon(NearbyRoutePlaceCategory category) =>
       switch (category) {
         NearbyRoutePlaceCategory.trainStation => Icons.train,
@@ -493,6 +501,7 @@ class _ExploreMapState extends State<ExploreMap> {
         NearbyRoutePlaceCategory.bicycleRepair => Icons.pedal_bike,
       };
 
+  /// Meminta izin dan memindahkan peta ke lokasi perangkat saat ini.
   Future<void> _showCurrentLocation() async {
     setState(() {
       _isLocating = true;
@@ -572,12 +581,14 @@ class _ExploreMapState extends State<ExploreMap> {
     }
   }
 
+  /// Memperbarui lokasi internal dan memusatkan peta bila siap.
   void _moveToLocation(LatLng location) {
     if (!mounted) return;
     setState(() => _currentLocation = location);
     if (_mapReady) _mapController.move(location, 16);
   }
 
+  /// Menyesuaikan kamera agar seluruh titik rute terlihat.
   void _fitRoutes() {
     final points = _routePoints;
     if (!mounted || points.length < 2) return;
@@ -589,12 +600,14 @@ class _ExploreMapState extends State<ExploreMap> {
     );
   }
 
+  /// Memusatkan peta ke lokasi terkini saat mode ikuti aktif.
   void _followCurrentLocation() {
     final location = widget.currentLocation ?? _currentLocation;
     if (!_mapReady || !widget.followLocation || location == null) return;
     _mapController.move(location, 16);
   }
 
+  /// Memutar peta sesuai arah gerak yang diberikan.
   void _applyMovementBearing() {
     if (!_mapReady) return;
     _mapController.rotate(widget.movementBearingDegrees ?? 0);
@@ -602,8 +615,10 @@ class _ExploreMapState extends State<ExploreMap> {
 }
 
 class _CompassIndicator extends StatelessWidget {
+  /// Membuat indikator kompas utara.
   const _CompassIndicator();
 
+  /// Membangun kompas yang mengikuti arah hadap perangkat.
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<CompassEvent>(
@@ -664,6 +679,7 @@ class _CompassIndicator extends StatelessWidget {
 }
 
 class _MapStatusBadge extends StatelessWidget {
+  /// Membuat lencana status peta dengan [icon], [label], dan [isError].
   const _MapStatusBadge({
     required this.icon,
     required this.label,
@@ -674,6 +690,7 @@ class _MapStatusBadge extends StatelessWidget {
   final String label;
   final bool isError;
 
+  /// Membangun lencana status dengan warna sesuai kondisi galat.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

@@ -8,6 +8,7 @@ import '../domain/ride_time_predictor.dart';
 class RideHistoryRepository {
   static const _backfillPreferenceKey = 'ride_history_backfill_v1';
 
+  /// Membuat repositori dengan [database] dan [predictor] opsional.
   const RideHistoryRepository(
     this._database, {
     this._predictor = const RideTimePredictor(),
@@ -16,6 +17,7 @@ class RideHistoryRepository {
   final AppDatabase _database;
   final RideTimePredictor _predictor;
 
+  /// Menyimpan ringkasan perjalanan selesai bila fitur-fiturnya valid.
   Future<void> recordCompletedRide(RideSessionSummary summary) async {
     final session = summary.session;
     final endedAt = session.endedAt;
@@ -48,6 +50,7 @@ class RideHistoryRepository {
         );
   }
 
+  /// Memuat seluruh riwayat perjalanan, terbaru lebih dahulu.
   Future<List<RideHistoryEntry>> loadHistory() async {
     final rows = await (_database.select(
       _database.rideHistory,
@@ -65,6 +68,7 @@ class RideHistoryRepository {
     ];
   }
 
+  /// Mengisi riwayat dari sesi selesai lama yang belum tercatat sekali saja.
   Future<void> backfillCompletedRides({
     required List<RideSessionSnapshot> sessions,
     required Future<RideSessionSummary> Function(String sessionId) loadSummary,
@@ -97,6 +101,7 @@ class RideHistoryRepository {
         );
   }
 
+  /// Memprediksi durasi berdasarkan riwayat lokal dan parameter rute.
   Future<RideTimePrediction?> predict({
     required double distanceKm,
     required double elevationGainMeters,
@@ -106,6 +111,7 @@ class RideHistoryRepository {
     history: await loadHistory(),
   );
 
+  /// Menghapus entri riwayat untuk sesi [sessionId].
   Future<void> deleteRide(String sessionId) async {
     await (_database.delete(
       _database.rideHistory,

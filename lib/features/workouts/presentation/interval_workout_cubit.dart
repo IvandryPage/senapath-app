@@ -4,6 +4,7 @@ import '../data/interval_workout_repository.dart';
 import '../domain/interval_workout.dart';
 
 class IntervalWorkoutState {
+  /// Membuat status daftar workout interval dan pilihannya.
   const IntervalWorkoutState({
     this.workouts = const [],
     this.selectedWorkoutId,
@@ -16,6 +17,7 @@ class IntervalWorkoutState {
   final bool isLoading;
   final String? error;
 
+  /// Workout yang dipilih berdasarkan [selectedWorkoutId], bila ada.
   IntervalWorkout? get selectedWorkout {
     for (final workout in workouts) {
       if (workout.id == selectedWorkoutId) return workout;
@@ -25,12 +27,14 @@ class IntervalWorkoutState {
 }
 
 class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
+  /// Membuat cubit dengan [repository] penyimpanan workout.
   IntervalWorkoutCubit(this._repository)
     : super(const IntervalWorkoutState(isLoading: true));
 
   final IntervalWorkoutRepository _repository;
   bool _loading = false;
 
+  /// Memuat workout dan pilihan tersimpan serta membersihkan pilihan tak valid.
   Future<void> load() async {
     if (_loading) return;
     _loading = true;
@@ -58,6 +62,7 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
     }
   }
 
+  /// Menambahkan atau memperbarui [workout] lalu menyimpannya.
   Future<void> save(IntervalWorkout workout) async {
     final updated = [...state.workouts];
     final index = updated.indexWhere((item) => item.id == workout.id);
@@ -69,6 +74,7 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
     await _save(updated);
   }
 
+  /// Menghapus workout [workoutId] dan membersihkan pilihan bila perlu.
   Future<void> remove(String workoutId) async {
     final updated = state.workouts
         .where((workout) => workout.id != workoutId)
@@ -95,6 +101,7 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
     }
   }
 
+  /// Memilih atau membatalkan pilihan workout untuk perjalanan berikutnya.
   Future<void> select(String? workoutId) async {
     if (workoutId != null &&
         !state.workouts.any((workout) => workout.id == workoutId)) {
@@ -119,6 +126,7 @@ class IntervalWorkoutCubit extends Cubit<IntervalWorkoutState> {
     }
   }
 
+  /// Menyimpan daftar workout dan memperbarui status atau pesan kesalahan.
   Future<void> _save(List<IntervalWorkout> updated) async {
     try {
       await _repository.saveWorkouts(updated);

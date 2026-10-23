@@ -4,6 +4,11 @@ Aplikasi pendamping latihan dan balapan sepeda.
 
 > **Tujuan besar:** Senapath adalah "Strava untuk cyclist" — rumah digital untuk merekam ride, merencanakan rute, berlatih, dan terhubung dengan komunitas cyclist, dengan tumpukan gratis/OSS dan etika data yang kuat. Lihat [agents/vision.md](agents/vision.md) (visi & pilar), [agents/tech-stack.md](agents/tech-stack.md) (keputusan API/provider gratis-dulu), [agents/architecture.md](agents/architecture.md), [agents/requirements.md](agents/requirements.md), dan [agents/scrum-guide.md](agents/scrum-guide.md).
 
+## Dokumentasi kode
+
+- [docs/CODEBASE.md](docs/CODEBASE.md) - arsitektur, struktur fitur, skema data, backend, alur utama, keamanan, dan panduan kontribusi.
+- [docs/UML.md](docs/UML.md) - diagram PlantUML: use case, activity, class, dan sequence.
+
 ## Menjalankan aplikasi
 
 ```sh

@@ -1,6 +1,7 @@
 import '../../gamification/domain/rider_progress.dart';
 
 class CyclingTeam {
+  /// Membuat data tim dengan identitas, kode undangan, peran, dan jumlah anggota.
   const CyclingTeam({
     required this.id,
     required this.name,
@@ -15,10 +16,12 @@ class CyclingTeam {
   final String role;
   final int memberCount;
 
+  /// Menandakan pengguna berperan sebagai ketua tim.
   bool get isManager => role == 'manager';
 }
 
 class CyclingTeamMember {
+  /// Membuat data anggota tim dengan profil rider dan waktu bergabung.
   const CyclingTeamMember({
     required this.userId,
     required this.displayName,
@@ -37,10 +40,12 @@ class CyclingTeamMember {
   final int riderLevel;
   final int experience;
 
+  /// Menandakan anggota tim ini berperan sebagai ketua.
   bool get isManager => role == 'manager';
 }
 
 class TeamRideSummary {
+  /// Membuat ringkasan perjalanan yang dibagikan ke tim.
   const TeamRideSummary({
     required this.userId,
     required this.sessionId,
@@ -65,6 +70,7 @@ class TeamRideSummary {
 }
 
 class CyclingTeamDashboard {
+  /// Membuat dashboard tim berisi data tim, anggota, dan perjalanan bersama.
   const CyclingTeamDashboard({
     required this.team,
     required this.members,
@@ -75,20 +81,25 @@ class CyclingTeamDashboard {
   final List<CyclingTeamMember> members;
   final List<TeamRideSummary> sharedSessions;
 
+  /// Menjumlahkan jarak seluruh perjalanan yang dibagikan ke tim.
   double get totalDistanceMeters =>
       sharedSessions.fold(0, (total, ride) => total + ride.distanceMeters);
 
+  /// Menjumlahkan durasi seluruh perjalanan yang dibagikan ke tim.
   int get totalDurationSeconds =>
       sharedSessions.fold(0, (total, ride) => total + ride.durationSeconds);
 
+  /// Menjumlahkan elevasi naik dari seluruh perjalanan yang dibagikan.
   double get totalElevationGainMeters => sharedSessions.fold(
     0,
     (total, ride) => total + (ride.elevationGainMeters ?? 0),
   );
 
+  /// Menjumlahkan jumlah sampel dari seluruh perjalanan yang dibagikan.
   int get totalSampleCount =>
       sharedSessions.fold(0, (total, ride) => total + ride.sampleCount);
 
+  /// Mengambil perjalanan yang dibagikan oleh anggota tertentu.
   List<TeamRideSummary> sessionsFor(String userId) => sharedSessions
       .where((ride) => ride.userId == userId)
       .toList(growable: false);

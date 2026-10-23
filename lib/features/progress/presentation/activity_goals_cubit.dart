@@ -5,6 +5,7 @@ import '../data/activity_goals_repository.dart';
 import '../domain/activity_progress.dart';
 
 class ActivityGoalsState {
+  /// Membuat keadaan awal daftar target aktivitas.
   const ActivityGoalsState({
     this.goals = const [],
     this.isLoading = false,
@@ -21,10 +22,12 @@ class ActivityGoalsState {
 }
 
 class ActivityGoalsCubit extends Cubit<ActivityGoalsState> {
+  /// Membuat cubit target aktivitas dengan repositori penyimpanan.
   ActivityGoalsCubit(this._repository) : super(const ActivityGoalsState());
 
   final ActivityGoalsRepository _repository;
 
+  /// Memuat target aktivitas sekali dan menangani kegagalan baca.
   Future<void> load() async {
     if (state.isLoading || state.isLoaded) return;
     emit(ActivityGoalsState(goals: state.goals, isLoading: true));
@@ -43,6 +46,7 @@ class ActivityGoalsCubit extends Cubit<ActivityGoalsState> {
     }
   }
 
+  /// Memvalidasi target lalu menambah atau memperbarui target pada daftar.
   Future<void> upsert(ActivityGoal goal) async {
     final maxTarget = switch (goal.metric) {
       GoalMetric.completedSessions => InputLimits.goalSessionsMax,
@@ -69,11 +73,13 @@ class ActivityGoalsCubit extends Cubit<ActivityGoalsState> {
     await _persist(updated);
   }
 
+  /// Menghapus target berdasarkan id lalu menyimpan daftar terbaru.
   Future<void> remove(String id) async {
     final updated = state.goals.where((goal) => goal.id != id).toList();
     await _persist(updated);
   }
 
+  /// Menyimpan daftar target sambil mengatur status simpan dan pesan galat.
   Future<void> _persist(List<ActivityGoal> updated) async {
     if (state.isSaving) return;
     emit(

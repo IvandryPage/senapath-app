@@ -12,10 +12,12 @@ import 'ride_coach_cubit.dart';
 import '../domain/coach_recommendation_formatter.dart';
 
 class RideCoachSessionPanel extends StatefulWidget {
+  /// Membuat panel pelatih AI yang mengikuti [sessionState].
   const RideCoachSessionPanel({required this.sessionState, super.key});
 
   final RideSessionState sessionState;
 
+  /// Membuat state panel pelatih AI.
   @override
   State<RideCoachSessionPanel> createState() => _RideCoachSessionPanelState();
 }
@@ -24,12 +26,14 @@ class _RideCoachSessionPanelState extends State<RideCoachSessionPanel> {
   static const _refreshInterval = Duration(hours: 1);
   String? _localError;
 
+  /// Menjadwalkan penyelarasan sesi setelah frame pertama.
   @override
   void initState() {
     super.initState();
     _scheduleSessionUpdate();
   }
 
+  /// Menjadwalkan ulang penyelarasan saat [oldWidget] berganti sesi.
   @override
   void didUpdateWidget(covariant RideCoachSessionPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -38,12 +42,14 @@ class _RideCoachSessionPanelState extends State<RideCoachSessionPanel> {
     }
   }
 
+  /// Menjalankan pembaruan sesi pada frame berikutnya bila widget masih aktif.
   void _scheduleSessionUpdate() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _handleSessionUpdate(widget.sessionState);
     });
   }
 
+  /// Menyinkronkan sesi aktif dan memicu saran otomatis tiap jam.
   void _handleSessionUpdate(RideSessionState state) {
     final session = state.session;
     final coach = context.read<RideCoachCubit>();
@@ -65,6 +71,7 @@ class _RideCoachSessionPanelState extends State<RideCoachSessionPanel> {
     }
   }
 
+  /// Meminta izin bila perlu lalu mengirim ringkasan sesi ke pelatih AI.
   Future<void> _requestRecommendation(RideSessionState state) async {
     final session = state.session;
     if (session == null || session.status == RideSessionStatus.completed) {
@@ -152,6 +159,7 @@ class _RideCoachSessionPanelState extends State<RideCoachSessionPanel> {
     );
   }
 
+  /// Mencari checkpoint rute terdekat dari posisi [location].
   RouteCheckpoint? _nextCheckpoint(
     RouteRecord route,
     TelemetryLocation location,
@@ -168,6 +176,7 @@ class _RideCoachSessionPanelState extends State<RideCoachSessionPanel> {
     return closest;
   }
 
+  /// Membangun kartu pelatih AI berisi saran, status muat, dan kesalahan.
   @override
   Widget build(BuildContext context) {
     final rideState = widget.sessionState;
@@ -318,6 +327,7 @@ class _RideCoachSessionPanelState extends State<RideCoachSessionPanel> {
     );
   }
 
+  /// Memformat durasi menjadi teks jam dan menit yang ringkas.
   String _formatDuration(Duration duration) => duration.inHours > 0
       ? '${duration.inHours}j ${duration.inMinutes.remainder(60)}m'
       : '${duration.inMinutes}m';

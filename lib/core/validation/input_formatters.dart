@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 /// Blocks newlines so a field stays a single line even when the platform
 /// keyboard offers a return key.
 class SingleLineInputFormatter extends TextInputFormatter {
+  /// Membuat formatter yang menjaga input tetap satu baris.
   const SingleLineInputFormatter();
 
   static final RegExp _lineBreaks = RegExp(r'[\r\n]');
 
+  /// Mengganti karakter baris baru dengan spasi dan mengatur kursor ke akhir.
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -25,6 +27,8 @@ class SingleLineInputFormatter extends TextInputFormatter {
 /// Strips control, invisible (zero-width/bidi), and optionally line-break
 /// characters while the user types. Keeps the field resilient to pasted junk.
 class ForbiddenCharactersInputFormatter extends TextInputFormatter {
+  /// Membuat formatter yang membuang karakter terlarang, dengan opsi
+  /// membiarkan baris baru.
   const ForbiddenCharactersInputFormatter({this.allowLineBreaks = false});
 
   final bool allowLineBreaks;
@@ -36,6 +40,7 @@ class ForbiddenCharactersInputFormatter extends TextInputFormatter {
     r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]',
   );
 
+  /// Menyaring karakter kontrol dan tak terlihat tanpa merusak posisi kursor.
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,

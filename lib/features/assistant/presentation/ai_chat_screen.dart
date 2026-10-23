@@ -13,8 +13,10 @@ import 'ai_chat_cubit.dart';
 import '../domain/ai_chat_message.dart';
 
 class AiChatScreen extends StatefulWidget {
+  /// Membuat layar chat asisten AI.
   const AiChatScreen({super.key});
 
+  /// Membuat state chat dengan pengontrol input dan status konteks.
   @override
   State<AiChatScreen> createState() => _AiChatScreenState();
 }
@@ -27,6 +29,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   bool _includePreferences = false;
   String? _selectedRouteId;
 
+  /// Menginisialisasi controller dan memuat rute tersimpan saat layar dibuka.
   @override
   void initState() {
     super.initState();
@@ -35,6 +38,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
+  /// Membebaskan pengontrol saat state dihancurkan.
   @override
   void dispose() {
     _messageController.dispose();
@@ -43,6 +47,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     super.dispose();
   }
 
+  /// Menampilkan daftar pesan, komposer, dan status konfigurasi asisten.
   @override
   Widget build(BuildContext context) => BlocListener<AiChatCubit, AiChatState>(
     listenWhen: (previous, current) =>
@@ -124,6 +129,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     ),
   );
 
+  /// Menggulir daftar pesan ke posisi terakhir.
   void _scrollToLatest() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -136,6 +142,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
+  /// Menampilkan lembar konteks untuk memilih rute atau preferensi latihan.
   Future<void> _showContextSheet(List<RouteRecord> routes) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -244,6 +251,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Mencari rute tersimpan berdasarkan ID yang dipilih.
   RouteRecord? _findSelectedRoute(List<RouteRecord> routes) {
     for (final route in routes) {
       if (route.id == _selectedRouteId) return route;
@@ -251,6 +259,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     return null;
   }
 
+  /// Mengirim pesan dari komposer beserta konteks rute atau preferensi.
   Future<void> _send(BuildContext context, RouteRecord? selectedRoute) async {
     final contextData = <String, Object?>{};
     if (_includeRoute && selectedRoute != null) {
@@ -277,6 +286,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 }
 
 class _WelcomeView extends StatelessWidget {
+  /// Membuat tampilan pembuka dengan saran prompt saat chat masih kosong.
   const _WelcomeView({required this.isConfigured, required this.onPrompt});
 
   final bool isConfigured;

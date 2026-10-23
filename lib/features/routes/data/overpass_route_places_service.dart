@@ -8,6 +8,7 @@ import '../domain/nearby_route_place.dart';
 import '../domain/saved_route.dart';
 
 class OverpassRoutePlacesService {
+  /// Membuat layanan dengan [endpoint] kustom dan klien HTTP opsional.
   OverpassRoutePlacesService({this._client, Uri? endpoint})
     : _endpoint = endpoint ?? Uri.parse(defaultEndpoint);
 
@@ -18,6 +19,7 @@ class OverpassRoutePlacesService {
   final http.Client? _client;
   final Uri _endpoint;
 
+  /// Mencari fasilitas OpenStreetMap di sekitar [route] via Overpass API.
   Future<List<NearbyRoutePlace>> findAlongRoute(RouteRecord route) async {
     if (route.points.length < 2) {
       throw ArgumentError.value(route.points.length, 'route.points');
@@ -46,6 +48,7 @@ class OverpassRoutePlacesService {
     }
   }
 
+  /// Mengambil titik sampel rute secara berkala untuk query Overpass.
   static List<({double latitude, double longitude})> _sampleRoute(
     List<RoutePoint> points,
   ) {
@@ -98,10 +101,12 @@ class OverpassRoutePlacesService {
     return samples;
   }
 
+  /// Membuat kunci koordinat yang dibulatkan untuk menghapus duplikat.
   static String _coordinateKey(({double latitude, double longitude}) point) =>
       '${point.latitude.toStringAsFixed(5)},'
       '${point.longitude.toStringAsFixed(5)}';
 
+  /// Menyusun kueri Overpass untuk semua titik sampel dan kategori fasilitas.
   static String _buildQuery(
     List<({double latitude, double longitude})> samples,
   ) {
@@ -120,6 +125,7 @@ class OverpassRoutePlacesService {
     return '[out:json][timeout:25];(${clauses.join()});out center tags;';
   }
 
+  /// Mengurai respons Overpass menjadi daftar fasilitas tanpa duplikat.
   static List<NearbyRoutePlace> _parseResponse(String body) {
     final decoded = jsonDecode(body);
     if (decoded is! Map || decoded['elements'] is! List) {
@@ -176,6 +182,7 @@ class OverpassRoutePlacesService {
     return places;
   }
 
+  /// Menentukan kategori fasilitas berdasarkan tag OpenStreetMap.
   static NearbyRoutePlaceCategory? _categoryFor(Map tags) {
     if (tags['railway'] == 'station') {
       return NearbyRoutePlaceCategory.trainStation;

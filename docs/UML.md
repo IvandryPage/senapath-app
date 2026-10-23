@@ -1,370 +1,342 @@
-# Senapath - Diagram UML (PlantUML)
+# Senapath - UML Diagrams
 
-Dokumen ini berisi diagram PlantUML untuk memahami perilaku dan struktur kode
-Senapath. Setiap blok `plantuml` dapat ditempel ke PlantUML editor, ekstensi
-PlantUML di VS Code/JetBrains, atau PlantUML Server. Diagram sengaja tidak
-menyertakan seluruh kelas UI agar fokus pada domain, data, dan alur penting.
+Dokumen ini berisi diagram UML yang menjelaskan arsitektur dan perilaku sistem Senapath secara ringkas namun lengkap. Diagram menggunakan PlantUML dan dapat dirender dengan ekstensi editor atau PlantUML Server.
 
-Dokumentasi naratif ada di [CODEBASE.md](CODEBASE.md).
-
-Daftar diagram:
-
-1. Use case - aktor dan fitur utama
-2. Activity - siklus hidup perjalanan
-3. Activity - sinkronisasi dan anchor bukti perjalanan
-4. Class - domain, repository, gateway, dan Cubit inti
-5. Sequence - startup dan autentikasi
-6. Sequence - merekam dan menyelesaikan perjalanan
-7. Sequence - sinkronisasi dan anchor blockchain
-8. Sequence - chat AI dan kuota
-9. Sequence - bergabung dengan tim
+**Daftar diagram:**
+1. Use Case Diagram - aktor dan fitur utama
+2. Use Case Scenarios - skenario pengguna utama
+3. Activity Diagram - alur perekaman perjalanan
+4. Class Diagram - struktur domain dan data
+5. Sequence Diagram - interaksi komponen utama
 
 ---
 
-## 1. Use case
+## 1. Use Case Diagram
 
 ```plantuml
 @startuml
 left to right direction
-skinparam packageStyle rectangle
 skinparam actorStyle awesome
 
-actor "Pesepeda" as Rider
-actor "GPS dan sensor" as Sensors
-actor "Supabase" as Cloud
-actor "Gemini" as Gemini
-actor "Sepolia / relayer" as Chain
-actor "Open-Meteo / OSM" as Geo
+actor "Cyclist" as Rider
+actor "GPS/Sensor" as GPS
+actor "Supabase Cloud" as Cloud
+actor "Gemini AI" as AI
+actor "Blockchain" as Chain
 
-rectangle "Senapath" {
-  usecase "Merekam perjalanan" as UC_Record
-  usecase "Menjeda dan melanjutkan" as UC_Pause
-  usecase "Melihat riwayat dan detail" as UC_History
-  usecase "Mengimpor dan mengelola GPX" as UC_Route
-  usecase "Mengikuti rute dan navigasi" as UC_Nav
-  usecase "Melihat cuaca dan angin" as UC_Weather
-  usecase "Mencari fasilitas di sekitar rute" as UC_POI
-  usecase "Memakai ghost pacer" as UC_Ghost
-  usecase "Latihan interval" as UC_Workout
-  usecase "Melihat progres dan level" as UC_Progress
-  usecase "Mengelola profil dan kontak darurat" as UC_Profile
-  usecase "Melihat dan mengelola tim" as UC_Team
-  usecase "Membagikan ringkasan ke tim" as UC_Share
-  usecase "Ikut papan peringkat" as UC_Leaderboard
-  usecase "Chat dengan asisten AI" as UC_Chat
-  usecase "Mendapat rekomendasi latihan" as UC_Coach
-  usecase "Mengelola budget dan logistik" as UC_Logistics
-  usecase "Mengatur notifikasi" as UC_Notif
-  usecase "Daftar, masuk, dan keluar akun" as UC_Auth
-  usecase "Sinkronisasi sesi ke cloud" as UC_Sync
-  usecase "Membuat bukti perjalanan lokal" as UC_LocalProof
-  usecase "Menyinkronkan bukti ke cloud" as UC_CloudProof
-  usecase "Mencatat bukti ke blockchain" as UC_Anchor
-  usecase "Memverifikasi bukti dari RPC" as UC_Verify
-  usecase "Memberi persetujuan" as UC_Consent
-  usecase "Menghapus data perjalanan" as UC_Delete
+rectangle "Senapath System" {
+  ' Core ride features
+  usecase "Record Ride" as UC1
+  usecase "Pause/Resume Session" as UC2
+  usecase "View History" as UC3
+  usecase "Manage GPX Routes" as UC4
+  usecase "Navigate Route" as UC5
+  
+  ' Training & analysis
+  usecase "View Progress & Stats" as UC6
+  usecase "Set Training Goals" as UC7
+  usecase "Create Workout Intervals" as UC8
+  usecase "AI Chat Assistant" as UC9
+  usecase "AI Ride Coaching" as UC10
+  
+  ' Profile & settings
+  usecase "Manage Profile" as UC11
+  usecase "Emergency Contacts" as UC12
+  usecase "Cloud Account Auth" as UC13
+  usecase "Sync Sessions to Cloud" as UC14
+  
+  ' Social & competition
+  usecase "Join Cycling Team" as UC15
+  usecase "Share Ride Summary" as UC16
+  usecase "View Leaderboard" as UC17
+  
+  ' Proof & verification
+  usecase "Generate Proof Chain" as UC18
+  usecase "Anchor to Blockchain" as UC19
+  usecase "Verify Proof" as UC20
+  
+  ' Logistics
+  usecase "Currency Converter" as UC21
+  usecase "Timezone Converter" as UC22
 }
 
-Rider --> UC_Record
-Rider --> UC_Pause
-Rider --> UC_History
-Rider --> UC_Route
-Rider --> UC_Nav
-Rider --> UC_Weather
-Rider --> UC_POI
-Rider --> UC_Ghost
-Rider --> UC_Workout
-Rider --> UC_Progress
-Rider --> UC_Profile
-Rider --> UC_Team
-Rider --> UC_Share
-Rider --> UC_Leaderboard
-Rider --> UC_Chat
-Rider --> UC_Coach
-Rider --> UC_Logistics
-Rider --> UC_Notif
-Rider --> UC_Auth
-Rider --> UC_Delete
+' Relationships
+Rider --> UC1
+Rider --> UC2
+Rider --> UC3
+Rider --> UC4
+Rider --> UC5
+Rider --> UC6
+Rider --> UC7
+Rider --> UC8
+Rider --> UC9
+Rider --> UC10
+Rider --> UC11
+Rider --> UC12
+Rider --> UC13
+Rider --> UC15
+Rider --> UC16
+Rider --> UC17
+Rider --> UC19
+Rider --> UC20
+Rider --> UC21
+Rider --> UC22
 
-Sensors --> UC_Record
-Sensors --> UC_Nav
-Geo --> UC_Weather
-Geo --> UC_POI
-Geo --> UC_Route
-Cloud --> UC_Sync
-Cloud --> UC_Chat
-Cloud --> UC_Team
-Cloud --> UC_Leaderboard
-Chain --> UC_Anchor
-Chain --> UC_Verify
-Gemini --> UC_Chat
-Gemini --> UC_Coach
+GPS --> UC1
+GPS --> UC5
+Cloud --> UC13
+Cloud --> UC14
+Cloud --> UC15
+Cloud --> UC17
+AI --> UC9
+AI --> UC10
+Chain --> UC19
 
-UC_Record ..> UC_LocalProof : <<include>>
-UC_Record ..> UC_Sync : <<include>>
-UC_LocalProof ..> UC_CloudProof : <<extend>>
-UC_CloudProof ..> UC_Anchor : <<include>>
-UC_Anchor ..> UC_Consent : <<include>>
-UC_Anchor ..> UC_Verify : <<include>>
-UC_Sync ..> UC_Consent : <<include>>
-UC_Leaderboard ..> UC_Consent : <<include>>
-UC_Team ..> UC_Share : <<extend>>
-UC_Nav ..> UC_Ghost : <<extend>>
-UC_Route ..> UC_Weather : <<extend>>
-UC_Route ..> UC_POI : <<extend>>
+UC1 ..> UC18 : <<include>>
+UC1 ..> UC14 : <<extend>>
+UC18 ..> UC19 : <<extend>>
+UC5 ..> UC10 : <<extend>>
+UC15 ..> UC16 : <<extend>>
+
 @enduml
 ```
 
 ---
 
-## 2. Activity - siklus hidup perjalanan
+## 2. Use Case Scenarios
+
+### Scenario 1: Recording a Ride Session
+**Actor:** Cyclist  
+**Precondition:** GPS and location permissions granted  
+**Main Flow:**
+1. Cyclist opens app and navigates to Session screen
+2. System checks location permission and GPS availability
+3. Cyclist optionally selects a GPX route to follow
+4. Cyclist presses "Start Recording"
+5. System creates session record in local database (Drift)
+6. System starts GPS and sensor streams (location, barometer, accelerometer)
+7. System records telemetry points (encrypted AES-256-GCM)
+8. Cyclist can pause/resume during ride
+9. Cyclist finishes ride
+10. System stops streams, calculates summary (distance, duration, elevation)
+11. System generates cryptographic proof block and appends to local chain
+12. If auto-sync enabled and user signed in, system uploads summary to cloud
+13. System displays ride summary
+
+**Alternative Flow:**
+- 4a. GPS not ready → System shows warning, cyclist can retry or proceed with limited tracking
+- 8a. App backgrounded → System continues recording via foreground service (Android) or background location (iOS)
+- 12a. No internet → Session remains local with "pending sync" status
+
+**Postcondition:** Ride session saved locally, proof chain updated, optionally synced to cloud
+
+---
+
+### Scenario 2: Cloud Authentication & Sync
+**Actor:** Cyclist  
+**Precondition:** Supabase configured, internet available  
+**Main Flow:**
+1. Cyclist opens "Account & Security"
+2. Cyclist enters email and password
+3. System sends credentials to custom auth Edge Function `app-auth`
+4. Edge Function verifies PBKDF2-SHA256 password hash
+5. Edge Function generates JWT (HS256, aud=authenticated, sub=user_id)
+6. Edge Function creates refresh token (rotated, hash stored in DB)
+7. System stores tokens in secure storage (flutter_secure_storage)
+8. System loads user profile and syncs pending sessions
+9. Cyclist can enable biometric unlock for stored session
+
+**Alternative Flow:**
+- 4a. Invalid credentials → Error displayed, retry allowed
+- 6a. Rate limit exceeded → Temporary lockout message
+- 9a. User signs out → Tokens cleared, local data retained
+
+**Postcondition:** User authenticated, sessions synced, biometric unlock available
+
+---
+
+### Scenario 3: Blockchain Proof Anchoring
+**Actor:** Cyclist  
+**Precondition:** Completed rides exist, user signed in, internet available  
+**Main Flow:**
+1. Cyclist opens "Ride Proofs"
+2. System displays local proof chain blocks
+3. System verifies chain integrity (hash linkage)
+4. Cyclist presses "Anchor to Blockchain"
+5. System syncs all blocks to Supabase
+6. System calls Edge Function `anchor-ride-proofs`
+7. Edge Function checks rate limit (10 min) and head hash uniqueness
+8. Edge Function creates anchor record (status=pending)
+9. Server-side relayer signs transaction with calldata `senapath:v1:<count>:<hash>`
+10. Relayer sends 0 ETH transaction to Ethereum Sepolia via JSON-RPC
+11. Edge Function waits for receipt
+12. If success, updates anchor (status=confirmed, txHash, blockNumber)
+13. Cyclist can view txHash on Sepolia explorer
+14. Cyclist presses "Verify" to independently check via public RPC
+15. System reads transaction and receipt, compares calldata and sender
+16. System displays verification status (verified/pending/mismatch)
+
+**Alternative Flow:**
+- 7a. Rate limit hit or duplicate head → Returns existing anchor
+- 10a. Transaction fails → status=failed, error logged
+- 14a. Transaction not yet mined → status=pending
+
+**Postcondition:** Proof head hash immutably recorded on blockchain, verifiable independently
+
+---
+
+### Scenario 4: Joining a Cycling Team
+**Actor:** Cyclist  
+**Precondition:** User signed in to cloud account  
+**Main Flow:**
+1. Cyclist navigates to "My Teams"
+2. Cyclist presses "Join Team"
+3. Cyclist enters 32-character hex invite code
+4. System calls Supabase RPC `join_cycling_team`
+5. RPC validates code format and checks team existence
+6. RPC inserts member record with role=member
+7. System displays team dashboard with members list
+8. Cyclist can share completed ride summaries to team
+9. Team members see shared rides (no GPS coordinates, only summary)
+
+**Alternative Flow:**
+- 5a. Invalid code → Error message
+- 8a. Cyclist unshares or leaves team → Summary link removed from team view
+
+**Postcondition:** Cyclist is team member, can share rides to team
+
+---
+
+### Scenario 5: AI Chat Assistant
+**Actor:** Cyclist  
+**Precondition:** User signed in, Gemini API configured, daily quota available  
+**Main Flow:**
+1. Cyclist opens "AI Assistant"
+2. Cyclist types question about training or routes
+3. System sends message to Edge Function `rider-assistant`
+4. Edge Function verifies JWT and extracts user ID
+5. Edge Function calls PostgreSQL function `consume_ai_chat_quota`
+6. If quota available (30/day), Edge Function calls Gemini API
+7. Gemini returns response
+8. Edge Function returns answer to app
+9. System displays answer in chat
+
+**Alternative Flow:**
+- 5a. Quota exhausted → HTTP 429, system shows "daily limit reached"
+- 6a. Gemini error → System shows error message
+- Context options: User can include local routes or preferences (with consent)
+
+**Postcondition:** Cyclist receives AI-generated response, quota decremented
+
+---
+
+## 3. Activity Diagram
 
 ```plantuml
 @startuml
-title Siklus hidup rekaman perjalanan
-start
+title Ride Recording & Sync Flow
 
-:Membuka aplikasi;
-if (Supabase dikonfigurasi?) then (ya)
-  if (Sesi akun tersimpan?) then (ya)
-    :Pulihkan dan rotasi token;
-  else (tidak)
-    :Tampilkan layar masuk;
-    :Daftar atau masuk;
+start
+:Open app;
+
+if (Cloud configured?) then (yes)
+  if (Session stored?) then (yes)
+    :Restore & refresh token;
+  else (no)
+    :Show sign-in screen;
   endif
-else (tidak)
-  :Mode lokal tanpa cloud;
+else (no)
+  :Local-only mode;
 endif
 
-:Membuka Beranda;
-:Pilih rute atau latihan (opsional);
-:Menyiapkan sesi;
-:Memeriksa izin lokasi, notifikasi, dan sensor;
-if (Perangkat siap?) then (tidak)
-  :Tampilkan masalah izin atau sensor;
+:Navigate to Session;
+:Check permissions;
+
+if (Location & GPS ready?) then (no)
+  :Show warning;
   stop
 endif
 
-:Membuat sesi status recording;
-:Menyalakan stream lokasi dan sensor;
+:Create session (status=recording);
+:Start GPS & sensor streams;
 
-repeat
-  :Menerima sampel GPS dan sensor;
-  :Membungkus TelemetryLocation;
-  :Mengenkripsi payload AES-256-GCM;
-  :Menyimpan titik ke Drift;
-  if (Pengguna menjeda?) then (ya)
-    :Menghentikan stream sementara;
-    :Menyimpan pausedAt;
-    if (Lanjut?) then (ya)
-      :Melanjutkan stream;
-    else (tidak)
-      :Tetap jeda sampai selesai;
+partition Recording {
+  repeat
+    :Receive GPS sample;
+    :Encrypt telemetry (AES-GCM);
+    :Save to Drift database;
+    
+    if (User pauses?) then (yes)
+      :Update status=paused;
+      :Stop streams;
+      
+      if (Resume?) then (yes)
+        :Restart streams;
+      endif
     endif
+  repeat while (Not finished?)
+}
+
+:Stop all streams;
+:Calculate summary;
+:Update status=completed;
+
+:Append proof block to chain;
+:Save ride history features (for KNN);
+
+if (Auto-sync enabled AND signed in?) then (yes)
+  fork
+    :Upload summary to cloud;
+  fork again
+    :Continue local operations;
+  endfork
+  
+  if (Upload success?) then (yes)
+    :Mark syncStatus=synced;
+  else (no)
+    :Mark syncStatus=pending;
   endif
-repeat while (Belum selesai?) is (ya)
-
-:Menghentikan stream;
-:Menyelesaikan sesi;
-:Menyimpan status completed;
-
-:Tambah blok ke rantai bukti lokal;
-:Menyimpan fitur RideHistory untuk prediksi;
-
-if (Auto-sync aktif dan pengguna masuk?) then (ya)
-  if (Sesi penuh tersedia?) then (ya)
-    :Dorong sesi dan telemetri ke cloud;
-  else (tidak)
-    :Dorong ringkasan sesi ke cloud;
-  endif
-else (tidak)
-  :Biarkan sesi pending di perangkat;
 endif
 
-if (Pengguna membuka riwayat?) then (ya)
-  :Tampilkan ringkasan dan detail;
-endif
-
+:Display ride summary;
 stop
+
 @enduml
 ```
 
 ---
 
-## 3. Activity - sinkronisasi dan anchor bukti
+## 4. Class Diagram
 
 ```plantuml
 @startuml
-title Sinkronisasi dan anchor bukti perjalanan
-start
+title Core Domain & Data Architecture
 
-:Pesepeda membuka Bukti perjalanan;
-:Pesepeda memilih Catat ke blockchain;
-:RideLedgerCubit memuat blok lokal;
-
-if (Hash chain lokal valid?) then (tidak)
-  :Tampilkan error integritas;
-  stop
-endif
-
-:Sinkronkan seluruh blok ke cloud;
-if (Sinkronisasi berhasil?) then (tidak)
-  :Tampilkan error jaringan atau akun;
-  stop
-endif
-
-:Server memvalidasi consent dan head cloud;
-if (Rate limit tercapai atau head sudah di-anchor?) then (ya)
-  :Tampilkan anchor yang ada;
-  stop
-endif
-
-:Server menyimpan anchor status pending;
-:Relayer mengirim transaksi 0 ETH ke Sepolia;
-if (Transaksi berhasil dikirim?) then (ya)
-  :Server membaca receipt;
-  if (Receipt sukses?) then (ya)
-    :Status confirmed dan txHash disimpan;
-  else (tidak)
-    :Status failed;
-  endif
-else (tidak)
-  :Status failed dan error dicatat;
-endif
-
-:Pesepeda memilih Verifikasi;
-:Klien memanggil RPC publik;
-:Klien membaca chain ID, transaksi, dan receipt;
-:Klien membandingkan from, calldata, dan head hash;
-
-if (Semua cocok?) then (ya)
-  :Tampilkan status verified;
-else (tidak)
-  if (Transaksi belum masuk blok?) then (ya)
-    :Tampilkan status pending;
-  else (tidak)
-    :Tampilkan status mismatch;
-  endif
-endif
-
-stop
-@enduml
-```
-
----
-
-## 4. Class - inti domain, data, dan presentasi
-
-```plantuml
-@startuml
-title Kelas inti Senapath
 skinparam classAttributeIconSize 0
 hide circle
 
-package "core/storage" {
-  class AppDatabase {
-    +schemaVersion: int
-    +appPreferences
-    +rideSessions
-    +telemetryPoints
-    +savedRoutes
-    +rideHistory
-  }
-
-  interface SecureVault {
-    +read(key): String?
-    +write(key, value)
-    +delete(key)
-  }
-}
-
-package "features/session" {
+package "Domain Models" {
   class RideSessionSnapshot {
     +id: String
     +title: String
     +activityType: ActivityType
-    +source: String
     +startedAt: DateTime
     +endedAt: DateTime?
     +status: RideSessionStatus
     +syncStatus: String
     +distanceMeters: double
-    +gpsAccuracyMeters: double?
-    +durationAt(DateTime): Duration
+    +durationSeconds: int
   }
-
+  
   class TelemetryLocation {
     +recordedAt: DateTime
     +latitude: double
     +longitude: double
     +accuracyMeters: double
-    +altitudeMeters: double
-    +speedMetersPerSecond: double
+    +altitudeMeters: double?
+    +speedMetersPerSecond: double?
   }
-
-  class EncryptedTelemetryCodec {
-    +encode(TelemetryLocation): Uint8List
-    +decode(Uint8List): TelemetryLocation
-    +encryptBytes(List<int>): Uint8List
-    +decryptBytes(Uint8List): Uint8List
-  }
-
-  interface RideSessionRepository {
-    +start(DateTime): RideSessionSnapshot
-    +pause(id, DateTime): RideSessionSnapshot
-    +resume(id, DateTime): RideSessionSnapshot
-    +finish(id, DateTime): RideSessionSnapshot
-    +recordLocation(id, TelemetryLocation)
-    +loadCompletedSessions()
-    +loadSummary(id)
-  }
-
-  class DriftRideSessionRepository {
-    -database: AppDatabase
-    -telemetryCodec: EncryptedTelemetryCodec
-  }
-
-  class RideSessionCubit {
-    +start(route, workout)
-    +pause()
-    +resume(route)
-    +finish()
-    +syncSummary(id, consent)
-    +syncCloudSessions()
-  }
-
-  class SessionSyncCoordinator {
-    +syncSummary(id, consented, teamId)
-  }
-
-  interface SessionSyncGateway {
-    +isConfigured: bool
-    +isSignedIn: bool
-    +uploadSummary(summary, teamId)
-  }
-
-  class SupabaseSessionSyncGateway
-
-  class RideSessionCloudSync {
-    +pullSessions()
-    +pushSession(id)
-    +deleteSession(id)
-  }
-
-  interface AccountCloudGateway {
-    +isConfigured: bool
-    +isSignedIn: bool
-    +pullSetting(key)
-    +pushSetting(key, value)
-    +pushRideSession(session, points)
-    +pullRideSessions()
-    +deleteRideSession(id)
-  }
-
-  class SupabaseAccountCloudGateway
-}
-
-package "features/ledger" {
+  
   class RideLedgerBlock {
     +index: int
     +sessionId: String
@@ -374,503 +346,550 @@ package "features/ledger" {
     +previousHash: String
     +hash: String
   }
-
-  class RideLedgerAnchor {
+  
+  class CyclingTeam {
     +id: String
-    +blockCount: int
-    +headHash: String
-    +txHash: String?
-    +status: String
-    +blockNumber: int?
-    +createdAt: DateTime
-    +expectedPayload: String
-  }
-
-  class RideLedgerChainInfo {
-    +chainId: int
     +name: String
-    +explorerUrl: String
-    +publicRpcUrl: String
-    +relayerAddress: String
-  }
-
-  class AnchorVerification {
-    +status: AnchorVerificationStatus
-    +detail: String
-  }
-
-  class RideLedgerRepository {
-    -database: AppDatabase
-    +loadBlocks()
-    +appendSession(RideSessionSnapshot)
-    +verify(): bool
-  }
-
-  interface RideLedgerSyncGateway {
-    +isConfigured: bool
-    +isSignedIn: bool
-    +sync(blocks)
-    +anchor()
-    +anchors()
-  }
-
-  class SupabaseRideLedgerSyncGateway
-
-  class RideLedgerCubit {
-    +load()
-    +refreshAnchors()
-    +verify()
-    +sync()
-    +anchor()
-    +verifyAnchor(RideLedgerAnchor)
-  }
-
-  class EvmRpcClient {
-    +chainId(): int
-    +getTransaction(hash)
-    +getReceipt(hash)
-  }
-
-  class RideLedgerAnchorVerifier {
-    +verify(anchor, chain, localBlocks, rpc)
+    +inviteCode: String
+    +createdAt: DateTime
   }
 }
 
-package "features/authentication" {
-  class CustomAuthSessionManager {
-    +currentUserId: String?
-    +requireAccessToken()
-    +invokeAuthenticatedFunction(name, body)
-    +signIn(email, password)
-    +signOut()
+package "Repositories" {
+  interface RideSessionRepository {
+    +start(DateTime): RideSessionSnapshot
+    +pause(id, DateTime)
+    +resume(id, DateTime)
+    +finish(id, DateTime)
+    +recordLocation(id, TelemetryLocation)
+    +loadCompletedSessions()
   }
+  
+  class DriftRideSessionRepository {
+    -database: AppDatabase
+    -codec: EncryptedTelemetryCodec
+  }
+  
+  class RideLedgerRepository {
+    -database: AppDatabase
+    +loadBlocks(): List<RideLedgerBlock>
+    +appendSession(session)
+    +verifyChain(): bool
+  }
+  
+  class CyclingTeamRepository {
+    +joinTeam(inviteCode)
+    +leaveTeam(teamId)
+    +shareRide(teamId, sessionId)
+    +unshareRide(shareId)
+  }
+}
 
+package "Presentation" {
+  class RideSessionCubit {
+    +start(route?, workout?)
+    +pause()
+    +resume()
+    +finish()
+    +state: RideSessionState
+  }
+  
   class CloudAccountCubit {
-    +initialize()
     +signIn(email, password)
     +signUp(email, password)
     +signOut()
+    +state: CloudAccountState
   }
+  
+  class RideLedgerCubit {
+    +load()
+    +sync()
+    +anchor()
+    +verifyAnchor(anchor)
+    +state: RideLedgerState
+  }
+  
+  class CyclingTeamCubit {
+    +loadTeams()
+    +joinTeam(code)
+    +shareRide(teamId, sessionId)
+    +state: CyclingTeamState
+  }
+}
 
+package "Cloud Gateways" {
   interface CloudAccountGateway {
     +isConfigured: bool
     +isSignedIn: bool
     +signIn(email, password)
     +signUp(email, password)
-    +signOut()
   }
-
-  class SupabaseCloudAccountGateway
+  
+  class SupabaseCloudAccountGateway {
+    -sessionManager: CustomAuthSessionManager
+  }
+  
+  class CustomAuthSessionManager {
+    +currentUserId: String?
+    +requireAccessToken(): String
+    +invokeAuthenticatedFunction(name, body)
+  }
+  
+  interface RideLedgerSyncGateway {
+    +sync(blocks)
+    +anchor()
+    +anchors()
+  }
+  
+  class SupabaseRideLedgerSyncGateway
 }
 
-package "fitur cloud lain" {
-  class AiChatCubit
-  class SupabaseAiChatGateway
-  class CyclingTeamCubit
-  class SupabaseCyclingTeamRepository
-  class LeaderboardCubit
-  class SupabaseLeaderboardGateway
+package "Storage" {
+  class AppDatabase {
+    +schemaVersion: int
+    +rideSessions
+    +telemetryPoints
+    +savedRoutes
+    +rideHistory
+    +appPreferences
+  }
+  
+  interface SecureVault {
+    +read(key): String?
+    +write(key, value)
+    +delete(key)
+  }
+  
+  class EncryptedTelemetryCodec {
+    +encode(TelemetryLocation): Uint8List
+    +decode(Uint8List): TelemetryLocation
+  }
 }
 
+' Relationships
 RideSessionCubit --> RideSessionRepository
 RideSessionCubit --> RideLedgerRepository
-RideSessionCubit --> SessionSyncCoordinator
-RideSessionCubit --> RideSessionCloudSync
+CloudAccountCubit --> CloudAccountGateway
+RideLedgerCubit --> RideLedgerRepository
+RideLedgerCubit --> RideLedgerSyncGateway
+CyclingTeamCubit --> CyclingTeamRepository
+
 DriftRideSessionRepository ..|> RideSessionRepository
 DriftRideSessionRepository --> AppDatabase
 DriftRideSessionRepository --> EncryptedTelemetryCodec
 EncryptedTelemetryCodec --> SecureVault
-SessionSyncCoordinator --> RideSessionRepository
-SessionSyncCoordinator --> SessionSyncGateway
-SupabaseSessionSyncGateway ..|> SessionSyncGateway
-SupabaseSessionSyncGateway --> CustomAuthSessionManager
-RideSessionCloudSync --> RideSessionRepository
-RideSessionCloudSync --> AccountCloudGateway
-SupabaseAccountCloudGateway ..|> AccountCloudGateway
-SupabaseAccountCloudGateway --> CustomAuthSessionManager
 
-RideLedgerRepository --> AppDatabase
-RideLedgerCubit --> RideLedgerRepository
-RideLedgerCubit --> RideLedgerSyncGateway
-RideLedgerCubit --> RideLedgerAnchorVerifier
-RideLedgerCubit ..> EvmRpcClient : membuat saat verifikasi
-RideLedgerAnchorVerifier --> EvmRpcClient
-RideLedgerAnchorVerifier ..> RideLedgerBlock
-RideLedgerAnchorVerifier ..> RideLedgerAnchor
-SupabaseRideLedgerSyncGateway ..|> RideLedgerSyncGateway
-SupabaseRideLedgerSyncGateway --> CustomAuthSessionManager
-
-CloudAccountCubit --> CloudAccountGateway
 SupabaseCloudAccountGateway ..|> CloudAccountGateway
 SupabaseCloudAccountGateway --> CustomAuthSessionManager
 CustomAuthSessionManager --> SecureVault
 
-AiChatCubit --> SupabaseAiChatGateway
-CyclingTeamCubit --> SupabaseCyclingTeamRepository
-LeaderboardCubit --> SupabaseLeaderboardGateway
-SupabaseAiChatGateway --> CustomAuthSessionManager
-SupabaseCyclingTeamRepository --> CustomAuthSessionManager
-SupabaseLeaderboardGateway --> CustomAuthSessionManager
+SupabaseRideLedgerSyncGateway ..|> RideLedgerSyncGateway
+SupabaseRideLedgerSyncGateway --> CustomAuthSessionManager
 
-note bottom of RideLedgerRepository
-  Hash chain disimpan di AppPreferences
-  dengan key ride_proof_chain_v1.
-end note
+RideLedgerRepository --> AppDatabase
+CyclingTeamRepository --> CustomAuthSessionManager
 
-note bottom of CustomAuthSessionManager
-  Menyimpan token di SecureVault dan
-  memverifikasi JWT lewat Edge Function.
-end note
 @enduml
 ```
 
 ---
 
-## 5. Sequence - startup dan autentikasi
+## 5. Sequence Diagram
+
+### 5.1 Authentication & Startup
 
 ```plantuml
 @startuml
-title Startup dan login custom
-autonumber
+title Custom Authentication Flow
 
-actor "Pesepeda" as User
+actor Cyclist
 participant "CloudAccountScreen" as UI
 participant "CloudAccountCubit" as Cubit
 participant "SupabaseCloudAccountGateway" as Gateway
 participant "CustomAuthSessionManager" as Session
-participant "app-auth" as Fn
-participant "Postgres" as DB
+participant "app-auth\nEdge Function" as Auth
+participant "PostgreSQL" as DB
 participant "SecureVault" as Vault
 
-User -> UI : Membuka aplikasi
-UI -> Cubit : initialize()
-Cubit -> Gateway : restoreSession()
-Gateway -> Session : restore dari secure storage
-Session -> Vault : baca token
-Vault --> Session : token atau null
+Cyclist -> UI: Open app
+UI -> Cubit: initialize()
+Cubit -> Gateway: restoreSession()
+Gateway -> Session: restore()
+Session -> Vault: read tokens
 
-alt Sesi tersedia
-  Session -> Fn : action=refresh, refreshToken
-  Fn -> DB : rotate_app_auth_session()
-  DB --> Fn : sesi baru
-  Fn --> Session : access JWT + refresh token baru
-  Session -> Vault : simpan token baru
-  Session --> Cubit : signedIn
-  Cubit -> Cubit : muat data akun
-else Belum punya sesi
-  Cubit --> UI : tampilkan form masuk
-  User -> UI : email dan password
-  UI -> Cubit : signIn(email, password)
-  Cubit -> Gateway : signIn(email, password)
-  Gateway -> Session : signIn()
-  Session -> Fn : action=sign-in
-  Fn -> DB : baca app_users + rate limit
-  Fn -> Fn : verifikasi PBKDF2-SHA256
-  alt Kredensial valid
-    Fn -> DB : buat/rotasi sesi refresh
-    DB --> Fn : refresh token hash
-    Fn --> Session : access JWT + refresh token
-    Session -> Vault : simpan token
-    Session --> Cubit : signedIn
-    Cubit --> UI : buka Beranda
-  else Kredensial salah
-    Fn --> Session : HTTP 401
-    Session --> Cubit : error
-    Cubit --> UI : tampilkan pesan
+alt Session exists
+  Vault --> Session: access + refresh tokens
+  Session -> Auth: POST action=refresh
+  Auth -> DB: rotate_app_auth_session()
+  DB --> Auth: new tokens
+  Auth --> Session: JWT + new refresh token
+  Session -> Vault: store new tokens
+  Session --> Cubit: signed in
+  Cubit --> UI: Show home
+else No session
+  Vault --> Session: null
+  Session --> Cubit: not signed in
+  Cubit --> UI: Show sign-in form
+  
+  Cyclist -> UI: Enter email & password
+  UI -> Cubit: signIn(email, password)
+  Cubit -> Gateway: signIn()
+  Gateway -> Session: signIn()
+  Session -> Auth: POST action=sign-in
+  Auth -> DB: SELECT app_users WHERE email
+  Auth -> Auth: Verify PBKDF2-SHA256 hash
+  
+  alt Valid credentials
+    Auth -> DB: INSERT/UPDATE refresh session
+    DB --> Auth: session created
+    Auth --> Session: JWT + refresh token
+    Session -> Vault: store tokens
+    Session --> Cubit: signed in
+    Cubit --> UI: Navigate to home
+  else Invalid credentials
+    Auth --> Session: HTTP 401
+    Session --> Cubit: auth error
+    Cubit --> UI: Show error message
   end
 end
 
-Cubit -> Cubit : reset state akun lama
-Cubit -> Cubit : muat leaderboard, tim, profil, sesi
 @enduml
 ```
 
 ---
 
-## 6. Sequence - merekam dan menyelesaikan perjalanan
+### 5.2 Recording Ride Session
 
 ```plantuml
 @startuml
-title Merekam perjalanan
-autonumber
+title Record Ride Session
 
-actor "Pesepeda" as User
+actor Cyclist
 participant "SessionScreen" as UI
 participant "RideSessionCubit" as Cubit
-participant "GPS dan sensor" as Sensors
+participant "GPS & Sensors" as GPS
 participant "DriftRideSessionRepository" as Repo
 participant "EncryptedTelemetryCodec" as Codec
 participant "AppDatabase" as DB
 participant "RideLedgerRepository" as Ledger
-participant "RideHistoryRepository" as History
-participant "SessionSyncCoordinator" as Sync
-participant "Supabase" as Cloud
 
-User -> UI : Pilih mulai
-UI -> Cubit : start(route, workout)
-Cubit -> Cubit : periksa izin dan readiness
-Cubit -> Repo : start(now)
-Repo -> DB : insert RideSessions status=recording
-DB --> Repo : sesi
-Repo --> Cubit : RideSessionSnapshot
-Cubit -> Sensors : berlangganan lokasi, barometer, gerak
-Sensors --> Cubit : sampel sensor
+Cyclist -> UI: Press Start
+UI -> Cubit: start(route?, workout?)
+Cubit -> Cubit: Check permissions
+Cubit -> Repo: start(now)
+Repo -> DB: INSERT ride_sessions\nstatus=recording
+DB --> Repo: session created
+Repo --> Cubit: RideSessionSnapshot
 
-loop Selama merekam
-  Sensors --> Cubit : TelemetryLocation
-  Cubit -> Repo : recordLocation(id, point)
-  Repo -> Codec : encode(point)
-  Codec --> Repo : ciphertext AES-GCM
-  Repo -> DB : insert TelemetryPoints
-  Cubit -> UI : perbarui jarak, kecepatan, elevasi
+Cubit -> GPS: Subscribe to location stream
+activate GPS
+
+loop While recording
+  GPS -> Cubit: Location update
+  Cubit -> Repo: recordLocation(id, location)
+  Repo -> Codec: encode(location)
+  Codec -> Codec: Encrypt with AES-256-GCM
+  Codec --> Repo: ciphertext
+  Repo -> DB: INSERT telemetry_points
+  Cubit -> UI: Update metrics\n(distance, speed, elevation)
 end
 
-alt Pengguna menjeda
-  User -> UI : Jeda
-  UI -> Cubit : pause()
-  Cubit -> Sensors : hentikan stream
-  Cubit -> Repo : pause(id, now)
-  Repo -> DB : update pausedAt dan status
-else Pengguna melanjutkan
-  User -> UI : Lanjut
-  UI -> Cubit : resume(route)
-  Cubit -> Repo : resume(id, now)
-  Cubit -> Sensors : mulai stream lagi
+alt User pauses
+  Cyclist -> UI: Press Pause
+  UI -> Cubit: pause()
+  Cubit -> GPS: Unsubscribe stream
+  deactivate GPS
+  Cubit -> Repo: pause(id, now)
+  Repo -> DB: UPDATE pausedAt
+  
+  Cyclist -> UI: Press Resume
+  UI -> Cubit: resume()
+  Cubit -> Repo: resume(id, now)
+  Cubit -> GPS: Resubscribe stream
+  activate GPS
 end
 
-User -> UI : Selesai
-UI -> Cubit : finish()
-Cubit -> Sensors : hentikan semua stream
-Cubit -> Repo : finish(id, now)
-Repo -> DB : update endedAt, distance, status=completed
-DB --> Repo : sesi selesai
-Repo --> Cubit : RideSessionSnapshot
+Cyclist -> UI: Press Finish
+UI -> Cubit: finish()
+Cubit -> GPS: Stop all streams
+deactivate GPS
 
-Cubit -> Ledger : appendSession(session)
-Ledger -> Ledger : hitung hash dan previousHash
-Ledger -> DB : simpan ride_proof_chain_v1
-Ledger --> Cubit : blok ditambahkan
+Cubit -> Repo: finish(id, now)
+Repo -> Repo: Calculate summary
+Repo -> DB: UPDATE ride_sessions\nstatus=completed
+DB --> Repo: completed session
+Repo --> Cubit: RideSessionSnapshot
 
-Cubit -> History : recordCompletedRide(session)
-History -> DB : insert RideHistory
-History --> Cubit : selesai
+Cubit -> Ledger: appendSession(session)
+Ledger -> Ledger: Calculate hash chain
+Ledger -> DB: Save proof block
+Ledger --> Cubit: block appended
 
-opt Auto-sync aktif dan pengguna masuk
-  Cubit -> Sync : syncSummary(id, consented=true)
-  Sync -> Cloud : unggah ringkasan
-  Cloud --> Sync : tersimpan
-  Sync --> Cubit : status synced
+alt Auto-sync enabled & signed in
+  Cubit -> Cubit: Upload summary to cloud
 end
 
-Cubit --> UI : tampilkan ringkasan selesai
+Cubit --> UI: Display ride summary
+
 @enduml
 ```
 
 ---
 
-## 7. Sequence - sinkronisasi dan anchor blockchain
+### 5.3 Blockchain Proof Anchoring
 
 ```plantuml
 @startuml
-title Anchor bukti perjalanan ke Sepolia
-autonumber
+title Anchor Proof to Blockchain
 
-actor "Pesepeda" as User
+actor Cyclist
 participant "RideLedgerScreen" as UI
 participant "RideLedgerCubit" as Cubit
 participant "RideLedgerRepository" as Repo
 participant "SupabaseRideLedgerSyncGateway" as Gateway
-participant "sync-ride-proofs" as SyncFn
-participant "Postgres" as DB
-participant "anchor-ride-proofs" as AnchorFn
-participant "Relayer" as Relayer
+participant "sync-ride-proofs\nEdge Function" as SyncFn
+participant "anchor-ride-proofs\nEdge Function" as AnchorFn
+participant "PostgreSQL" as DB
+participant "Relayer Wallet" as Relayer
 participant "Sepolia RPC" as Chain
-participant "EvmRpcClient" as Rpc
-participant "RideLedgerAnchorVerifier" as Verifier
 
-User -> UI : Buka Bukti perjalanan
-UI -> Cubit : load()
-Cubit -> Repo : loadBlocks()
-Repo --> Cubit : blok lokal
-Cubit -> Repo : verify()
-Repo --> Cubit : valid atau tidak
-Cubit --> UI : tampilkan rantai dan anchor
+Cyclist -> UI: Open Ride Proofs
+UI -> Cubit: load()
+Cubit -> Repo: loadBlocks()
+Repo --> Cubit: local blocks
+Cubit -> Repo: verifyChain()
+Repo -> Repo: Verify hash linkage
+Repo --> Cubit: chain valid
+Cubit --> UI: Display blocks
 
-User -> UI : Catat ke blockchain
-UI -> Cubit : anchor()
-Cubit -> Repo : loadBlocks()
-Cubit -> Gateway : sync(blocks)
-Gateway -> SyncFn : POST consent=true, blocks
-SyncFn -> DB : append_my_ride_proof_blocks()
-DB --> SyncFn : blockCount dan head
-SyncFn --> Gateway : cloudSynced=true
-Gateway --> Cubit : RideLedgerSyncResult
+Cyclist -> UI: Press "Anchor to Blockchain"
+UI -> Cubit: anchor()
 
-Cubit -> Gateway : anchor()
-Gateway -> AnchorFn : POST action=anchor, consent=true
-AnchorFn -> DB : reserve_ride_proof_anchor()
-alt Ditolak karena rate limit atau head sama
-  DB --> AnchorFn : error atau anchor lama
-  AnchorFn --> Gateway : daftar anchor
-  Gateway --> Cubit : anchor lama
-  Cubit --> UI : tampilkan pesan
-else Reservasi berhasil
-  DB --> AnchorFn : anchor_id, head, block_count
-  AnchorFn -> AnchorFn : build payload senapath:v1
-  AnchorFn -> Relayer : kirim transaksi 0 ETH
-  Relayer -> Chain : eth_sendRawTransaction
-  Chain --> Relayer : txHash
-  Relayer --> AnchorFn : txHash
-  AnchorFn -> DB : status pending + txHash
-  AnchorFn -> Chain : baca receipt
-  alt Receipt sukses
-    AnchorFn -> DB : status confirmed + blockNumber
-  else Receipt gagal
-    AnchorFn -> DB : status failed
+Cubit -> Gateway: sync(blocks)
+Gateway -> SyncFn: POST blocks + JWT
+SyncFn -> DB: append_my_ride_proof_blocks()
+DB --> SyncFn: block count + head hash
+SyncFn --> Gateway: sync success
+Gateway --> Cubit: synced
+
+Cubit -> Gateway: anchor()
+Gateway -> AnchorFn: POST action=anchor + JWT
+AnchorFn -> DB: reserve_ride_proof_anchor()
+
+alt Rate limit or duplicate
+  DB --> AnchorFn: existing anchor
+  AnchorFn --> Gateway: anchor list
+  Gateway --> Cubit: existing anchor
+  Cubit --> UI: Show existing anchor
+else New anchor allowed
+  DB --> AnchorFn: anchor_id, head, count
+  AnchorFn -> AnchorFn: Build calldata:\nsenapath:v1:<count>:<head>
+  AnchorFn -> Relayer: Sign transaction\n(0 ETH, calldata)
+  Relayer -> Chain: eth_sendRawTransaction
+  Chain --> Relayer: txHash
+  Relayer --> AnchorFn: txHash
+  
+  AnchorFn -> DB: UPDATE anchor\nstatus=pending, txHash
+  
+  AnchorFn -> Chain: eth_getTransactionReceipt
+  alt Receipt success
+    Chain --> AnchorFn: receipt (status=1)
+    AnchorFn -> DB: UPDATE anchor\nstatus=confirmed
+  else Receipt failed
+    Chain --> AnchorFn: receipt (status=0)
+    AnchorFn -> DB: UPDATE anchor\nstatus=failed
   end
-  AnchorFn --> Gateway : daftar anchor terbaru
-  Gateway --> Cubit : anchors
-  Cubit --> UI : status anchor
+  
+  AnchorFn --> Gateway: anchor list
+  Gateway --> Cubit: anchors
+  Cubit --> UI: Show anchor with txHash
 end
 
-User -> UI : Verifikasi anchor
-UI -> Cubit : verifyAnchor(anchor)
-Cubit -> Rpc : chainId()
-Rpc --> Cubit : chain ID
-Cubit -> Verifier : verify(anchor, chain, localBlocks, rpc)
-Verifier -> Rpc : getTransaction(txHash)
-Rpc --> Verifier : transaksi
-Verifier -> Rpc : getReceipt(txHash)
-Rpc --> Verifier : receipt
-Verifier -> Verifier : cek chain, from, calldata, head hash
-Verifier --> Cubit : AnchorVerification
-Cubit --> UI : verified, pending, atau mismatch
+Cyclist -> UI: Press "Open in Explorer"
+UI -> UI: Open browser:\nsepolia.etherscan.io/tx/<txHash>
+
+Cyclist -> UI: Press "Verify via RPC"
+UI -> Cubit: verifyAnchor(anchor)
+Cubit -> Chain: eth_getTransactionByHash(txHash)
+Chain --> Cubit: transaction data
+Cubit -> Chain: eth_getTransactionReceipt(txHash)
+Chain --> Cubit: receipt
+
+Cubit -> Cubit: Verify:\n- chainId matches\n- from = relayer address\n- calldata contains head hash\n- receipt status = success
+
+alt All checks pass
+  Cubit --> UI: Status: VERIFIED
+else Mismatch
+  Cubit --> UI: Status: MISMATCH
+end
+
 @enduml
 ```
 
 ---
 
-## 8. Sequence - chat AI dan kuota
+### 5.4 Team Management
 
 ```plantuml
 @startuml
-title Chat AI dengan kuota harian
-autonumber
+title Join Team & Share Ride
 
-actor "Pesepeda" as User
-participant "AiChatScreen" as UI
-participant "AiChatCubit" as Cubit
-participant "SupabaseAiChatGateway" as Gateway
-participant "CustomAuthSessionManager" as Session
-participant "rider-assistant" as Fn
-participant "Postgres" as DB
-participant "Gemini" as Gemini
-
-User -> UI : Kirim pertanyaan
-UI -> Cubit : sendMessage(text)
-Cubit -> Cubit : tambah pesan pengguna
-Cubit -> Gateway : send(messages)
-Gateway -> Session : requireAccessToken()
-Session --> Gateway : access JWT
-Gateway -> Fn : POST messages + Authorization
-Fn -> Session : verifikasi JWT
-Session --> Fn : user id
-Fn -> DB : consume_ai_chat_quota(userId)
-DB --> Fn : true atau false
-
-alt Kuota habis
-  Fn --> Gateway : HTTP 429
-  Gateway --> Cubit : error kuota
-  Cubit --> UI : tampilkan pesan
-else Kuota tersedia
-  Fn -> Gemini : generateContent(messages)
-  alt Gemini sukses
-    Gemini --> Fn : teks jawaban
-    Fn --> Gateway : jawaban
-    Gateway --> Cubit : teks
-    Cubit -> Cubit : tambah pesan asisten
-    Cubit --> UI : tampilkan jawaban
-  else Gemini gagal
-    Gemini --> Fn : error 4xx/5xx
-    Fn --> Gateway : pesan error
-    Gateway --> Cubit : error
-    Cubit --> UI : tampilkan pesan
-  end
-end
-
-opt Ganti akun
-  Cubit -> Cubit : clearConversation()
-end
-@enduml
-```
-
-Catatan: kuota diperiksa sebelum panggilan Gemini. Jika Gemini gagal setelah
-kuota terpakai, perilaku pengembalian kuota ditentukan oleh implementasi
-`consume_ai_chat_quota`; lihat migrasi `20261001000000_ai_chat_quota.sql`.
-
----
-
-## 9. Sequence - bergabung dengan tim
-
-```plantuml
-@startuml
-title Bergabung dan berbagi ringkasan tim
-autonumber
-
-actor "Pesepeda" as User
+actor Cyclist
 participant "CyclingTeamScreen" as UI
 participant "CyclingTeamCubit" as Cubit
 participant "SupabaseCyclingTeamRepository" as Repo
 participant "CustomAuthSessionManager" as Session
-participant "Postgres" as DB
+participant "PostgreSQL" as DB
 
-User -> UI : Masukkan kode undangan
-UI -> Cubit : joinTeam(inviteCode)
-Cubit -> Repo : join(inviteCode)
-Repo -> Session : requireAccessToken()
-Session --> Repo : access JWT
-Repo -> DB : RPC join_cycling_team(inviteCode)
-DB -> DB : validasi kode 32 hex
-DB -> DB : insert cycling_team_members
-DB --> Repo : tim dan peran
-Repo --> Cubit : CyclingTeam
-Cubit --> UI : dashboard tim
+Cyclist -> UI: Press "Join Team"
+UI -> UI: Show invite code input
+Cyclist -> UI: Enter 32-hex code
+UI -> Cubit: joinTeam(inviteCode)
 
-User -> UI : Bagikan sesi
-UI -> Cubit : shareSummary(sessionId)
-Cubit -> Repo : shareRide(teamId, sessionId)
-Repo -> DB : insert team_shared_ride_summaries
-DB --> Repo : tautan tersimpan
-Repo --> Cubit : sukses
-Cubit --> UI : ringkasan tampil untuk anggota
+Cubit -> Repo: join(inviteCode)
+Repo -> Session: requireAccessToken()
+Session --> Repo: JWT
 
-alt Anggota keluar
-  User -> UI : Keluar dari tim
-  UI -> Cubit : leaveTeam(teamId)
-  Cubit -> Repo : leave(teamId)
-  Repo -> DB : RPC leave_cycling_team()
-  DB -> DB : hapus keanggotaan atau tolak jika ketua
-  DB --> Repo : hasil
-else Ketua menghapus tim
-  User -> UI : Hapus tim
-  UI -> Cubit : deleteTeam(teamId)
-  Cubit -> Repo : delete(teamId)
-  Repo -> DB : RPC delete_cycling_team()
-  DB -> DB : hapus tim dan tautan ringkasan
-  DB --> Repo : hasil
-end
+Repo -> DB: RPC join_cycling_team(code)
+DB -> DB: Validate code format
+DB -> DB: Check team exists
+DB -> DB: INSERT cycling_team_members\nrole=member
+DB --> Repo: team info + role
+Repo --> Cubit: CyclingTeam
+
+Cubit --> UI: Show team dashboard
+
+== Sharing Ride ==
+
+Cyclist -> UI: Select completed ride
+Cyclist -> UI: Press "Share to Team"
+UI -> Cubit: shareRide(teamId, sessionId)
+
+Cubit -> Repo: shareRide(teamId, sessionId)
+Repo -> DB: INSERT team_shared_ride_summaries
+DB --> Repo: share record created
+Repo --> Cubit: success
+
+Cubit --> UI: "Ride shared to team"
+UI -> UI: Show ride in team feed
+
+note right of DB
+  Team members can now see:
+  - Ride date, distance, duration
+  - Elevation gain
+  - Activity type
+  
+  NOT shared:
+  - GPS coordinates
+  - Telemetry data
+  - Personal info
+end note
+
 @enduml
 ```
 
 ---
 
-## Cara merender
+### 5.5 AI Chat Assistant
 
-- VS Code: pasang ekstensi `PlantUML` (jebbs), buka preview pada blok diagram.
-- JetBrains: pasang plugin PlantUML.
-- CLI: ekstrak satu blok ke file `.puml`, lalu jalankan
-  `java -jar plantuml.jar diagram.puml`.
-- Online: tempel isi blok `@startuml ... @enduml` ke PlantUML Server.
+```plantuml
+@startuml
+title AI Chat with Quota
 
-Jika diagram diubah, jaga agar nama kelas dan method tetap sesuai dengan kode di
-`lib/`. Diagram ini adalah dokumentasi arsitektur, bukan pengganti test.
+actor Cyclist
+participant "AiChatScreen" as UI
+participant "AiChatCubit" as Cubit
+participant "SupabaseAiChatGateway" as Gateway
+participant "CustomAuthSessionManager" as Session
+participant "rider-assistant\nEdge Function" as Assistant
+participant "PostgreSQL" as DB
+participant "Gemini API" as Gemini
+
+Cyclist -> UI: Type question
+UI -> Cubit: sendMessage(text)
+Cubit -> Cubit: Add user message to state
+
+Cubit -> Gateway: send(messages)
+Gateway -> Session: requireAccessToken()
+Session --> Gateway: JWT
+
+Gateway -> Assistant: POST messages + JWT
+Assistant -> Session: Verify JWT
+Session --> Assistant: user_id
+
+Assistant -> DB: consume_ai_chat_quota(user_id)
+DB -> DB: Check daily limit (30/day)
+
+alt Quota exhausted
+  DB --> Assistant: false
+  Assistant --> Gateway: HTTP 429
+  Gateway --> Cubit: quota error
+  Cubit --> UI: "Daily limit reached"
+else Quota available
+  DB --> Assistant: true
+  Assistant -> Gemini: generateContent(messages)
+  
+  alt Gemini success
+    Gemini --> Assistant: response text
+    Assistant --> Gateway: response
+    Gateway --> Cubit: message
+    Cubit -> Cubit: Add assistant message
+    Cubit --> UI: Display response
+  else Gemini error
+    Gemini --> Assistant: HTTP 4xx/5xx
+    Assistant --> Gateway: error message
+    Gateway --> Cubit: error
+    Cubit --> UI: "AI service unavailable"
+  end
+end
+
+@enduml
+```
+
+---
+
+## How to Render
+
+**VS Code:**  
+Install "PlantUML" extension by jebbs, then open preview on any diagram block.
+
+**JetBrains IDEs:**  
+Install PlantUML plugin, right-click diagram block → "Show PlantUML Diagram".
+
+**Online:**  
+Copy diagram code to [PlantUML Server](http://www.plantuml.com/plantuml/uml/).
+
+**CLI:**  
+```bash
+# Extract diagram to file.puml
+java -jar plantuml.jar file.puml
+```
+
+---
+
+## Architecture Notes
+
+**Clean Architecture:**  
+- **Presentation:** Cubit (BLoC pattern) manages UI state
+- **Domain:** Models and repository interfaces (platform-agnostic)
+- **Data:** Repository implementations, gateways, Drift database
+- **Platform:** Native integrations (GPS, sensors, secure storage)
+
+**Offline-First:**  
+All core features work locally. Cloud sync is optional and explicit.
+
+**Security:**  
+- Telemetry encrypted with AES-256-GCM before storage
+- Credentials use PBKDF2-SHA256 hashing
+- Tokens stored in flutter_secure_storage
+- Custom JWT verified by Edge Functions
+
+**Blockchain Integration:**  
+- Ethereum Sepolia testnet (no real value)
+- Server-side relayer (user doesn't need wallet)
+- Proof verification via public RPC (trustless)
+- Only proof hashes on-chain, no personal data
+
+---
+
+Untuk dokumentasi naratif lengkap, lihat [CODEBASE.md](CODEBASE.md).

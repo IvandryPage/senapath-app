@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:synchronized/synchronized.dart';
 
 import '../data/readiness_checker.dart';
 import '../data/ambient_light_source.dart';
@@ -23,7 +24,9 @@ import '../domain/ride_session.dart';
 import '../../workouts/data/interval_workout_repository.dart';
 import '../../workouts/domain/interval_workout.dart';
 
+/// Status sesi berkendara.
 class RideSessionState {
+  /// Membuat status sesi berkendara.
   const RideSessionState({
     this.isInitialized = false,
     this.isLoading = false,
@@ -74,6 +77,7 @@ class RideSessionState {
   final bool? isAmbientBright;
   final bool messageIsSuccess;
 
+  /// Membuat salinan status dengan pembaruan.
   RideSessionState copyWith({
     bool? isInitialized,
     bool? isLoading,
@@ -146,14 +150,18 @@ class RideSessionState {
         : messageIsSuccess,
   );
 
+  /// Menentukan apakah sesi bisa dimulai.
   bool get canStart => readiness?.canStartRecording ?? false;
 
+  /// Menghitung durasi sesi saat ini.
   Duration get elapsed => session == null
       ? Duration.zero
       : session!.durationAt(now ?? DateTime.now().toUtc());
 }
 
+/// Cubit untuk mengelola sesi berkendara dan telemetri.
 class RideSessionCubit extends Cubit<RideSessionState> {
+  /// Membuat cubit sesi berkendara.
   RideSessionCubit({
     required this.repository,
     required this.readinessChecker,
@@ -218,16 +226,22 @@ class RideSessionCubit extends Cubit<RideSessionState> {
   WorkoutCheckpoint? _workoutCheckpoint;
   bool _updatingWorkout = false;
   bool _syncSettingsLoaded = false;
+  
+  // Lock for protecting concurrent telemetry writes
+  final Lock _telemetryLock = Lock();
 
   static const Duration _performanceChartSampleInterval = Duration(seconds: 5);
   static const int _maxPerformanceChartSamples = 60;
 
+  /// Menentukan apakah sinkronisasi via coordinator tersedia.
   bool get canSyncSessions =>
       syncCoordinator?.gateway.isConfigured == true &&
       syncCoordinator?.gateway.isSignedIn == true;
 
+  /// Menentukan apakah sinkronisasi cloud tersedia.
   bool get canCloudSync => cloudSync?.canSync == true;
 
+  /// Menginisialisasi sesi, memulihkan sesi berjalan, dan memuat riwayat.
   Future<void> initialize() async {
     if (state.isInitialized || state.isLoading) return;
     emit(state.copyWith(isLoading: true, clearMessage: true));
@@ -335,6 +349,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memeriksa kesiapan perangkat.
   Future<void> checkReadiness({
     bool requestLocationPermission = false,
     bool requestNotificationPermission = false,
@@ -364,6 +379,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Membuka pengaturan lokasi.
   Future<void> openLocationSettings() async {
     try {
       await readinessChecker.openLocationSettings();
@@ -372,6 +388,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Membuka pengaturan notifikasi.
   Future<void> openNotificationSettings() async {
     try {
       await readinessChecker.openNotificationSettings();
@@ -380,6 +397,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Membuka pengaturan layanan lokasi.
   Future<void> openLocationServiceSettings() async {
     try {
       await readinessChecker.openLocationServiceSettings();
@@ -388,6 +406,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memulai sesi berkendara baru.
   Future<void> start({RouteRecord? route, IntervalWorkout? workout}) async {
     if (state.session != null &&
         state.session!.status != RideSessionStatus.completed) {
@@ -499,6 +518,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menjeda sesi yang sedang merekam.
   Future<void> pause() async {
     final session = state.session;
     if (session == null || session.status != RideSessionStatus.recording) {
@@ -517,6 +537,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Melanjutkan sesi yang dijeda.
   Future<void> resume({RouteRecord? route}) async {
     final session = state.session;
     if (session == null || session.status != RideSessionStatus.paused) {
@@ -553,6 +574,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menyelesaikan sesi dan memicu penyimpanan riwayat.
   Future<void> finish() async {
     final session = state.session;
     if (session == null || session.status == RideSessionStatus.completed) {
@@ -649,6 +671,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memuat ringkasan dan lokasi sesi untuk tampilan.
   Future<void> loadSummary(String sessionId) async {
     final generation = ++_summaryGeneration;
     emit(state.copyWith(isLoadingSummary: true, clearSummary: true));
@@ -676,6 +699,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memperbarui metadata aktivitas pada sesi selesai.
   Future<void> updateActivityMetadata({
     required String sessionId,
     required String title,
@@ -710,6 +734,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menghapus sesi selesai secara lokal dan di cloud jika memungkinkan.
   Future<bool> deleteCompletedSession(String sessionId) async {
     final sync = cloudSync;
     final remoteCopyMayExist = state.completedSessions.any(
@@ -748,6 +773,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menyinkronkan ringkasan sesi ke akun online.
   Future<void> syncSummary(
     String sessionId, {
     required bool consented,
@@ -824,6 +850,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memuat pengaturan sinkronisasi otomatis.
   Future<bool> _loadAutoSyncSetting() async {
     final repository = syncSettingsRepository;
     if (repository == null) {
@@ -835,6 +862,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     return enabled;
   }
 
+  /// Memuat pengaturan sinkronisasi jika belum dimuat.
   Future<void> loadSyncSettings() async {
     if (_syncSettingsLoaded || state.isLoading) return;
     try {
@@ -847,6 +875,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Mengaktifkan atau menonaktifkan sinkronisasi otomatis.
   Future<void> setAutoSyncEnabled(bool enabled) async {
     final repository = syncSettingsRepository;
     if (repository == null || state.isSavingAutoSync) return;
@@ -874,6 +903,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menyinkronkan sesi tertunda secara bertahap.
   Future<void> syncPendingSessions() async {
     if (!state.autoSyncEnabled ||
         canCloudSync ||
@@ -894,6 +924,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memulai retry sinkronisasi otomatis berkala.
   void _startAutoSyncRetry({bool runImmediately = true}) {
     _autoSyncRetryTimer ??= Timer.periodic(
       const Duration(minutes: 1),
@@ -910,23 +941,38 @@ class RideSessionCubit extends Cubit<RideSessionState> {
 
   /// Pulls every ride from the account cloud, merges it into local storage, and
   /// pushes any locally recorded rides that are not yet in the cloud.
+  /// 
+  /// This method is called after sign-in to restore cloud data, regardless of
+  /// autoSyncEnabled setting. The autoSyncEnabled flag only controls automatic
+  /// syncing after finishing a ride, not initial data restoration.
   Future<void> syncCloudSessions() async {
     final sync = cloudSync;
-    if (sync == null || !state.autoSyncEnabled || !canCloudSync || isClosed) {
+    if (sync == null || !canCloudSync || isClosed) {
+      // Debug: Cannot sync - sync=$sync, canCloudSync=$canCloudSync, isClosed=$isClosed
       return;
     }
+    
     try {
+      // Pull all sessions from cloud and merge with local database
       await sync.pullSessions(
-        shouldContinue: () =>
-            !isClosed && state.autoSyncEnabled && canCloudSync,
+        shouldContinue: () => !isClosed && canCloudSync,
       );
+      
+      // Reload local sessions to reflect the merged data
+      await _reloadCompletedSessions();
+      
+      // Only push pending local sessions if auto-sync is enabled
+      if (state.autoSyncEnabled) {
+        await _pushPendingCloudSessions();
+      }
     } catch (_) {
       // Offline or transient failure: local history remains authoritative.
+      // Still reload local sessions to show what we have
+      await _reloadCompletedSessions();
     }
-    await _reloadCompletedSessions();
-    await _pushPendingCloudSessions();
   }
 
+  /// Mengirim sesi yang belum tersinkron ke cloud secara bertahap.
   Future<void> _pushPendingCloudSessions() async {
     final sync = cloudSync;
     if (sync == null || !state.autoSyncEnabled || !canCloudSync || isClosed) {
@@ -952,6 +998,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     if (changed) await _reloadCompletedSessions();
   }
 
+  /// Mengirim satu sesi ke cloud lalu memuat ulang riwayat.
   Future<void> _pushCloudSession(String sessionId) async {
     final sync = cloudSync;
     if (sync == null || !state.autoSyncEnabled || !canCloudSync || isClosed) {
@@ -974,6 +1021,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memuat ulang daftar sesi selesai dari penyimpanan lokal.
   Future<void> _reloadCompletedSessions() async {
     try {
       final history = await repository.loadCompletedSessions();
@@ -984,6 +1032,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menyinkronkan sesi selesai melalui coordinator bila memungkinkan.
   Future<void> _syncCompletedSession(
     String sessionId, {
     bool preserveLocalConfirmation = false,
@@ -1001,17 +1050,32 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
   }
 
+  /// Membatalkan proses sinkronisasi yang sedang berjalan.
   void cancelPendingSync() {
     if (state.syncingSessionId == null) return;
     _syncGeneration++;
     emit(state.copyWith(clearSyncingSession: true));
   }
+  
+  /// Membersihkan sesi yang belum tersinkron ke cloud saat logout.
+  /// Ini mencegah data sesi user A dilihat oleh user B setelah login.
+  Future<void> clearUnsyncedSessions() async {
+    final repository = this.repository;
+    final completedSessions = state.completedSessions;
+    final unsynced = completedSessions.where((s) => s.syncStatus != 'synced').toList();
+    
+    if (repository is DriftRideSessionRepository && unsynced.isNotEmpty) {
+      await repository.deleteUnsyncedSessions();
+    }
+  }
 
+  /// Menutup dan membersihkan ringkasan yang sedang ditampilkan.
   void closeSummary() {
     _summaryGeneration++;
     emit(state.copyWith(clearSummary: true, isLoadingSummary: false));
   }
 
+  /// Mengolah pembaruan lokasi, jarak, dan kecepatan sesi.
   Future<void> _handlePosition(String sessionId, Position position) async {
     final current = state.session;
     if (current == null ||
@@ -1062,47 +1126,56 @@ class RideSessionCubit extends Cubit<RideSessionState> {
       rotationRateMagnitudeRadiansPerSecond: _rotationRateMagnitude,
       speedMetersPerSecond: reportedSpeed ?? derivedSpeed ?? 0,
     );
-    final updated = await repository.recordLocation(
-      sessionId: sessionId,
-      location: location,
-      addedDistanceMeters: addedDistanceMeters,
-    );
-    if (updated != null && state.session?.id == sessionId) {
-      final routeProgress = _routeProgressCalculator?.calculate(location);
-      final now = _clock().toUtc();
-      final lastSample = _lastPerformanceSampleAt;
-      final shouldSamplePerformance =
-          lastSample == null ||
-          now.difference(lastSample) >= _performanceChartSampleInterval;
-      if (shouldSamplePerformance) _lastPerformanceSampleAt = now;
-      final performanceLocations = shouldSamplePerformance
-          ? [...state.performanceLocations, location]
-          : state.performanceLocations;
-      if (performanceLocations.length > _maxPerformanceChartSamples) {
-        performanceLocations.removeRange(
-          0,
-          performanceLocations.length - _maxPerformanceChartSamples,
-        );
-      }
-      emit(
-        state.copyWith(
-          session: updated,
-          recordedLocations: [...state.recordedLocations, location],
-          performanceLocations: shouldSamplePerformance
-              ? performanceLocations
-              : null,
-          routeProgress: routeProgress,
-          clearRouteProgress: routeProgress == null,
-          now: now,
-        ),
+    
+    // Protect concurrent telemetry writes with lock to prevent race conditions
+    await _telemetryLock.synchronized(() async {
+      // Double-check session still valid after acquiring lock
+      if (isClosed || state.session?.id != sessionId) return;
+      
+      final updated = await repository.recordLocation(
+        sessionId: sessionId,
+        location: location,
+        addedDistanceMeters: addedDistanceMeters,
       );
-      await _updateWorkoutProgress();
-      unawaited(_notifyRouteProgress(location, routeProgress));
-    }
+      
+      if (updated != null && state.session?.id == sessionId) {
+        final routeProgress = _routeProgressCalculator?.calculate(location);
+        final now = _clock().toUtc();
+        final lastSample = _lastPerformanceSampleAt;
+        final shouldSamplePerformance =
+            lastSample == null ||
+            now.difference(lastSample) >= _performanceChartSampleInterval;
+        if (shouldSamplePerformance) _lastPerformanceSampleAt = now;
+        final performanceLocations = shouldSamplePerformance
+            ? [...state.performanceLocations, location]
+            : state.performanceLocations;
+        if (performanceLocations.length > _maxPerformanceChartSamples) {
+          performanceLocations.removeRange(
+            0,
+            performanceLocations.length - _maxPerformanceChartSamples,
+          );
+        }
+        emit(
+          state.copyWith(
+            session: updated,
+            recordedLocations: [...state.recordedLocations, location],
+            performanceLocations: shouldSamplePerformance
+                ? performanceLocations
+                : null,
+            routeProgress: routeProgress,
+            clearRouteProgress: routeProgress == null,
+            now: now,
+          ),
+        );
+        await _updateWorkoutProgress();
+        unawaited(_notifyRouteProgress(location, routeProgress));
+      }
+    });
   }
 
   RouteRecord? _activeRoute;
 
+  /// Mengatur rute aktif dan menghitung ulang progresnya.
   void setActiveRoute(RouteRecord? route) {
     if (state.session?.status != RideSessionStatus.recording) return;
     _activeRoute = route;
@@ -1127,6 +1200,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     unawaited(_prepareRouteNotifications());
   }
 
+  /// Memuat pengaturan dan izin notifikasi rute.
   Future<void> _prepareRouteNotifications() async {
     final settingsRepository = notificationSettingsRepository;
     final service = notificationService;
@@ -1150,6 +1224,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Mengatur ulang status notifikasi progres rute.
   void _resetRouteNotifications() {
     _lastNotifiedProgress = 0;
     _approachedCheckpoints.clear();
@@ -1157,6 +1232,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     _routeNotificationsFailed = false;
   }
 
+  /// Menampilkan notifikasi progres dan checkpoint rute bila relevan.
   Future<void> _notifyRouteProgress(
     TelemetryLocation location,
     RouteProgress? progress,
@@ -1216,6 +1292,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Berlangganan aliran lokasi untuk sesi yang sedang merekam.
   Future<void> _startLocationStream(String sessionId) async {
     await _stopLocationStream();
     if (state.session?.id != sessionId ||
@@ -1229,6 +1306,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
   }
 
+  /// Menjeda sesi dan memberi pesan saat aliran lokasi gagal.
   Future<void> _handleLocationStreamError(
     String sessionId,
     Object error,
@@ -1262,6 +1340,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
   }
 
+  /// Menyusun rincian pesan kesalahan untuk ditampilkan.
   String _errorDetails(Object error) {
     if (error is PlatformException) {
       final message = error.message;
@@ -1272,6 +1351,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     return error.toString();
   }
 
+  /// Berlangganan aliran tekanan barometer bila tersedia.
   Future<void> _startBarometerStream() async {
     await _stopBarometerStream();
     final source = barometerSource;
@@ -1286,6 +1366,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }, onError: (Object _) => _barometricPressureHpa = null);
   }
 
+  /// Berlangganan sensor akselerometer dan giroskop.
   Future<void> _startMotionSensorStreams() async {
     await _stopMotionSensorStreams();
     final source = motionSensorSource;
@@ -1310,6 +1391,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     _startMotionTicker();
   }
 
+  /// Memperbarui akselerasi dan estimasi irama dari sensor.
   void _handleAccelerometerEvent(AccelerometerEvent event) {
     final magnitude = math.sqrt(
       event.x * event.x + event.y * event.y + event.z * event.z,
@@ -1323,6 +1405,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Memperbarui laju rotasi dari sensor giroskop.
   void _handleGyroscopeEvent(GyroscopeEvent event) {
     final magnitude = math.sqrt(
       event.x * event.x + event.y * event.y + event.z * event.z,
@@ -1332,6 +1415,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     _appendMotionSample(_rotationHistory, magnitude);
   }
 
+  /// Menambahkan sampel gerakan sambil membatasi jumlah riwayat.
   void _appendMotionSample(List<double> history, double value) {
     history.add(value);
     if (history.length > _maxMotionSamples) {
@@ -1339,6 +1423,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menjalankan timer berkala untuk memancarkan snapshot gerakan.
   void _startMotionTicker() {
     _motionTicker?.cancel();
     _motionTicker = Timer.periodic(_performanceChartSampleInterval, (_) {
@@ -1346,6 +1431,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     });
   }
 
+  /// Memancarkan snapshot gerakan terbaru ke state.
   void _emitMotion() {
     if (isClosed || state.session?.status != RideSessionStatus.recording) {
       return;
@@ -1364,18 +1450,21 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
   }
 
+  /// Menghentikan langganan aliran lokasi.
   Future<void> _stopLocationStream() async {
     final subscription = _positionSubscription;
     _positionSubscription = null;
     await subscription?.cancel();
   }
 
+  /// Menghentikan langganan aliran barometer.
   Future<void> _stopBarometerStream() async {
     final subscription = _barometerSubscription;
     _barometerSubscription = null;
     await subscription?.cancel();
   }
 
+  /// Menghentikan timer dan langganan sensor gerakan.
   Future<void> _stopMotionSensorStreams() async {
     _motionTicker?.cancel();
     _motionTicker = null;
@@ -1389,6 +1478,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     ]);
   }
 
+  /// Menjalankan timer pembaruan durasi dan progres latihan.
   void _startTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -1399,6 +1489,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     });
   }
 
+  /// Memperbarui progres interval dan berpindah interval bila selesai.
   Future<void> _updateWorkoutProgress() async {
     if (_updatingWorkout || isClosed) return;
     final workout = state.workout;
@@ -1482,6 +1573,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menghitung progres interval berdasarkan waktu atau jarak.
   WorkoutIntervalProgress _calculateWorkoutProgress(
     IntervalWorkout workout,
     WorkoutCheckpoint checkpoint,
@@ -1512,6 +1604,7 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     );
   }
 
+  /// Memutar isyarat suara dan getar untuk latihan bila aktif.
   Future<void> _playWorkoutCue(IntervalWorkout workout) async {
     // Cue channels are best-effort and must never interrupt ride capture.
     var cueFailed = false;
@@ -1538,11 +1631,14 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Menampilkan pesan status kepada pengguna.
   void _setMessage(String message, {bool isSuccess = false}) =>
       emit(state.copyWith(message: message, messageIsSuccess: isSuccess));
 
+  /// Menghapus pesan status yang sedang ditampilkan.
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 
+  /// Berlangganan sensor cahaya untuk menyesuaikan tema.
   void _startAmbientLightStream() {
     final source = ambientLightSource;
     if (source == null || _ambientLightSubscription != null) return;
@@ -1583,14 +1679,23 @@ class RideSessionCubit extends Cubit<RideSessionState> {
     }
   }
 
+  /// Membatalkan timer, langganan, dan sumber daya sebelum menutup cubit.
   @override
   Future<void> close() async {
     _ticker?.cancel();
+    _ticker = null;
     _autoSyncRetryTimer?.cancel();
-    await _ambientLightSubscription?.cancel();
-    await _stopLocationStream();
-    await _stopBarometerStream();
-    await _stopMotionSensorStreams();
+    _autoSyncRetryTimer = null;
+    
+    // Cancel all subscriptions in parallel for faster cleanup
+    await Future.wait([
+      if (_ambientLightSubscription != null)
+        _ambientLightSubscription!.cancel().then((_) => _ambientLightSubscription = null),
+      _stopLocationStream(),
+      _stopBarometerStream(),
+      _stopMotionSensorStreams(),
+    ]);
+    
     await super.close();
   }
 }
@@ -1601,6 +1706,7 @@ class _CadenceEstimator {
   final List<double> _magnitudes = [];
   final List<DateTime> _times = [];
 
+  /// Menambahkan sampel akselerasi dan mengestimasi irama kayuh.
   double? add(double magnitude, DateTime at) {
     if (!magnitude.isFinite) return null;
     _magnitudes.add(magnitude);
@@ -1632,6 +1738,7 @@ class _CadenceEstimator {
     return rpm;
   }
 
+  /// Mengosongkan sampel dan riwayat estimator irama.
   void reset() {
     _magnitudes.clear();
     _times.clear();

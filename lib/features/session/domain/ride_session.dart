@@ -5,6 +5,7 @@ enum RideSessionStatus { recording, paused, completed }
 enum RideActivityType { ride, commute, training, race }
 
 class RideSessionSnapshot {
+  /// Membuat snapshot sesi berkendara.
   const RideSessionSnapshot({
     required this.id,
     this.title = '',
@@ -35,6 +36,7 @@ class RideSessionSnapshot {
   final String syncStatus;
   final double? gpsAccuracyMeters;
 
+  /// Menghitung durasi sesi hingga waktu tertentu dengan memperhitungkan jeda.
   Duration durationAt(DateTime now) {
     final end = endedAt ?? now;
     final currentlyPaused =
@@ -50,6 +52,7 @@ class RideSessionSnapshot {
 }
 
 class TelemetryLocation {
+  /// Membuat titik telemetri lokasi.
   const TelemetryLocation({
     required this.recordedAt,
     required this.latitude,
@@ -74,6 +77,7 @@ class TelemetryLocation {
   final double? rotationRateMagnitudeRadiansPerSecond;
   final double speedMetersPerSecond;
 
+  /// Mengonversi lokasi telemetri ke bentuk JSON.
   Map<String, Object?> toJson() => {
     'latitude': latitude,
     'longitude': longitude,
@@ -88,6 +92,7 @@ class TelemetryLocation {
     'speedMetersPerSecond': speedMetersPerSecond,
   };
 
+  /// Membuat lokasi telemetri dari data JSON.
   factory TelemetryLocation.fromJson(
     Map<String, dynamic> json, {
     required DateTime recordedAt,
@@ -110,6 +115,7 @@ class TelemetryLocation {
 }
 
 class MotionSnapshot {
+  /// Membuat snapshot data gerakan dan irama.
   const MotionSnapshot({
     this.accelerationMagnitude,
     this.rotationRateMagnitude,
@@ -126,26 +132,33 @@ class MotionSnapshot {
   final List<double> rotationHistory;
   final List<double> cadenceHistory;
 
+  /// Menentukan apakah snapshot gerakan memiliki data.
   bool get hasData =>
       accelerationMagnitude != null ||
       rotationRateMagnitude != null ||
       accelerationHistory.isNotEmpty ||
       rotationHistory.isNotEmpty;
 
+  /// Menentukan apakah grafik akselerasi tersedia.
   bool get hasAccelerationGraph => accelerationHistory.length >= 2;
 
+  /// Menentukan apakah grafik rotasi tersedia.
   bool get hasRotationGraph => rotationHistory.length >= 2;
 
+  /// Menentukan apakah grafik irama tersedia.
   bool get hasCadenceGraph => cadenceHistory.length >= 2;
 
+  /// Menghitung puncak akselerasi.
   double? get peakAcceleration =>
       accelerationHistory.isEmpty ? null : accelerationHistory.reduce(math.max);
 
+  /// Menghitung puncak rotasi.
   double? get peakRotation =>
       rotationHistory.isEmpty ? null : rotationHistory.reduce(math.max);
 }
 
 class RideSpeedSample {
+  /// Membuat sampel kecepatan pada waktu tertentu.
   const RideSpeedSample({
     required this.recordedAt,
     required this.speedMetersPerSecond,
@@ -156,6 +169,7 @@ class RideSpeedSample {
 }
 
 class RideSessionSummary {
+  /// Membuat ringkasan sesi beserta data performa.
   const RideSessionSummary({
     required this.session,
     required this.sampleCount,
@@ -174,8 +188,10 @@ class RideSessionSummary {
   final int accelerometerSampleCount;
   final int gyroscopeSampleCount;
 
+  /// Menentukan apakah grafik kecepatan tersedia.
   bool get hasSpeedGraph => speedSamples.length >= 5;
 
+  /// Membuat salinan ringkasan dengan sesi yang diperbarui.
   RideSessionSummary copyWith({RideSessionSnapshot? session}) =>
       RideSessionSummary(
         session: session ?? this.session,

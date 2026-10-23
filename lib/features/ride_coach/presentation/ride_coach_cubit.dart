@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/ride_coach_gateway.dart';
 
 class RideCoachState {
+  /// Membuat status pelatih AI untuk sesi dan briefing pra-perjalanan.
   const RideCoachState({
     this.recommendation,
     this.isLoading = false,
@@ -25,6 +26,7 @@ class RideCoachState {
 }
 
 class RideCoachCubit extends Cubit<RideCoachState> {
+  /// Membuat cubit dengan [gateway] sebagai penyedia layanan AI.
   RideCoachCubit(this._gateway) : super(const RideCoachState());
 
   final RideCoachGateway _gateway;
@@ -33,19 +35,27 @@ class RideCoachCubit extends Cubit<RideCoachState> {
   String? _consentedSessionId;
   DateTime? _lastRequestAt;
 
+  /// Menandakan layanan pelatih AI sudah dikonfigurasi.
   bool get isConfigured => _gateway.isConfigured;
+
+  /// Menandakan pengguna sudah masuk ke akun online.
   bool get isSignedIn => _gateway.isSignedIn;
+
+  /// Waktu permintaan saran terakhir untuk sesi aktif.
   DateTime? get lastRequestAt => _lastRequestAt;
 
+  /// Memeriksa apakah sesi [sessionId] sudah mendapat persetujuan pengguna.
   bool hasConsentForSession(String sessionId) =>
       _consentedSessionId == sessionId;
 
+  /// Memberi persetujuan untuk sesi aktif dan mengembalikan status berhasil.
   bool grantConsentForSession(String sessionId) {
     if (_activeSessionId != sessionId) return false;
     _consentedSessionId = sessionId;
     return true;
   }
 
+  /// Mengganti sesi aktif dan mereset persetujuan serta waktu permintaan.
   void setActiveSession(String? sessionId) {
     if (_activeSessionId == sessionId) return;
     _activeSessionId = sessionId;
@@ -54,10 +64,12 @@ class RideCoachCubit extends Cubit<RideCoachState> {
     clearRecommendation();
   }
 
+  /// Mencatat waktu mulai permintaan untuk sesi aktif [sessionId].
   void markRequestStarted(String sessionId) {
     if (_activeSessionId == sessionId) _lastRequestAt = DateTime.now();
   }
 
+  /// Meminta saran AI dan memperbarui status pemuatan serta kesalahan.
   Future<void> recommend({
     required Map<String, Object?> rideContext,
     required bool consent,
@@ -85,6 +97,7 @@ class RideCoachCubit extends Cubit<RideCoachState> {
     }
   }
 
+  /// Meminta briefing rute [routeId] dan menyimpan hasil atau kesalahannya.
   Future<void> prepareRide({
     required String routeId,
     required Map<String, Object?> routeAndWeather,
@@ -129,11 +142,13 @@ class RideCoachCubit extends Cubit<RideCoachState> {
     }
   }
 
+  /// Membatalkan permintaan berjalan dan mengosongkan status pelatih.
   void clearRecommendation() {
     _requestGeneration++;
     emit(const RideCoachState());
   }
 
+  /// Memeriksa konfigurasi layanan AI dan menampilkan hasilnya sebagai notice.
   Future<void> diagnoseConfiguration() async {
     if (state.isLoading) return;
     final generation = ++_requestGeneration;

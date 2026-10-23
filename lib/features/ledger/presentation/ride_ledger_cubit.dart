@@ -7,7 +7,9 @@ import '../data/ride_ledger_sync_gateway.dart';
 import '../domain/ride_ledger_anchor.dart';
 import '../domain/ride_ledger_block.dart';
 
+/// State untuk cubit buku besar bukti perjalanan.
 class RideLedgerState {
+  /// Membuat state buku besar bukti perjalanan.
   const RideLedgerState({
     this.blocks = const [],
     this.isLoading = false,
@@ -71,7 +73,9 @@ class RideLedgerState {
   );
 }
 
+/// Cubit pengelolaan buku besar bukti perjalanan.
 class RideLedgerCubit extends Cubit<RideLedgerState> {
+  /// Membuat cubit buku besar bukti perjalanan.
   RideLedgerCubit(
     this._repository, {
     this.syncGateway,
@@ -85,9 +89,11 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
   final RideLedgerAnchorVerifier verifier;
   final EvmRpcClient Function(String rpcUrl) _rpcFactory;
 
+  /// Menentukan apakah sinkronisasi online diizinkan.
   bool get canSync =>
       syncGateway?.isConfigured == true && syncGateway?.isSignedIn == true;
 
+  /// Memuat dan memverifikasi rantai bukti perjalanan.
   Future<void> load() async {
     emit(state.copyWith(isLoading: true));
     try {
@@ -121,6 +127,7 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
     }
   }
 
+  /// Memverifikasi rantai bukti secara lokal.
   Future<void> verify() async {
     try {
       final verified = await _repository.verify();
@@ -140,6 +147,7 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
     }
   }
 
+  /// Menyinkronkan bukti perjalanan ke akun online.
   Future<void> sync() async {
     final gateway = syncGateway;
     if (gateway == null || !gateway.isConfigured || !gateway.isSignedIn) {
@@ -226,6 +234,7 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
     }
   }
 
+  /// Memastikan rantai telah diverifikasi sebelum diproses.
   Future<void> _requireVerified() async {
     if (!await _repository.verify()) {
       throw StateError(
@@ -234,11 +243,13 @@ class RideLedgerCubit extends Cubit<RideLedgerState> {
     }
   }
 
+  /// Menghasilkan pesan jika fitur online tidak tersedia.
   String _unavailableMessage(RideLedgerSyncGateway? gateway) =>
       gateway?.isConfigured == true
       ? 'Masuk ke akun online untuk menyinkronkan bukti.'
       : 'Fitur akun online belum tersedia.';
 
+  /// Mengonversi error menjadi teks pesan pengguna.
   String _errorText(Object error) => error is StateError
       ? error.message
       : 'Bukti tidak dapat diproses. Periksa koneksi dan coba lagi.';

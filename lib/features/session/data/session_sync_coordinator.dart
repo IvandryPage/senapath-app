@@ -3,6 +3,7 @@ import 'ride_session_repository.dart';
 import 'session_sync_gateway.dart';
 
 class SessionSyncCoordinator {
+  /// Membuat koordinator sinkronisasi sesi.
   const SessionSyncCoordinator({
     required this.repository,
     required this.gateway,
@@ -11,6 +12,7 @@ class SessionSyncCoordinator {
   final RideSessionRepository repository;
   final SessionSyncGateway gateway;
 
+  /// Menyinkronkan ringkasan sesi ke gateway jika disetujui dan siap.
   Future<void> syncSummary(
     String sessionId, {
     required bool consented,

@@ -7,6 +7,7 @@ import '../data/route_file_exchange.dart';
 import '../domain/saved_route.dart';
 
 class RoutesState {
+  /// Membuat status daftar rute, pilihan sesi, dan panduan aktif.
   const RoutesState({
     this.query = '',
     this.routes = const [],
@@ -27,6 +28,7 @@ class RoutesState {
   final int guidanceStartCount;
   final String? message;
 
+  /// Menyalin status dengan nilai baru dan opsi pengosongan pesan atau rute.
   RoutesState copyWith({
     String? query,
     List<RouteRecord>? routes,
@@ -54,11 +56,13 @@ class RoutesState {
 }
 
 class RoutesCubit extends Cubit<RoutesState> {
+  /// Membuat cubit dengan repositori rute dan penukar file.
   RoutesCubit(this.repository, this.fileExchange) : super(const RoutesState());
 
   final SavedRouteRepository repository;
   final RouteFileExchange fileExchange;
 
+  /// Memuat daftar rute dan memulihkan rute sesi yang terakhir dipilih.
   Future<void> load() async {
     await search('');
     try {
@@ -75,6 +79,7 @@ class RoutesCubit extends Cubit<RoutesState> {
     }
   }
 
+  /// Mencari rute berdasarkan [query] dan memperbarui status pemuatan.
   Future<void> search(String query) async {
     emit(state.copyWith(query: query, isLoading: true, clearMessage: true));
     try {
@@ -90,6 +95,7 @@ class RoutesCubit extends Cubit<RoutesState> {
     }
   }
 
+  /// Mengimpor file GPX lalu menyegarkan daftar rute.
   Future<void> importGpx() async {
     try {
       final imported = await fileExchange.importGpx();
@@ -119,6 +125,7 @@ class RoutesCubit extends Cubit<RoutesState> {
     }
   }
 
+  /// Menghapus rute impor dan membersihkan pilihan atau panduan terkait.
   Future<void> deleteImportedRoute(String routeId) async {
     try {
       await repository.deleteImportedRoute(routeId);
@@ -135,6 +142,7 @@ class RoutesCubit extends Cubit<RoutesState> {
     }
   }
 
+  /// Memilih [route] untuk sesi dan menyimpannya secara asinkron.
   void selectSessionRoute(RouteRecord? route) {
     emit(
       state.copyWith(
@@ -153,8 +161,10 @@ class RoutesCubit extends Cubit<RoutesState> {
     );
   }
 
+  /// Menghapus pesan status yang sedang ditampilkan.
   void clearMessage() => emit(state.copyWith(clearMessage: true));
 
+  /// Memulai panduan pada [route] dan menampilkan peringatan keselamatan.
   void startGuidance(RouteRecord route) {
     emit(
       state.copyWith(
@@ -173,6 +183,7 @@ class RoutesCubit extends Cubit<RoutesState> {
     );
   }
 
+  /// Mengakhiri panduan aktif bila ada.
   void endGuidance() {
     if (state.guidanceRoute == null) return;
     emit(state.copyWith(clearGuidanceRoute: true));

@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+/// Transaksi EVM hasil pembacaan RPC.
 class EvmTransaction {
+  /// Membuat data transaksi EVM.
   const EvmTransaction({
     required this.hash,
     required this.from,
@@ -20,16 +22,21 @@ class EvmTransaction {
   final int? blockNumber;
 }
 
+/// Receipt transaksi EVM hasil pembacaan RPC.
 class EvmReceipt {
+  /// Membuat data receipt EVM.
   const EvmReceipt({required this.succeeded, required this.blockNumber});
 
   final bool succeeded;
   final int blockNumber;
 }
 
+/// Pengecualian saat panggilan RPC EVM gagal.
 class EvmRpcException implements Exception {
+  /// Membuat pengecualian RPC EVM.
   const EvmRpcException(this.message);
   final String message;
+  /// Mengembalikan pesan error sebagai teks.
   @override
   String toString() => message;
 }
@@ -37,6 +44,7 @@ class EvmRpcException implements Exception {
 /// Klien JSON-RPC minimal (eth_getTransactionByHash / eth_getTransactionReceipt
 /// / eth_chainId) untuk membaca data langsung dari node blockchain.
 class EvmRpcClient {
+  /// Membuat klien RPC EVM.
   EvmRpcClient(this.rpcUrl, {http.Client? client})
     : _client = client ?? http.Client();
 
@@ -44,9 +52,11 @@ class EvmRpcClient {
   final http.Client _client;
   int _nextId = 1;
 
+  /// Mengambil ID rantai blockchain.
   Future<int> chainId() async =>
       _parseHexInt(await _call('eth_chainId', const []))!;
 
+  /// Mengambil data transaksi berdasarkan hash.
   Future<EvmTransaction?> getTransaction(String txHash) async {
     final result = await _call('eth_getTransactionByHash', [txHash]);
     if (result == null) return null;
@@ -60,6 +70,7 @@ class EvmRpcClient {
     );
   }
 
+  /// Mengambil receipt transaksi berdasarkan hash.
   Future<EvmReceipt?> getReceipt(String txHash) async {
     final result = await _call('eth_getTransactionReceipt', [txHash]);
     if (result == null) return null;
@@ -70,6 +81,7 @@ class EvmRpcClient {
     );
   }
 
+  /// Melakukan panggilan JSON-RPC.
   Future<Object?> _call(String method, List<Object?> params) async {
     final response = await _client
         .post(
@@ -103,10 +115,12 @@ class EvmRpcClient {
     return decoded['result'];
   }
 
+  /// Mengonversi nilai hex berawalan 0x menjadi int.
   static int? _parseHexInt(Object? value) {
     if (value is! String || !value.startsWith('0x')) return null;
     return int.tryParse(value.substring(2), radix: 16);
   }
 
+  /// Menutup klien HTTP.
   void close() => _client.close();
 }

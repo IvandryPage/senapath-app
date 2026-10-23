@@ -5,12 +5,14 @@ import '../../account_sync/data/account_cloud_gateway.dart';
 import '../domain/activity_progress.dart';
 
 class ActivityGoalsRepository {
+  /// Membuat repositori target aktivitas dengan basis data lokal dan cloud opsional.
   const ActivityGoalsRepository(this._database, {this._cloud});
 
   static const _preferenceKey = 'activity_goals_v1';
   final AppDatabase _database;
   final AccountCloudGateway? _cloud;
 
+  /// Memuat target dari cloud bila masuk, dengan fallback ke data lokal.
   Future<List<ActivityGoal>> load() async {
     final cloud = _cloud;
     if (cloud != null && cloud.isSignedIn) {
@@ -36,6 +38,7 @@ class ActivityGoalsRepository {
     return _loadLocal();
   }
 
+  /// Menyimpan target secara lokal lalu mencoba mendorongnya ke cloud.
   Future<void> save(List<ActivityGoal> goals) async {
     await _saveLocal(goals);
     final cloud = _cloud;
@@ -51,6 +54,7 @@ class ActivityGoalsRepository {
     }
   }
 
+  /// Membaca dan mengurai target aktivitas dari preferensi lokal.
   Future<List<ActivityGoal>> _loadLocal() async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -59,6 +63,7 @@ class ActivityGoalsRepository {
     return _decode(jsonDecode(row.value));
   }
 
+  /// Memvalidasi struktur data lalu mengubahnya menjadi daftar target.
   List<ActivityGoal> _decode(Object? decoded) {
     if (decoded is! List) {
       throw const FormatException('Data target aktivitas tidak valid.');
@@ -73,6 +78,7 @@ class ActivityGoalsRepository {
         .toList(growable: false);
   }
 
+  /// Menulis target aktivitas terenkode ke preferensi lokal.
   Future<void> _saveLocal(List<ActivityGoal> goals) async {
     await _database
         .into(_database.appPreferences)

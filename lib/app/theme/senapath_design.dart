@@ -22,6 +22,7 @@ abstract final class SenapathSpacing {
 }
 
 class SenapathAlertDialog extends StatelessWidget {
+  /// Membuat dialog peringatan dengan padding dan opsi gulir yang dapat diatur.
   const SenapathAlertDialog({
     this.title,
     this.content,
@@ -41,6 +42,7 @@ class SenapathAlertDialog extends StatelessWidget {
   final EdgeInsetsGeometry actionsPadding;
   final bool scrollable;
 
+  /// Menampilkan konten dialog memakai AlertDialog yang sudah ditata.
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: title,
@@ -62,6 +64,7 @@ abstract final class SenapathShape {
 }
 
 class SenapathCard extends StatelessWidget {
+  /// Membuat kartu dengan sudut membulat, garis tepi, dan aksi ketuk opsional.
   const SenapathCard({
     required this.child,
     this.onTap,
@@ -81,6 +84,8 @@ class SenapathCard extends StatelessWidget {
   final Clip clipBehavior;
   final double borderRadius;
 
+  /// Membangun kartu bertema berisi child dan area ketuk yang memberi efek
+  /// ripple.
   @override
   Widget build(BuildContext context) {
     final surface = Theme.of(context).colorScheme.surface;
@@ -108,6 +113,7 @@ class SenapathCard extends StatelessWidget {
 }
 
 class SenapathMetric extends StatelessWidget {
+  /// Membuat tampilan metrik berisi label, nilai, dan satuan opsional.
   const SenapathMetric({
     required this.label,
     required this.value,
@@ -121,6 +127,7 @@ class SenapathMetric extends StatelessWidget {
   final String? unit;
   final Color accent;
 
+  /// Membangun kolom label kapital, nilai besar, dan satuan bila tersedia.
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,6 +154,8 @@ class SenapathMetric extends StatelessWidget {
 }
 
 class SenapathButton extends StatelessWidget {
+  /// Membuat tombol bergaya kartu yang mendukung ikon, status memuat, dan
+  /// animasi tekan.
   const SenapathButton({
     required this.label,
     required this.onPressed,
@@ -168,6 +177,8 @@ class SenapathButton extends StatelessWidget {
   final Color foregroundColor;
   final bool animatePress;
 
+  /// Membangun isi tombol, menampilkan indikator saat memuat atau ikon saat
+  /// tersedia, lalu membungkusnya sesuai lebar penuh.
   @override
   Widget build(BuildContext context) {
     final button = SenapathCard(
@@ -221,6 +232,7 @@ class SenapathButton extends StatelessWidget {
 }
 
 class SenapathBadge extends StatelessWidget {
+  /// Membuat lencana kecil berisi label dan ikon opsional.
   const SenapathBadge({
     required this.label,
     this.color = SenapathColors.accent,
@@ -232,6 +244,7 @@ class SenapathBadge extends StatelessWidget {
   final Color color;
   final IconData? icon;
 
+  /// Membangun lencana berlatar warna dengan ikon dan teks yang ditata rapi.
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(

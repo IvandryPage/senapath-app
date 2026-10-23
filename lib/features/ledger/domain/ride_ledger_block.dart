@@ -1,4 +1,6 @@
+/// Blok bukti perjalanan dalam rantai hash.
 class RideLedgerBlock {
+  /// Membuat blok bukti perjalanan.
   const RideLedgerBlock({
     required this.index,
     required this.sessionId,
@@ -17,6 +19,7 @@ class RideLedgerBlock {
   final String previousHash;
   final String hash;
 
+  /// Mengonversi blok ke bentuk JSON.
   Map<String, Object?> toJson() => {
     'index': index,
     'sessionId': sessionId,
@@ -27,6 +30,7 @@ class RideLedgerBlock {
     'hash': hash,
   };
 
+  /// Membuat blok dari data JSON.
   factory RideLedgerBlock.fromJson(Map<String, dynamic> json) =>
       RideLedgerBlock(
         index: json['index'] as int,

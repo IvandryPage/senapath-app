@@ -7,7 +7,9 @@ import '../../../core/storage/app_database.dart';
 import '../../session/domain/ride_session.dart';
 import '../domain/ride_ledger_block.dart';
 
+/// Repository penyimpanan dan verifikasi rantai bukti perjalanan.
 class RideLedgerRepository {
+  /// Membuat repository buku besar bukti perjalanan.
   RideLedgerRepository(this._database, {Sha256? digest})
     : _digest = digest ?? Sha256();
 
@@ -18,6 +20,7 @@ class RideLedgerRepository {
   final Sha256 _digest;
   Future<void> _writeLock = Future<void>.value();
 
+  /// Memuat daftar blok bukti dari penyimpanan lokal.
   Future<List<RideLedgerBlock>> loadBlocks() async {
     final row = await (_database.select(
       _database.appPreferences,
@@ -36,6 +39,7 @@ class RideLedgerRepository {
     ];
   }
 
+  /// Menambahkan bukti dari sesi perjalanan yang selesai.
   Future<void> appendSession(RideSessionSnapshot session) async {
     final previousWrite = _writeLock;
     final completion = Completer<void>();
@@ -75,6 +79,7 @@ class RideLedgerRepository {
     }
   }
 
+  /// Memverifikasi integritas rantai bukti lokal.
   Future<bool> verify() async {
     final blocks = await loadBlocks();
     var expectedPreviousHash = _genesisHash;
@@ -102,6 +107,7 @@ class RideLedgerRepository {
     return true;
   }
 
+  /// Menyimpan daftar blok ke penyimpanan lokal.
   Future<void> _save(List<RideLedgerBlock> blocks) async {
     await _database
         .into(_database.appPreferences)
@@ -113,6 +119,7 @@ class RideLedgerRepository {
         );
   }
 
+  /// Menghitung hash SHA-256 dalam format hex.
   Future<String> _hash(String value) async {
     final digest = await _digest.hash(utf8.encode(value));
     return digest.bytes

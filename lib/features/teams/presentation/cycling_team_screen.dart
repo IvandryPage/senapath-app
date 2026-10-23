@@ -18,19 +18,23 @@ import '../domain/cycling_team.dart';
 import 'cycling_team_cubit.dart';
 
 class CyclingTeamScreen extends StatefulWidget {
+  /// Membuat layar daftar tim dengan aksi buat dan gabung.
   const CyclingTeamScreen({super.key});
 
+  /// Membuat state untuk memuat daftar tim saat layar dibuka.
   @override
   State<CyclingTeamScreen> createState() => _CyclingTeamScreenState();
 }
 
 class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
+  /// Memuat daftar tim saat state pertama kali dibuat.
   @override
   void initState() {
     super.initState();
     unawaited(context.read<CyclingTeamCubit>().loadTeams());
   }
 
+  /// Menampilkan akses akun, aksi tim, dan daftar tim pengguna.
   @override
   Widget build(BuildContext context) =>
       BlocListener<CyclingTeamCubit, CyclingTeamState>(
@@ -133,6 +137,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
         ),
       );
 
+  /// Menampilkan form nama tim lalu membuat tim untuk pengguna.
   Future<void> _createTeam() async {
     final displayName = _currentProfileDisplayName();
     if (displayName == null) return;
@@ -144,6 +149,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
     );
   }
 
+  /// Menampilkan form kode undangan lalu bergabung ke tim.
   Future<void> _joinTeam() async {
     final displayName = _currentProfileDisplayName();
     if (displayName == null) return;
@@ -155,6 +161,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
     );
   }
 
+  /// Mengambil nama tampilan profil atau menampilkan pesan bila belum diatur.
   String? _currentProfileDisplayName() {
     final displayName = context
         .read<ProfileCubit>()
@@ -175,6 +182,7 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
     return null;
   }
 
+  /// Menampilkan dialog form buat atau gabung tim dan mengembalikan isiannya.
   Future<_TeamFormResult?> _showTeamForm({required bool join}) {
     final nameController = TextEditingController();
     final inviteController = TextEditingController();
@@ -271,10 +279,12 @@ class _CyclingTeamScreenState extends State<CyclingTeamScreen> {
 }
 
 class CyclingTeamDashboardScreen extends StatefulWidget {
+  /// Membuat layar dashboard untuk tim dengan ID tertentu.
   const CyclingTeamDashboardScreen({required this.teamId, super.key});
 
   final String teamId;
 
+  /// Membuat state untuk memuat dashboard tim saat layar dibuka.
   @override
   State<CyclingTeamDashboardScreen> createState() =>
       _CyclingTeamDashboardScreenState();
@@ -282,6 +292,7 @@ class CyclingTeamDashboardScreen extends StatefulWidget {
 
 class _CyclingTeamDashboardScreenState
     extends State<CyclingTeamDashboardScreen> {
+  /// Memuat dashboard tim dan sesi perjalanan saat state dibuat.
   @override
   void initState() {
     super.initState();
@@ -289,6 +300,7 @@ class _CyclingTeamDashboardScreenState
     unawaited(context.read<RideSessionCubit>().initialize());
   }
 
+  /// Menampilkan ringkasan tim, anggota, perjalanan bersama, dan aksi ketua.
   @override
   Widget build(BuildContext context) =>
       BlocListener<CyclingTeamCubit, CyclingTeamState>(
@@ -445,6 +457,7 @@ class _CyclingTeamDashboardScreenState
         ),
       );
 
+  /// Meminta konfirmasi lalu membagikan ringkasan sesi ke tim.
   Future<void> _confirmAndShare(RideSessionSnapshot session) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -483,6 +496,7 @@ class _CyclingTeamDashboardScreenState
     await context.read<CyclingTeamCubit>().loadDashboard(widget.teamId);
   }
 
+  /// Meminta konfirmasi, keluar dari tim, dan kembali bila sudah tidak diikuti.
   Future<void> _leaveTeam() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -514,6 +528,7 @@ class _CyclingTeamDashboardScreenState
     }
   }
 
+  /// Meminta konfirmasi, menghapus tim, dan kembali setelah berhasil.
   Future<void> _deleteTeam() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -551,10 +566,12 @@ class _CyclingTeamDashboardScreenState
 }
 
 class _TeamAccessRequired extends StatelessWidget {
+  /// Membuat pesan akses tim dengan status konfigurasi layanan.
   const _TeamAccessRequired({required this.configured});
 
   final bool configured;
 
+  /// Menampilkan ikon, pesan, dan tombol masuk sesuai status layanan.
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
@@ -587,8 +604,10 @@ class _TeamAccessRequired extends StatelessWidget {
 }
 
 class _PrivacyNotice extends StatelessWidget {
+  /// Membuat kartu informasi privasi data perjalanan tim.
   const _PrivacyNotice();
 
+  /// Menampilkan penjelasan singkat tentang data yang dibagikan ke tim.
   @override
   Widget build(BuildContext context) => SenapathCard(
     child: const Padding(
@@ -611,11 +630,13 @@ class _PrivacyNotice extends StatelessWidget {
 }
 
 class _TeamListCard extends StatelessWidget {
+  /// Membuat kartu ringkas tim dengan aksi saat diketuk.
   const _TeamListCard({required this.team, required this.onTap});
 
   final CyclingTeam team;
   final VoidCallback onTap;
 
+  /// Menampilkan nama, jumlah anggota, peran, dan ikon navigasi tim.
   @override
   Widget build(BuildContext context) => SenapathCard(
     onTap: onTap,
@@ -636,10 +657,12 @@ class _TeamListCard extends StatelessWidget {
 }
 
 class _InviteCodeCard extends StatelessWidget {
+  /// Membuat kartu kode undangan yang dapat disalin.
   const _InviteCodeCard({required this.code});
 
   final String code;
 
+  /// Menampilkan kode undangan dengan tombol salin ke papan klip.
   @override
   Widget build(BuildContext context) => SenapathCard(
     child: ListTile(
@@ -665,11 +688,13 @@ class _InviteCodeCard extends StatelessWidget {
 }
 
 class _TeamSummaryCards extends StatelessWidget {
+  /// Membuat deretan kartu ringkasan statistik tim.
   const _TeamSummaryCards({required this.dashboard, required this.metric});
 
   final CyclingTeamDashboard dashboard;
   final bool metric;
 
+  /// Menampilkan metrik perjalanan, jarak, durasi, kecepatan, dan elevasi.
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 10,
@@ -710,6 +735,7 @@ class _TeamSummaryCards extends StatelessWidget {
 }
 
 class _MetricCard extends StatelessWidget {
+  /// Membuat kartu metrik dengan label, nilai, dan ikon.
   const _MetricCard({
     required this.label,
     required this.value,
@@ -720,6 +746,7 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final IconData icon;
 
+  /// Menampilkan ikon, nilai metrik, dan labelnya dalam kartu berukuran tetap.
   @override
   Widget build(BuildContext context) => SizedBox(
     width: 156,
@@ -741,6 +768,7 @@ class _MetricCard extends StatelessWidget {
 }
 
 class _MemberSummaryCard extends StatelessWidget {
+  /// Membuat kartu anggota dengan ringkasan sesi dan aksi peran atau tarik.
   const _MemberSummaryCard({
     required this.member,
     required this.sessions,
@@ -755,6 +783,7 @@ class _MemberSummaryCard extends StatelessWidget {
   final ValueChanged<String>? onSetRole;
   final ValueChanged<TeamRideSummary>? onUnshare;
 
+  /// Menampilkan profil anggota, total sesi, dan daftar perjalanan terbarunya.
   @override
   Widget build(BuildContext context) {
     final distance = sessions.fold<double>(
@@ -861,6 +890,7 @@ class _MemberSummaryCard extends StatelessWidget {
 }
 
 class _ShareableSessions extends StatelessWidget {
+  /// Membuat daftar sesi selesai yang dapat dibagikan ke tim.
   const _ShareableSessions({
     required this.sessions,
     required this.sharedSessionIds,
@@ -875,6 +905,7 @@ class _ShareableSessions extends StatelessWidget {
   final bool metric;
   final ValueChanged<RideSessionSnapshot> onShare;
 
+  /// Menampilkan tiap sesi selesai dengan tombol bagikan atau status dibagikan.
   @override
   Widget build(BuildContext context) {
     if (sessions.isEmpty) {
@@ -916,13 +947,15 @@ class _ShareableSessions extends StatelessWidget {
 }
 
 class _TeamFormResult {
+  /// Menampung hasil input form buat atau gabung tim.
   const _TeamFormResult({required this.name, required this.inviteCode});
 
   final String name;
   final String inviteCode;
 }
 
-String _durationLabel(int seconds) {
+  /// Memformat durasi detik menjadi label jam dan menit.
+  String _durationLabel(int seconds) {
   final duration = Duration(seconds: seconds);
   final hours = duration.inHours;
   final minutes = duration.inMinutes.remainder(60);
@@ -930,11 +963,13 @@ String _durationLabel(int seconds) {
   return '$hours jam $minutes mnt';
 }
 
-String _formatDistance(double meters, bool metric) => metric
+  /// Mengonversi meter ke kilometer atau mil sesuai sistem unit.
+  String _formatDistance(double meters, bool metric) => metric
     ? '${(meters / 1000).toStringAsFixed(1)} km'
     : '${(meters / 1609.344).toStringAsFixed(1)} mi';
 
-String _formatSpeed(double metersPerSecond, bool metric) {
+  /// Mengonversi meter per detik ke km/jam atau mph sesuai sistem unit.
+  String _formatSpeed(double metersPerSecond, bool metric) {
   final speed = metersPerSecond * (metric ? 3.6 : 2.236936);
   return '${speed.toStringAsFixed(1)} ${metric ? 'km/jam' : 'mph'}';
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/route_wind.dart';
 
 class RouteWindIndicator extends StatelessWidget {
+  /// Membuat indikator arah angin relatif terhadap arah rute.
   const RouteWindIndicator({
     required this.wind,
     required this.routeHeadingDegrees,
@@ -20,6 +21,7 @@ class RouteWindIndicator extends StatelessWidget {
   final bool hasError;
   final bool isLocationReady;
 
+  /// Membangun tombol ikon angin yang berputar sesuai arah relatif.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

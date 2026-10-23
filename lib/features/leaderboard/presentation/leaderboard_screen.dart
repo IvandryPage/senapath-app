@@ -8,8 +8,10 @@ import '../../session/presentation/session_cubit.dart';
 import 'leaderboard_cubit.dart';
 
 class LeaderboardScreen extends StatefulWidget {
+  /// Membuat layar papan peringkat peserta.
   const LeaderboardScreen({super.key});
 
+  /// Membuat state untuk memuat rekor dan peringkat sekali saat dibuka.
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
@@ -17,6 +19,7 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _loaded = false;
 
+  /// Memuat rekor sesi dan papan peringkat sekali saat halaman dibuka.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -25,6 +28,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     unawaited(_loadRecordsAndLeaderboard());
   }
 
+  /// Menyiapkan sesi, mengirim rekor lokal, lalu memuat papan peringkat.
   Future<void> _loadRecordsAndLeaderboard() async {
     final sessionCubit = context.read<RideSessionCubit>();
     await sessionCubit.initialize();
@@ -35,6 +39,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     await context.read<LeaderboardCubit>().load();
   }
 
+  /// Menampilkan pemilih kategori, status, dan daftar peringkat peserta.
   @override
   Widget build(BuildContext context) {
     return BlocListener<LeaderboardCubit, LeaderboardState>(
@@ -149,6 +154,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
+  /// Memformat skor entri menjadi kilometer atau jam dan menit.
   String _formatScore(LeaderboardEntry entry, LeaderboardCategory category) {
     if (category == LeaderboardCategory.distance) {
       return '${(entry.score / 1000).toStringAsFixed(1)} km';
@@ -161,6 +167,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 }
 
 class _LeaderboardTopThree extends StatelessWidget {
+  /// Membuat kartu tiga peringkat teratas dengan fungsi pemformat skor.
   const _LeaderboardTopThree({
     required this.entries,
     required this.category,
@@ -171,6 +178,7 @@ class _LeaderboardTopThree extends StatelessWidget {
   final LeaderboardCategory category;
   final String Function(LeaderboardEntry, LeaderboardCategory) formatScore;
 
+  /// Menampilkan kartu peringkat satu sampai tiga dengan warna khusus.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

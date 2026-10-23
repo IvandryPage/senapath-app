@@ -7,8 +7,10 @@ import '../domain/rider_progress.dart';
 import 'rider_gamification_cubit.dart';
 
 class RiderScreen extends StatelessWidget {
+  /// Membuat layar profil, level, dan pencapaian pesepeda.
   const RiderScreen({super.key});
 
+  /// Menampilkan ringkasan level, menu rider, dan daftar pencapaian.
   @override
   Widget build(
     BuildContext context,
@@ -155,10 +157,12 @@ class RiderScreen extends StatelessWidget {
 }
 
 class _AchievementCard extends StatelessWidget {
+  /// Membuat kartu pencapaian untuk satu achievement rider.
   const _AchievementCard({required this.achievement});
 
   final RiderAchievement achievement;
 
+  /// Menampilkan kartu pencapaian beserta ikon, progres, dan statusnya.
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

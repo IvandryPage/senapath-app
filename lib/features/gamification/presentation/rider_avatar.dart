@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/rider_progress.dart';
 
 class RiderAvatar extends StatelessWidget {
+  /// Membuat avatar rider dengan gaya, warna jersey, dan aksesori terpilih.
   const RiderAvatar({
     required this.style,
     required this.appearance,
@@ -14,6 +15,7 @@ class RiderAvatar extends StatelessWidget {
   final RiderAppearance appearance;
   final double size;
 
+  /// Menampilkan avatar lingkaran dengan ikon gaya dan badge aksesori.
   @override
   Widget build(BuildContext context) {
     final accessoryIcon = switch (appearance.accessory) {
@@ -55,6 +57,7 @@ class RiderAvatar extends StatelessWidget {
     );
   }
 
+  /// Memetakan gaya rider ke ikon yang ditampilkan di avatar.
   IconData get _styleIcon => switch (style) {
     RiderStyle.sprinter => Icons.bolt,
     RiderStyle.climber => Icons.terrain,

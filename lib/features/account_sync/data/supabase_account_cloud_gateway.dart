@@ -6,6 +6,7 @@ import '../../session/domain/ride_session.dart';
 import 'account_cloud_gateway.dart';
 
 class SupabaseAccountCloudGateway implements AccountCloudGateway {
+  /// Membuat gateway penyimpanan akun cloud Supabase.
   const SupabaseAccountCloudGateway(this._client, this._sessionManager);
 
   static const int _telemetryBatchSize = 500;
@@ -13,12 +14,15 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
   final SupabaseClient? _client;
   final CustomAuthSessionManager _sessionManager;
 
+  /// Menentukan apakah klien Supabase tersedia.
   @override
   bool get isConfigured => _client != null;
 
+  /// Menentukan apakah pengguna telah masuk.
   @override
   bool get isSignedIn => _sessionManager.currentUserId != null;
 
+  /// Membaca dokumen pengaturan JSON milik akun.
   @override
   Future<Object?> pullSetting(String key) async {
     final client = _requiredClient();
@@ -32,6 +36,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     return row?['value'];
   }
 
+  /// Menyimpan dokumen pengaturan JSON milik akun.
   @override
   Future<void> pushSetting(String key, Object? value) async {
     final client = _requiredClient();
@@ -44,6 +49,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     }, onConflict: 'user_id,key');
   }
 
+  /// Menyimpan sesi dan telemetri secara bertahap ke cloud.
   @override
   Future<void> pushRideSession(
     RideSessionSnapshot session,
@@ -92,6 +98,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     }
   }
 
+  /// Menyusun satu baris telemetri untuk disimpan.
   Map<String, Object?> _telemetryRow(
     String userId,
     String sessionId,
@@ -113,6 +120,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     'speed_meters_per_second': point.speedMetersPerSecond,
   };
 
+  /// Mengambil sesi beserta telemetri yang diurutkan.
   @override
   Future<List<CloudRideSession>> pullRideSessions() async {
     final client = _requiredClient();
@@ -151,6 +159,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     ];
   }
 
+  /// Membangun snapshot sesi dari baris database.
   RideSessionSnapshot _sessionFromRow(Map<String, dynamic> row) {
     final startedAt = DateTime.parse(row['started_at'] as String).toUtc();
     final endedAt = DateTime.parse(row['ended_at'] as String).toUtc();
@@ -170,6 +179,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     );
   }
 
+  /// Membangun titik telemetri dari baris database.
   TelemetryLocation _telemetryFromRow(
     Map<String, dynamic> row,
   ) => TelemetryLocation(
@@ -188,6 +198,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     speedMetersPerSecond: (row['speed_meters_per_second'] as num).toDouble(),
   );
 
+  /// Menghapus sesi dan telemetrinya dari cloud.
   @override
   Future<void> deleteRideSession(String sessionId) async {
     final client = _requiredClient();
@@ -204,6 +215,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
         .eq('session_id', sessionId);
   }
 
+  /// Menyimpan progres pengendara melalui RPC.
   @override
   Future<void> pushRiderProgress({
     required RiderStyle style,
@@ -232,6 +244,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     );
   }
 
+  /// Mengambil progres pengendara, atau null bila belum ada.
   @override
   Future<CloudRiderProgress?> pullRiderProgress() async {
     final client = _requiredClient();
@@ -268,6 +281,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     );
   }
 
+  /// Mengembalikan klien Supabase atau melempar error.
   SupabaseClient _requiredClient() {
     final client = _client;
     if (client == null) {
@@ -276,6 +290,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     return client;
   }
 
+  /// Memastikan pengguna masuk dan tokennya valid.
   Future<String> _requireUserId() async {
     final userId = _sessionManager.currentUserId;
     if (userId == null) {
@@ -285,6 +300,7 @@ class SupabaseAccountCloudGateway implements AccountCloudGateway {
     return userId;
   }
 
+  /// Memetakan nama aktivitas ke enum, default ride.
   RideActivityType _activityTypeFromName(String? value) => switch (value) {
     'commute' => RideActivityType.commute,
     'training' => RideActivityType.training,
